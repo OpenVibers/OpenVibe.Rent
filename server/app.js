@@ -30,6 +30,8 @@ const { createApi } = require('./http/api');
 const { createPageRoutes } = require('./http/pages');
 const { createServiceReadiness } = require('./observability');
 const { createCallerLimits } = require('./http/caller-limits');
+const accountDataLib = require('./identity/account-data');
+const { createNetworkSender } = require('openvibe-sdk/account-data');
 const { assetVersion, send } = require('./render/layout');
 const { html } = require('./render/html');
 
@@ -38,7 +40,7 @@ const VERSION = require('../package.json').version;
 
 /**
  * opts: config, store, now (clock), fetchImpl (Network), log, limitsNow, callerLimits (false: count nobody,
- * tests only), valkey
+ * tests only), valkey, accountSend (a stand-in for Network's internal routes; tests only)
  */
 async function createApp(opts = {}) {
     const config = opts.config || configLib.load();
@@ -50,6 +52,18 @@ async function createApp(opts = {}) {
     const sso = createSso({ config, keys, fetchImpl, now: s.now, log });
     const principal = createPrincipal({ config, keys });
     const ctx = { config, s, keys, sso, principal, log };
+
+    // Account export and deletion (ADR-033, ./identity/account-data.js): the three tables that hold a person's rows.
+    // The sender posts to Network's internal export/deletion routes with this service's own client-credentials token;
+    // a test injects a stand-in through opts.accountSend.
+    const accountData = accountDataLib.create({ db: s.db, log });
+    // Without a client secret the service has no way to push a part or a confirmation: the route still answers
+    // (bad signature, a forwarded request, no secret), and an event that really arrives asks Events to retry.
+    const accountSend = opts.accountSend || (config.oauth.clientSecret
+        ? createNetworkSender({ networkInternalUrl: config.networkInternalUrl, clientId: config.oauth.clientId, clientSecret: config.oauth.clientSecret, fetch: fetchImpl })
+        : async () => { throw new Error('OV_OAUTH_CLIENT_SECRET is not set: Rent cannot answer account events'); });
+    ctx.accountData = accountData;
+    ctx.accountSend = accountSend;
 
     const app = express();
     app.disable('x-powered-by');
@@ -101,6 +115,12 @@ async function createApp(opts = {}) {
     app.use('/auth/', rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: true, legacyHeaders: false }));
     app.use('/auth', sso.routes());
     { const legal = require('openvibe-shared/legal'); app.get(legal.PATHS, legal.handler({ id: 'rent', service: 'rent', host: 'openvibe.rent', name: 'OpenVibe.Rent', profile: 'ugc' })); }
+
+    // ── OpenVibe.Events → this service (loopback only) ──────
+    // network.account.export_requested and network.account.deleted (ADR-033), answered by the SDK's consumer. It
+    // reads the raw body itself, so it is mounted before any body parser (there is none above it), and nginx answers
+    // 404 for /internal/ so this is reachable only on 127.0.0.1.
+    app.use('/internal/events', accountData.consumer({ secrets: config.events.secrets, send: accountSend, log }));
 
     // ── Static assets (content-hashed ?v= → immutable) ──────
     app.use('/shared', require('openvibe-shared/serve').handler());

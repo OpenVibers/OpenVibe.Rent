@@ -84,8 +84,9 @@ Network), `BASE_URL`, `DATABASE_URL` and `DATABASE_DIRECT_URL`. The database is 
 the Network signing key, the OAuth client and Valkey are optional (the service says so, per check, on
 `/api/ready`).
 
-The product adds no environment variables of its own: its numbers (10 active listings, 5 a day, 30 days, 3 reports,
-30 a page, the per-caller budgets) are constants next to the rules they belong to, not deployment settings.
+The product adds no environment variables of its own beyond the OpenVibe.Events ones below: its numbers (10 active
+listings, 5 a day, 30 days, 3 reports, 30 a page, the per-caller budgets) are constants next to the rules they belong
+to, not deployment settings.
 
 ## Development and tests
 
@@ -109,6 +110,25 @@ through PostgreSQL and PgBouncer (see [.github/workflows/ci.yml](.github/workflo
 - **Rollback:** ovhost puts the previous sha back by itself when `/api/ready` does not answer after the restart.
 - Register the service and its capabilities in **OpenVibe.Contracts** (`contracts-service: rent` in CI) and with
   **OpenVibe.Services** before the first deploy.
+
+## Account export and deletion
+
+A person's account at OpenVibe.Network can be exported and deleted, and every service holding their rows answers its
+part (ADR-033). Rent receives `network.account.export_requested` and `network.account.deleted` at `POST /internal/events`
+(loopback only) — the three tables are mapped in [server/identity/account-data.js](server/identity/account-data.js), and
+the boot-time subscriptions are created by [server/events-consumer.js](server/events-consumer.js):
+
+- **Exported:** the listings a person posted (`listings.json`), the reports they filed (`reports.json`) and the searches
+  they saved (`saved_searches.json`), pushed to `POST /internal/account-exports/:id/parts` with this service's own
+  token. Nothing here is a secret — Rent stores no token, key or credential.
+- **Erased:** all three tables hold the person's own rows, so they are deleted whole and nothing is kept. Rent then
+  confirms with `POST /internal/account-deletions/:id/confirmations` and the counts.
+- **Anonymized:** nothing. Rent keeps no row by this person that another person's page must still read — the reports
+  other people left on a deleted listing cascade away with it.
+
+Environment: `RENT_EVENTS_SECRET` (comma-separated for rotation, 32+ characters each; unset makes the route answer
+503), `RENT_EVENTS_URL` (or `EVENTS_URL`) is where the two subscriptions are created at boot (off when unset), and
+`RENT_EVENTS_ENDPOINT` overrides the loopback endpoint; `RENT_EVENTS_SUBSCRIBE=0` turns the boot-time subscription off.
 
 ## Security (threat notes)
 

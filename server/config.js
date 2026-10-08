@@ -52,6 +52,16 @@ function load(env = process.env) {
             sessionAudience: env.OV_SESSION_AUDIENCE || 'openvibe.network',
         },
         cookies: { secure: env.COOKIE_SECURE ? env.COOKIE_SECURE === 'true' : isProduction },
+
+        // OpenVibe.Events → this service (server/events-consumer.js). The secret signs a delivery (comma-separated
+        // for rotation, 32+ characters each); unset turns POST /internal/events off (503). The url is where the
+        // network.account.export_requested and network.account.deleted subscriptions are created at boot, off when
+        // unset. Both topics are ADR-033: account export and deletion (server/identity/account-data.js).
+        events: {
+            secrets: String(env.RENT_EVENTS_SECRET || '').split(',').map((x) => x.trim()).filter(Boolean),
+            url: trim(env.RENT_EVENTS_URL || env.EVENTS_URL || ''),
+            endpoint: env.RENT_EVENTS_ENDPOINT || '',
+        },
     };
 }
 
