@@ -28,11 +28,18 @@ function caller(req) {
 /**
  * The product's expensive routes, each with its numbers per caller (a minute, an hour). A route takes its entry
  * with `limits.budget('<name>')`; an unknown name throws, so a route can never be counted by a budget that was
- * not declared here. The empty object is the skeleton's starting point:
+ * not declared here. The form on the page and the API route take the same entry: the form is the same action
+ * through another door, so it cannot be a way round the limit (see http/pages.js budgeted()).
  *
- *   'rent.thing.create': { minute: 6, hour: 60 },
+ * These are the per-caller rates; the product's own caps (10 active listings, 5 a day, one report per person per
+ * listing) are enforced in server/listings/service.js and the store — both, because they mean different things.
  */
-const BUDGETS = {};
+const BUDGETS = {
+    'rent.listing.create': { minute: 6, hour: 40 },
+    'rent.listing.report': { minute: 10, hour: 60 },
+    'rent.listing.renew': { minute: 10, hour: 60 },
+    'rent.saved.create': { minute: 20, hour: 100 },
+};
 
 function createCallerLimits({ config, now = () => Date.now(), registry = null, log = console, enabled = true, valkey = null }) {
     const refused = registry

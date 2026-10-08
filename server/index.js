@@ -3,9 +3,13 @@
 /**
  * OpenVibe.Rent — process entry. `node server/index.js`
  * Listens on PORT (5010) behind nginx (deploy/).
+ *
+ * The expiry sweep (server/listings/expiry.js) is started here and nowhere else: a listing's 30 days are marked
+ * expired by a timer, not by a page render, so a request never does that work and a test never races it.
  */
 const { createApp } = require('./app');
 const { gracefulStop } = require('openvibe-sdk/service');
+const { startExpiryTimer } = require('./listings/expiry');
 
 /**
  * The process stop (openvibe-sdk/service): the HTTP drain runs, then the JWKS refresher stops and the store closes.
@@ -28,8 +32,12 @@ async function start() {
     server.keepAliveTimeout = 65_000;
     ctx.keys.client.start();
 
-    createLifecycle({ server, ctx });
-    return { server, ctx };
+    // One sweep at boot (a restart must not leave a stale listing up a moment longer than it should), then a timer.
+    const expiry = startExpiryTimer(ctx.s);
+    await expiry.tick();
+
+    createLifecycle({ server, ctx, timers: [expiry.timer] });
+    return { server, ctx, expiry };
 }
 
 if (require.main === module) {

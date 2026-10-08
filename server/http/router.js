@@ -1,14 +1,14 @@
 'use strict';
 
 /**
- * express.Router() whose get/post handlers may be async: a rejected promise goes to next(err) (the
- * app's error handler, which logs without request bodies) instead of becoming an unhandled rejection.
+ * express.Router() whose handlers may be async: a rejected promise goes to next(err) (the app's error handler,
+ * which logs without request bodies) instead of becoming an unhandled rejection.
  */
 const express = require('express');
 
 function asyncRouter() {
     const r = express.Router();
-    for (const method of ['get', 'post']) {
+    for (const method of ['get', 'post', 'put', 'patch', 'delete']) {
         const orig = r[method].bind(r);
         r[method] = (path, ...handlers) => orig(path, ...handlers.map((h) => (h.length === 4 ? h : (req, res, next) => {
             try {

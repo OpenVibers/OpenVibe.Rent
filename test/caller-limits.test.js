@@ -20,8 +20,11 @@ const READ = 'rent.api.read';
     const rosa = t.network.addUser('rosa');
     const sam = t.network.addUser('sam');
 
-    await check('BUDGETS starts empty: the product declares its own expensive routes', () => {
-        assert.deepStrictEqual(BUDGETS, {});
+    await check('BUDGETS names the product\'s own expensive routes, and nothing else', () => {
+        assert.deepStrictEqual(Object.keys(BUDGETS).sort(), ['rent.listing.create', 'rent.listing.renew', 'rent.listing.report', 'rent.saved.create']);
+        for (const [name, own] of Object.entries(BUDGETS)) {
+            assert.ok(own.minute > 0 && own.hour >= own.minute, `${name}: minute and hour`);
+        }
     });
 
     await check('a read: 3 a minute per address, then 429 rate_limited with Retry-After; another address passes', async () => {

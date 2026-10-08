@@ -4,14 +4,14 @@
  * OpenVibe.Rent — Express app factory; server/index.js listens, tests build their own instance with a temp database
  * and a mock Network.
  *
- *   /, /updates                                       the pages (http/pages.js)
+ *   /, /listings, /listings/:id, /post, /mine, /saved, /safety, /staff, /updates   the pages (http/pages.js)
  *   /api/v1/*                                         the API (http/api.js)
  *   /auth/*                                           Network SSO with PKCE (auth/sso.js)
  *   /api/health, /api/ready, /release.json, /metrics  (loopback only)
  *
- * The product fills this in: its routes in http/api.js, its pages in http/pages.js, its capabilities in
- * http/principal.js and its budgets in http/caller-limits.js. The plumbing here (helmet, SSO, legal pages,
- * static assets, the API mount, the 404 and the error handler) stays.
+ * The product's routes are in http/api.js and its pages in http/pages.js; its budgets are in
+ * http/caller-limits.js and its listing rules in listings/. The plumbing here (helmet, SSO, legal pages, static
+ * assets, the API mount, the 404 and the error handler) stays.
  */
 const path = require('path');
 const express = require('express');

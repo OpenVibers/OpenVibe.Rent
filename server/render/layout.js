@@ -22,8 +22,13 @@ const NETWORK_URL = 'https://openvibe.network';
 const SITE_NAME = 'OpenVibe.Rent';
 const TAGLINE = 'Find a place, or rent yours out.';
 const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
-// The product's own navigation: one entry per public page it serves.
+// The product's own navigation: one entry per public page it serves. /mine, /saved and the staff queue /staff are
+// not here — they are for one signed-in person, and a link in everyone's navbar would be an invitation to a 401.
+// They are linked from the pages that lead to them (/listings, /post, /safety).
 const NAV = [
+    { label: 'Listings', href: '/listings' },
+    { label: 'Post a listing', href: '/post' },
+    { label: 'Safety', href: '/safety' },
     { label: 'What shipped', href: '/updates' },
 ];
 

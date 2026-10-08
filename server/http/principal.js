@@ -3,8 +3,12 @@
 /**
  * Who is calling /api/v1 — req.principal:
  *
- *   { kind: 'user', requester: 'user:usr_…', project: null, viaSession }    a person: their Network token as a Bearer,
- *                                                                           or this site's session cookie
+ *   { kind: 'user', requester: 'user:usr_…', project: null, role, viaSession }
+ *                                                                           a person: their Network token as a
+ *                                                                           Bearer, or this site's session cookie.
+ *                                                                           `role` is the Network role claim
+ *                                                                           (user | global_mod | admin), which is
+ *                                                                           what decides staff here
  *   { kind: 'app', requester: 'app:app_…' | 'agent:agt_…' | 'service:x', project: 'prj_…' | null, claims }
  *                                                                           a Network app, agent or service token for
  *                                                                           audience openvibe.rent; each route names
@@ -20,10 +24,22 @@ const { serviceAuth, capabilities, http, ids } = require('openvibe-contracts');
 
 const PRINCIPAL_SUB = /^(svc|app|mod|agent):/;
 const PROJECT_RE = /^prj_[0-9A-HJKMNP-TV-Z]{26}$/;
-// The product fills this in: one entry per capability its routes name, in openvibe-contracts
-// manifests/capabilities/<rent>.*. requireCapability('<name>') refuses a name that is not listed here, so a
-// route can never be guarded by a capability the service does not declare.
+// One entry per capability the API's routes name, from openvibe-contracts manifests/capabilities/rent.*.
+// Empty on purpose: openvibe-contracts declares no `rent.*` capability yet, and every route here is a person acting
+// for themself (posting, editing or deleting their own listing, saving their own searches) or staff judged by their
+// role claim — neither needs one. A listing is never posted, edited or deleted by an app or a service: that is a
+// rule of the product (/listings/service.js), not something to grant. The moment a route exists for an app, its
+// capability is added here and in openvibe-contracts together. requireCapability('<name>') refuses a name that is
+// not listed here, so a route can never be guarded by a capability the service does not declare.
 const CAPABILITIES = [];
+
+/** The person's Network role claim, as a plain string (an unlisted or missing one is the lowest role). */
+function roleClaim(claims) {
+    return typeof claims.role === 'string' && claims.role ? claims.role.slice(0, 32) : 'user';
+}
+function usernameClaim(claims) {
+    return typeof claims.username === 'string' ? claims.username.slice(0, 64) : null;
+}
 
 function decodePayload(token) {
     const parts = String(token || '').split('.');
@@ -63,11 +79,11 @@ function createPrincipal({ config, keys }) {
             if (!v.ok) return { error: [401, v.expired ? 'token.expired' : 'token.invalid', v.reason] };
             if (v.claims.typ === 'fedcm' || v.claims.actor_type !== undefined) return { error: [401, 'token.invalid', 'not a person\'s token'] };
             if (!ids.isSubjectId('user', v.claims.subject_id)) return { error: [403, 'identity.no_subject', 'this account has no canonical subject yet; sign in again'] };
-            return { principal: { kind: 'user', requester: `user:${v.claims.subject_id}`, project: null, viaSession: false } };
+            return { principal: { kind: 'user', requester: `user:${v.claims.subject_id}`, project: null, role: roleClaim(v.claims), username: usernameClaim(v.claims), viaSession: false } };
         }
         const viewer = req.viewer;
         if (viewer && viewer.kind === 'user' && ids.isSubjectId('user', viewer.subject)) {
-            return { principal: { kind: 'user', requester: `user:${viewer.subject}`, project: null, viaSession: true } };
+            return { principal: { kind: 'user', requester: `user:${viewer.subject}`, project: null, role: viewer.role || 'user', username: viewer.username || null, viaSession: true } };
         }
         return { principal: { kind: 'anonymous' } };
     }
