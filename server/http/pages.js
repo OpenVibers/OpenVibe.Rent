@@ -58,10 +58,15 @@ function createPageRoutes(ctx) {
     const whereOf = (row) => [row.neighbourhood, row.city, row.country].filter(Boolean).join(', ');
     const signInPrompt = (what, next) => html`<div class="notice">${what} <a href="/auth/login?next=${encodeURIComponent(next)}">Sign in with OpenVibe</a>.</div>`;
 
-    /** One listing in a list: the title, the price, where it is and how old it is. */
-    const listingItem = (row) => html`<li class="listing">
+    /** One listing in a list, as a card: what kind it is at a glance, the title, where, the price on the right. */
+    const KIND_MARK = { apartment: 'Apt', room: 'Room', house: 'House', commercial: 'Work', parking: 'Park', equipment: 'Gear', other: 'More' };
+    const listingItem = (row) => html`<li class="listing kind-${listings.KINDS.includes(row.kind) ? row.kind : 'other'}">
+<span class="listing-mark" aria-hidden="true">${KIND_MARK[row.kind] || 'More'}</span>
+<span class="listing-main">
 <a class="listing-title" href="/listings/${row.id}">${row.title}</a>
-<span class="listing-meta small muted">${listings.KIND_TEXT[row.kind] || row.kind} · ${whereOf(row)}${row.bedrooms == null ? '' : ` · ${row.bedrooms} bedroom${Number(row.bedrooms) === 1 ? '' : 's'}`} · posted ${time(row.created_at)}</span>
+<span class="listing-where">${whereOf(row)}</span>
+<span class="listing-chips"><span class="chip">${listings.KIND_TEXT[row.kind] || row.kind}</span>${row.bedrooms == null ? '' : html`<span class="chip">${row.bedrooms} bedroom${Number(row.bedrooms) === 1 ? '' : 's'}</span>`}${row.available_from ? html`<span class="chip">from ${row.available_from}</span>` : ''}<span class="listing-age">posted ${time(row.created_at)}</span></span>
+</span>
 <span class="listing-price">${priceOf(row)}</span>
 </li>`;
 
@@ -147,8 +152,8 @@ ${notice(p && p.detail ? p.detail : 'You are over the limit for this.', 'warn')}
         const latest = await store.search(s, listings.normalizeFilters({}), { limit: HOME_LATEST });
         const hero = showcase.hero({
             eyebrow: `${SITE_NAME} · ${TAGLINE}`,
-            title: 'Somewhere to live, work or park',
-            accent: 'Every listing here was posted by a person.',
+            title: 'Find somewhere to live, work or park.',
+            accent: 'Posted by people.',
             lede: `${SITE_NAME} is one place to find and offer things to rent: apartments, rooms, houses, commercial space, parking and storage, and equipment. In this first version people post the listings here themselves — nothing is scraped from another site, and nothing is paid for here.`,
             actions: signedIn(req)
                 ? [{ label: 'Post a listing', href: '/post', primary: true }, { label: 'Your listings', href: '/mine' }]
@@ -358,7 +363,16 @@ ${listings.KINDS.map((k) => opt(k, listings.KIND_TEXT[k], v.kind))}
             title: 'Post a listing',
             crumbs: [{ label: 'Home', href: '/' }, { label: 'Post a listing' }],
             body: html`<h1>Post a listing</h1>${signInPrompt('A listing belongs to your OpenVibe account, so you can edit, renew or delete it later.', '/post')}
-<p class="muted">Posting is for people: an app or a service cannot post here.</p>`,
+<section class="post-preview" aria-labelledby="need">
+<h2 id="need">What you will need</h2>
+<ul class="need-list">
+<li><b>What it is</b><span>An apartment, a room, a house, commercial space, parking or storage, equipment — and a short title.</span></li>
+<li><b>The price</b><span>An amount, its currency and the period: a month, a week, a day, an hour or once.</span></li>
+<li><b>Where</b><span>The city and country, and a neighbourhood if you like. Never a street address: one is refused.</span></li>
+<li><b>How to reach you</b><span>A link or an email address. Only signed-in people see it.</span></li>
+</ul>
+<p class="muted small">A listing stays up for 30 days and you can renew it. Posting is for people: an app or a service cannot post here. <a href="/safety">The safety rules</a>.</p>
+</section>`,
         }, 401);
         return page(req, res, {
             title: 'Post a listing',
