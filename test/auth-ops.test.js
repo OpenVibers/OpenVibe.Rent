@@ -55,6 +55,22 @@ const { boot, check, done } = require('./helpers/boot');
         assert.strictEqual(noCookie.status, 400);
     });
 
+    await check('a multibyte state of the right string length is refused without taking the server down', async () => {
+        const login = await t.get('/auth/login');
+        const loc = new URL(login.headers.get('location'));
+        const flowCookie = login.headers.get('set-cookie').split(';')[0];
+        const realState = loc.searchParams.get('state');
+        // 32 'é' (U+00E9) are 32 UTF-16 code units, as the flow state, but 64 UTF-8 bytes. Comparing string
+        // lengths passed, then timingSafeEqual threw on the unequal buffers and, unhandled, killed the process.
+        const multibyte = 'é'.repeat(realState.length);
+        assert.strictEqual(multibyte.length, realState.length);
+        const r = await t.get(`/auth/callback?code=x&state=${encodeURIComponent(multibyte)}`, { cookie: flowCookie });
+        assert.strictEqual(r.status, 400, r.text);
+        assert.match(r.text, /state did not match/i);
+        const ping = await t.get('/api/v1/ping');
+        assert.strictEqual(ping.status, 200, 'the server keeps answering after the refusal');
+    });
+
     await check('next= only accepts same-site paths', async () => {
         const r = await t.get('/auth/login?next=//evil.example/x');
         const flow = decodeURIComponent(r.headers.get('set-cookie').match(/rent_oauth=([^;]+)/)[1]);

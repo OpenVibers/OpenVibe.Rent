@@ -14,8 +14,8 @@
  * or logged.
  */
 const crypto = require('crypto');
-const express = require('express');
 const cache = require('openvibe-shared/cache-policy');
+const { asyncRouter } = require('../http/router');
 
 const ACCESS_COOKIE = 'rent_at';
 const REFRESH_COOKIE = 'rent_rt';
@@ -166,7 +166,9 @@ function createSso({ config, keys, fetchImpl = globalThis.fetch, now = () => Dat
     }
 
     function routes() {
-        const r = express.Router();
+        // asyncRouter, not express.Router: a rejected handler (e.g. a state check that throws) goes to the app's
+        // error handler instead of becoming an unhandled rejection that takes the process down.
+        const r = asyncRouter();
         const flowOpts = () => ({ ...cookieBase(), path: '/auth', maxAge: 10 * 60 * 1000 });
 
         r.get('/login', (req, res) => {
@@ -189,8 +191,13 @@ function createSso({ config, keys, fetchImpl = globalThis.fetch, now = () => Dat
                 if ((flow && flow.silent) || error === 'login_required' || error === 'interaction_required') return res.redirect(next);
                 return res.status(400).type('text/plain').send(`Sign-in was not completed (${String(error).slice(0, 60)}).`);
             }
-            if (!flow || typeof flow.state !== 'string' || typeof flow.verifier !== 'string' || typeof state !== 'string'
-                || state.length !== flow.state.length || !crypto.timingSafeEqual(Buffer.from(state), Buffer.from(flow.state))) {
+            // Compare UTF-8 byte lengths, never the UTF-16 string lengths: a multibyte state of the same string
+            // length would make timingSafeEqual throw (RangeError on unequal buffer lengths). Any missing or
+            // non-string piece, or unequal byte lengths, refuses before timingSafeEqual is ever called.
+            const stateBuf = typeof state === 'string' ? Buffer.from(state) : null;
+            const flowBuf = flow && typeof flow.state === 'string' ? Buffer.from(flow.state) : null;
+            if (!flow || !flowBuf || typeof flow.verifier !== 'string' || !stateBuf
+                || stateBuf.length !== flowBuf.length || !crypto.timingSafeEqual(stateBuf, flowBuf)) {
                 return res.status(400).type('text/plain').send('Sign-in state did not match. Please try signing in again.');
             }
             if (!code) return res.status(400).type('text/plain').send('The Network sent no authorization code.');
