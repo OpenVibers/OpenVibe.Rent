@@ -43,7 +43,7 @@
   ],
   "capabilitiesRegistered": false,
   "serviceManifestRegistered": false,
-  "deployed": false,
+  "deployed": true,
   "placeholderInSites": false,
   "features": [
     "listing posting with rules",
@@ -57,5 +57,6 @@
     "limits and readiness",
     "deploy files"
   ],
-  "updated": "2026-10-10"
+  "updated": "2026-10-10",
+  "deployment": "openvibe-ovh: unit openvibe-rent.service on 127.0.0.1:5010 (git checkout /opt/openvibe.rent, env /etc/openvibe/rent.env, database ov_rent), deployed with `sudo ovhost deploy rent`; public at https://openvibe.rent since 2026-10-08."
 }
