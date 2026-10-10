@@ -18,8 +18,8 @@ const { measure, check, format } = require('openvibe-shared/perf-budget');
 // 24.9/6.2 KB to 28.4/6.5 KB (search box, latest listings, how it works, where the listings come from, cta). The
 // budget keeps the same ~10% headroom over the new measurement; the other lines are unchanged.
 const BUDGETS = {
-    htmlRawKB: 31.5,   // measured 28.4 (the home page: hero, search, latest listings, features, sources, cta, JSON-LD)
-    htmlBrotliKB: 7.2,   // 6.5
+    htmlRawKB: 33.5,   // measured 31.0 (real glyphs for page, db, deploy and gauge icons, shared 2.21.1); was 31.5
+    htmlBrotliKB: 8.0,   // 7.4 (real glyphs for page, db, deploy and gauge icons, shared 2.21.1); was 7.2
     jsFiles: 5,   // 5 (theme-loader, web-runtime, navbar, footer, boost: openvibe-shared/shell)
     jsRawKB: 264,   // 239.8
     jsBrotliKB: 62.5,   // 56.5
