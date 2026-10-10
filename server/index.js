@@ -19,7 +19,7 @@ const { startExpiryTimer } = require('./listings/expiry');
 function createLifecycle({ server, ctx, exit, signals, timers = [], extra = [] }) {
     return gracefulStop({
         name: 'OpenVibe.Rent', server, deadlineExitCode: 0, exit, signals, deadlineMs: 10_000,
-        close: [() => { for (const t of timers) clearInterval(t); }, () => ctx.keys.client.stop(), () => ctx.s.close(), ...extra],
+        close: [() => { for (const t of timers) clearInterval(t); }, () => ctx.keys.client.stop(), () => ctx.search.stop(), () => ctx.s.close(), ...extra],
     });
 }
 
@@ -32,6 +32,7 @@ async function start() {
     });
     server.keepAliveTimeout = 65_000;
     ctx.keys.client.start();
+    ctx.search.start();
 
     // One sweep at boot (a restart must not leave a stale listing up a moment longer than it should), then a timer.
     const expiry = startExpiryTimer(ctx.s);
