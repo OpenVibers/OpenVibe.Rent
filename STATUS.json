@@ -9,11 +9,11 @@
   "domain": "openvibe.rent",
   "contracts": "openvibe-contracts v0.129.0",
   "sdk": "openvibe-sdk v0.38.0",
-  "shared": "openvibe-shared v3.0.0",
+  "shared": "openvibe-shared v3.0.1",
   "packages": [
     "openvibe-contracts v0.129.0",
     "openvibe-sdk v0.38.0",
-    "openvibe-shared v3.0.0",
+    "openvibe-shared v3.0.1",
     "openvibe-publishing v1.4.0"
   ],
   "summary": "OpenVibe.Rent — Find a place, or rent yours out. One place to find and offer things to rent: apartments, rooms, houses, commercial space, parking and storage, and equipment. In this first version every listing is posted by a person on this site: no scraped listings and no partner feeds, no payments, no deposits and no messaging. Search with filters and facets, a listing page with a plain safety note, reports that hide a listing at 3 until staff look, saved searches that count what is new, and a 30-day expiry an owner can renew.",
