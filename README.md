@@ -24,6 +24,64 @@ Three rules shape the product:
 - **The safety note is on every listing page**, word for word: *Never pay or send a deposit before you have seen the
   place and signed an agreement. OpenVibe does not handle payments for listings.*
 
+## Owns
+
+Rent's own data is its PostgreSQL database ([server/db.js](server/db.js)); the `NNNN_*.sql` files in
+[migrations/](migrations/) are applied at boot. It is the authority for:
+
+- **`rent_listings`** — the listings people post: kind, title, description, price with currency and period, city and
+  country with the optional region, neighbourhood, bedrooms and available-from, the contact URL, the state
+  (`active`, `hidden`, `expired`, `removed`), the report count and `expires_at`. `rnt_<ULID>` ids
+  ([migrations/0002_rent.sql](migrations/0002_rent.sql)).
+- **`rent_reports`** — one report per person per listing (unique index `rent_reports_once`), what hides a listing at
+  three. `rpt_<ULID>` ids.
+- **`rent_saved_searches`** — a person's saved filter sets, one per distinct set, with `last_seen_at` for the "new
+  since you last looked" count. `ssv_<ULID>` ids.
+- **`account_data_events`** — the receipt of each ADR-033 account export or deletion delivery Rent has applied, so a
+  redelivery changes nothing ([migrations/0003_account_data.sql](migrations/0003_account_data.sql)).
+
+`migrations/0001_initial.sql` creates no tables (the skeleton). Every row keys a person as `user:usr_…`, and the
+namespace is `rent.*`.
+
+## Does not own
+
+- **Accounts, sign-in and roles** — a person's account and the `role` claim that decides staff are
+  OpenVibe.Network's. Rent holds no password, profile or role row: it reads the Network session
+  ([server/auth/sso.js](server/auth/sso.js)) and reads the role claim ([server/listings/staff.js](server/listings/staff.js)).
+- **The shared site frame** — the navbar, footer and boost shell are OpenVibe.Network's; Rent renders the page body
+  ([server/render/layout.js](server/render/layout.js)).
+- **Event delivery and subscriptions** — the queue, retries and subscription records are OpenVibe.Events'; Rent only
+  consumes two topics ([server/events-consumer.js](server/events-consumer.js)).
+- **Files and media** — uploaded files and images are OpenVibe.Media's. Rent stores no upload, serves no user file,
+  and a listing carries no image; its contact URL is stored as text and never fetched.
+
+## Depends on
+
+- **OpenVibe.Network** — OAuth 2 authorization code with PKCE (`/oauth/authorize`, `/oauth/token`, `/oauth/revoke`)
+  and its JWKS (the signing key). Env: `OV_NETWORK_URL`, `OV_NETWORK_INTERNAL_URL` (default `http://127.0.0.1:4000`),
+  `OV_NETWORK_ISSUER`, `OV_OAUTH_CLIENT_ID` (`rent`), `OV_OAUTH_CLIENT_SECRET`, `OV_OAUTH_REDIRECT_URI`,
+  `RENT_AUDIENCE`, `OV_SESSION_AUDIENCE` ([server/auth/sso.js](server/auth/sso.js), [server/auth/keys.js](server/auth/keys.js)).
+- **OpenVibe.Events** — the two ADR-033 subscriptions and their delivery. Env: `RENT_EVENTS_URL` (or `EVENTS_URL`),
+  `RENT_EVENTS_SECRET`, `RENT_EVENTS_ENDPOINT`, `RENT_EVENTS_SUBSCRIBE` ([server/events-consumer.js](server/events-consumer.js)).
+- **PostgreSQL** — the store, through `openvibe-sdk/db`. Env: `DATABASE_URL` (serving, through PgBouncer) and
+  `DATABASE_DIRECT_URL` (migrations, owner role); `RENT_PGLITE_DIR` in development ([server/db.js](server/db.js)).
+- **Valkey** — shared per-caller limit counters (optional). Env: `VALKEY_URL`, `VALKEY_PREFIX`
+  ([server/http/caller-limits.js](server/http/caller-limits.js)).
+- **Packages** — `openvibe-contracts` (ids, error envelope, capability check) and `openvibe-sdk` (`db`, `auth`,
+  `service`, `limits`, `account-data`, `events`, `valkey`), plus `openvibe-shared` (`release`, `metrics`, `ready`,
+  `legal`, `cache-policy`, `serve`, `frame`, `shell`, `seo`, `app-icon`).
+
+It fetches from no listing source and no third party: the only outbound calls are the Network and Events above.
+
+## Capabilities
+
+- **Declared:** none. The service manifest lists an empty `capabilities` array, and the service's own list is empty
+  ([server/http/principal.js](server/http/principal.js)) — no route names a `rent.*` capability.
+- **Called on another service:** none. Rent uses OpenVibe.Network's OAuth endpoints and OpenVibe.Events' subscription
+  API directly with its own service token (scope `events.subscription.manage`), not a capability-guarded route.
+- **Namespace owned:** `rent.*`.
+- **Events:** produces none; consumes `network.account.export_requested` and `network.account.deleted`.
+
 ## What works
 
 | Piece | Where | What it does |
@@ -101,6 +159,48 @@ search and paging and facets, the contact link being hidden from signed-out view
 hiding a listing at 3 and staff restoring it, expiry, owner-only edits, same-origin writes, saved searches with
 their new counts, and hostile text staying text everywhere it is shown. `npm run test:pg` runs the same suite
 through PostgreSQL and PgBouncer (see [.github/workflows/ci.yml](.github/workflows/ci.yml)).
+
+## Acceptance
+
+`npm test` (`node test/run.js`) runs every `test/*.test.js` against a temporary PGlite database and a mock Network;
+`npm run test:pg` runs the same suite through PostgreSQL and PgBouncer. The main files and what they prove:
+
+- [test/listings.test.js](test/listings.test.js) — posting through the API: a person only (never an app), same-origin
+  session writes, the field rules (kind, price, currency, country, period, contact URL), the street-address refusal in
+  title, description, city, region and neighbourhood, the 10-active and 5-a-day caps, 30-day expiry, owner-only
+  edit/renew/hide/delete, and hostile text staying text.
+- [test/listings-search.test.js](test/listings-search.test.js) — the search filters, newest-first cursor paging, the
+  kind and country facets, the contact URL for a signed-in person only, hidden/expired/removed never listed, and an
+  unknown filter ignored.
+- [test/listings-reports.test.js](test/listings-reports.test.js) — one report per person, never your own, three
+  distinct reports hide a listing, the staff queue and role claim, restore/hide/remove, and a restored listing not
+  hidden again.
+- [test/listings-pages.test.js](test/listings-pages.test.js) — the server-rendered pages and plain form POSTs, the
+  safety note word for word, saved-search new counts, and a refused form re-rendering what was typed, escaped.
+- [test/account-data.test.js](test/account-data.test.js) — ADR-033 export and deletion through `/internal/events`
+  with a stand-in Network: only the person's rows, a redelivery changes nothing, and a bad signature or forwarded
+  request is refused.
+- [test/caller-limits.test.js](test/caller-limits.test.js) — a caller past a limit gets 429 `rate_limited` with
+  `Retry-After` before the route works, per person and per address, with the window reopening; health, ready,
+  release.json and metrics are never limited.
+- [test/security-session.test.js](test/security-session.test.js) — the `rent_at` cookie must hold a Network session
+  token; a FedCM assertion or an app/service token is not a session.
+- [test/security-secrets.test.js](test/security-secrets.test.js) — the OAuth client secret never leaves in a response,
+  an event, a log line or the database.
+- [test/auth-ops.test.js](test/auth-ops.test.js) — sign-in with PKCE S256, the session cookies, truthful readiness,
+  `/release.json`, loopback-only `/metrics`.
+- [test/auth-jwks.test.js](test/auth-jwks.test.js) — the Network key is fetched and verified, cached keys survive an
+  outage, a rotation is honoured, and readiness shows the cache state.
+- [test/discovery.test.js](test/discovery.test.js) — `robots.txt`, `sitemap.xml`, `llms.txt` and `llms-full.txt`
+  serve the public pages only.
+- [test/open-redirect.test.js](test/open-redirect.test.js) — the sign-in `next` never leaves the site.
+- [test/no-internal-key.test.js](test/no-internal-key.test.js) — no `X-Internal-Key` anywhere, and the running service
+  never sends one.
+- [test/service-kit.test.js](test/service-kit.test.js) — the graceful stop runs its close steps in order and exits 0.
+- [test/layout.test.js](test/layout.test.js), [test/asset-cache.test.js](test/asset-cache.test.js),
+  [test/nginx-auth-limit.test.js](test/nginx-auth-limit.test.js), [test/perf-budget.test.js](test/perf-budget.test.js)
+  — the shared boost marker and navbar, the asset cache headers, the nginx `/auth/me` zone, and the home-page size
+  budget.
 
 ## Deploy (for the lead)
 
