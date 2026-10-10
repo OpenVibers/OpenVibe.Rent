@@ -21,6 +21,7 @@ const rateLimit = require('express-rate-limit');
 const contracts = require('openvibe-contracts');
 const cache = require('openvibe-shared/cache-policy');
 
+const { createSearchIndex } = require('./search-index');
 const configLib = require('./config');
 const { openStore } = require('./db');
 const { createKeyStore } = require('./auth/keys');
@@ -52,6 +53,10 @@ async function createApp(opts = {}) {
     const sso = createSso({ config, keys, fetchImpl, now: s.now, log });
     const principal = createPrincipal({ config, keys });
     const ctx = { config, s, keys, sso, principal, log };
+    // Listing pages in OpenVibe.Search (./search-index.js): every store write names the listing it touched (s.search),
+    // and a sweep runs on its own timer once server/index.js starts it.
+    ctx.search = opts.search || createSearchIndex({ config, s, log });
+    s.search = ctx.search;
 
     // Account export and deletion (ADR-033, ./identity/account-data.js): the three tables that hold a person's rows.
     // The sender posts to Network's internal export/deletion routes with this service's own client-credentials token;

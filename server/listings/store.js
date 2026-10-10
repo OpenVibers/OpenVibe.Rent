@@ -15,6 +15,9 @@ const listings = require('./listings');
 
 const DAY_MS = 86_400_000;
 
+/** A write changed this listing: OpenVibe.Search syncs it shortly (server/search-index.js; absent in some tests). */
+const touched = (s, id) => { if (s.search) s.search.touch(id); };
+
 /** The WHERE clause for a filter set. `exclude` leaves one dimension out — how the kind and country facets count. */
 function buildWhere(f, { exclude = [], sinceISO = null } = {}) {
     const parts = ["state = 'active'"];
@@ -42,6 +45,7 @@ async function insert(s, row) {
         [row.id, row.owner, row.kind, row.title, row.description, row.price, row.currency, row.period, row.city,
             row.region, row.country, row.neighbourhood, row.bedrooms, row.available_from, row.contact_url,
             row.created_at, row.expires_at]);
+    touched(s, row.id);
     return get(s, row.id);
 }
 
@@ -80,13 +84,16 @@ async function update(s, id, patch) {
     const cols = Object.keys(patch);
     const sets = cols.map((c, i) => `${c} = $${i + 3}`);
     await s.db.query(`UPDATE rent_listings SET ${sets.join(', ')}, updated_at = $2 WHERE id = $1`, [id, s.iso(), ...cols.map((c) => patch[c])]);
+    touched(s, id);
     return get(s, id);
 }
 
 /** Every active listing whose 30 days are up becomes expired — the sweep a timer runs in production. */
 async function expireListings(s) {
     const now = s.iso();
-    return Number(await s.db.exec("UPDATE rent_listings SET state = 'expired', updated_at = $1 WHERE state = 'active' AND expires_at <= $1", [now]));
+    const n = Number(await s.db.exec("UPDATE rent_listings SET state = 'expired', updated_at = $1 WHERE state = 'active' AND expires_at <= $1", [now]));
+    if (n && s.search) s.search.afterExpiry();
+    return n;
 }
 
 /** The owner may renew: 30 days from now (not a top-up that could run far past it), and an expired listing returns. */
@@ -94,16 +101,22 @@ async function renew(s, id) {
     const now = s.now();
     const expires = new Date(now + listings.EXPIRY_DAYS * DAY_MS).toISOString();
     await s.db.query("UPDATE rent_listings SET expires_at = $2, updated_at = $3, state = CASE WHEN state = 'expired' THEN 'active' ELSE state END WHERE id = $1", [id, expires, s.iso()]);
+    touched(s, id);
     return get(s, id);
 }
 
 /** Staff action: restore (active), hide or remove. */
 async function setState(s, id, state) {
     await s.db.query('UPDATE rent_listings SET state = $2, updated_at = $3 WHERE id = $1', [id, state, s.iso()]);
+    touched(s, id);
     return get(s, id);
 }
 
-const remove = (s, id) => s.db.exec('DELETE FROM rent_listings WHERE id = $1', [id]);
+async function remove(s, id) {
+    const n = await s.db.exec('DELETE FROM rent_listings WHERE id = $1', [id]);
+    touched(s, id);
+    return n;
+}
 
 const countActiveByOwner = (s, owner) => s.db.value("SELECT count(*) FROM rent_listings WHERE owner = $1 AND state = 'active'", [owner]).then(Number);
 
@@ -124,7 +137,7 @@ const reportsFor = (s, listingId) => s.db.many('SELECT * FROM rent_reports WHERE
  * member of staff has restored is not hidden again by the same reports.
  */
 async function addReport(s, listingId, { id, reporter, reason, note, createdAt }) {
-    return s.tx(async () => {
+    const out = await s.tx(async () => {
         const row = await s.db.maybe('SELECT * FROM rent_listings WHERE id = $1', [listingId]);
         if (!row) return { error: 'listing.not_found' };
         if (row.state === 'removed') return { error: 'listing.removed' };
@@ -144,6 +157,8 @@ async function addReport(s, listingId, { id, reporter, reason, note, createdAt }
             [listingId, count, s.iso(), hide]);
         return { row: after, report, hidden: hide };
     });
+    if (out && out.hidden) touched(s, listingId);
+    return out;
 }
 
 /**
