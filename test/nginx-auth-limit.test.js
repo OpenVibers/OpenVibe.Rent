@@ -17,4 +17,10 @@ assert.match(auth, /limit_req zone=rent_auth burst=10 nodelay;/);
 for (const b of [probe, auth]) assert.match(b, /limit_req_status 429;/);
 const upstream = (b) => (b.match(/proxy_pass (\S+);/) || [])[1];
 assert.ok(upstream(probe) && upstream(probe) === upstream(auth), 'the same upstream');
-console.log('nginx auth limit: /auth/me on the API zone, 429 when limited');
+// /internal/ and /metrics are refused case-insensitively: Express matches routes case-insensitively, so a
+// case-sensitive location would let /Internal/events or /Metrics through to the app.
+assert.match(conf, /location ~\* \^\/internal\(\/\|\$\) \{ return 404; \}/);
+assert.match(conf, /location ~\* \^\/metrics\(\/\|\$\) \{ return 404; \}/);
+assert.ok(!/location = \/metrics \{/.test(conf), 'no case-sensitive exact /metrics location');
+assert.ok(!/location \/internal\/ \{/.test(conf), 'no case-sensitive /internal/ location');
+console.log('nginx auth limit: /auth/me on the API zone, 429 when limited; /internal and /metrics case-insensitively refused');
