@@ -42,7 +42,7 @@
     "A deployment: the service is not yet deployed by OpenVibe.Host"
   ],
   "capabilitiesRegistered": false,
-  "serviceManifestRegistered": false,
+  "serviceManifestRegistered": true,
   "deployed": true,
   "placeholderInSites": false,
   "features": [
