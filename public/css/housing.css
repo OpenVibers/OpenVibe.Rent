@@ -1,0 +1,32 @@
+/* OpenVibe.Rent — /housing only (affordable housing from HUD open data), so app.css stays inside its budget. */
+.housing-lede { max-width: 760px; color: var(--text-secondary, #96a7c2); font-size: 1.04rem; }
+.housing-form { margin-bottom: 18px; }
+.housing-kinds { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.housing-kinds legend { font-size: .8rem; font-weight: 650; color: var(--text-secondary, #96a7c2); margin-bottom: 6px; }
+.housing-kinds p { flex-basis: 100%; margin: 2px 0 0; }
+.housing-kind { position: relative; }
+.housing-kind input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.housing-kind span { display: inline-block; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border-light, #2c3d5c); font-size: .9rem; background: var(--bg-secondary, #0f1729); }
+.housing-kind input:checked + span { border-color: var(--accent, #3b82f6); background: color-mix(in srgb, var(--accent, #3b82f6) 18%, var(--bg-secondary, #0f1729)); color: var(--text-primary, #e6edf7); }
+.housing-kind input:focus-visible + span { outline: 2px solid var(--accent, #3b82f6); outline-offset: 2px; }
+.housing-where { margin-bottom: 2px; overflow-wrap: anywhere; }
+.housing-jump { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 10px 0 4px; }
+.housing-jump a { display: inline-flex; gap: 6px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border, #1f2d47); background: var(--bg-card, #131c2e); color: var(--text-primary, #e6edf7); text-decoration: none; font-size: .9rem; }
+.housing-jump a:hover { border-color: var(--accent, #3b82f6); }
+.housing-group { margin-top: 26px; }
+.housing-group h3 { margin: 0 0 2px; font-size: 1.15rem; }
+.housing-explain { margin: 0 0 10px; color: var(--text-secondary, #96a7c2); font-size: .92rem; max-width: 760px; }
+.housing-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
+.housing-card { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border, #1f2d47); background: var(--bg-card, #131c2e); }
+.housing-card p { margin: 0; }
+.housing-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.housing-card h4 { margin: 0; font-size: 1rem; overflow-wrap: anywhere; }
+.housing-dist { flex: none; font-size: .85rem; color: var(--text-secondary, #96a7c2); }
+.housing-addr { font-size: .9rem; color: var(--text-secondary, #96a7c2); }
+.housing-units { font-size: .92rem; }
+.housing-facts { list-style: none; padding: 0; margin: 2px 0 0; font-size: .85rem; color: var(--text-secondary, #96a7c2); }
+.housing-facts li + li { margin-top: 1px; }
+.housing-actions { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: auto !important; padding-top: 6px; font-size: .9rem; }
+.housing-more { margin-top: 10px; }
+.housing-more summary { cursor: pointer; color: var(--accent-light, #60a5fa); padding: 6px 0; }
+.housing-more .housing-list { margin-top: 8px; }

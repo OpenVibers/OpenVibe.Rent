@@ -1,0 +1,14 @@
+[
+  {
+    "place_id": 2,
+    "licence": "Data © OpenStreetMap contributors, ODbL 1.0",
+    "lat": "43.6532",
+    "lon": "-79.3832",
+    "display_name": "Toronto, Ontario, Canada",
+    "boundingbox": ["43.5810", "43.8554", "-79.6393", "-79.1158"],
+    "address": {
+      "country": "Canada",
+      "country_code": "ca"
+    }
+  }
+]

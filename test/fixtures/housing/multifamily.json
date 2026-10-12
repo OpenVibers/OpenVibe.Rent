@@ -1,0 +1,25 @@
+{
+  "objectIdFieldName": "OBJECTID",
+  "geometryType": "esriGeometryPoint",
+  "features": [
+    {
+      "attributes": {
+        "OBJECTID": 200,
+        "PROPERTY_ID": "800022227",
+        "PROPERTY_NAME_TEXT": "Graystone Village",
+        "ADDRESS_LINE1_TEXT": "2 Dewitt Dr",
+        "STD_CITY": "White River Junction",
+        "STD_ST": "VT",
+        "STD_ZIP5": "05001",
+        "TOTAL_ASSISTED_UNIT_COUNT": 34,
+        "TOTAL_UNIT_COUNT": 34,
+        "PROPERTY_CATEGORY_NAME": "Insured-Subsidized",
+        "EXPIRATION_DATE1": "19-SEP-39",
+        "LAST_UPDT_DTTM": 1783361442000,
+        "LAT": 43.645232,
+        "LON": -72.335933
+      },
+      "geometry": { "x": -72.335933, "y": 43.645232 }
+    }
+  ]
+}

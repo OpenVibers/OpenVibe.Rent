@@ -1,0 +1,25 @@
+{
+  "objectIdFieldName": "OBJECTID",
+  "geometryType": "esriGeometryPoint",
+  "features": [
+    {
+      "attributes": {
+        "OBJECTID": 7685,
+        "PROJECT_NAME": "WHEELER CREEK",
+        "STD_ADDR": "900 Varney St SE",
+        "STD_CITY": "Washington",
+        "STD_ST": "DC",
+        "STD_ZIP5": "20032",
+        "TOTAL_DWELLING_UNITS": 100,
+        "TOTAL_UNITS": 100,
+        "RENT_PER_MONTH": 411,
+        "LAST_UPDT_DTTM": 1783361963000,
+        "LAT": 38.835227,
+        "LON": -76.992088,
+        "HA_PHN_NUM": "2025351500",
+        "FORMAL_PARTICIPANT_NAME": "D.C  Housing Authority"
+      },
+      "geometry": { "x": -76.992088, "y": 38.835227 }
+    }
+  ]
+}

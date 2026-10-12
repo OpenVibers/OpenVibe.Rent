@@ -1,0 +1,14 @@
+[
+  {
+    "place_id": 1,
+    "licence": "Data © OpenStreetMap contributors, ODbL 1.0",
+    "lat": "38.9072",
+    "lon": "-77.0369",
+    "display_name": "Washington, District of Columbia, United States",
+    "boundingbox": ["38.7916", "38.9959", "-77.1199", "-76.9094"],
+    "address": {
+      "country": "United States",
+      "country_code": "us"
+    }
+  }
+]

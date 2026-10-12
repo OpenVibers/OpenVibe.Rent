@@ -1,0 +1,22 @@
+{
+  "objectIdFieldName": "OBJECTID",
+  "geometryType": "esriGeometryPoint",
+  "features": [
+    {
+      "attributes": {
+        "OBJECTID": 400,
+        "AGC_NAME": "INLAND FAIR HOUSING AND MEDIATION BOARD",
+        "AGC_ADDRESS": "1500 S Haven Ave Ste 100",
+        "AGC_CITY": "Ontario",
+        "AGC_STATE": "California",
+        "AGC_ZIP_CODE": "91761-2970",
+        "AGC_PHONE_NBR": "909-984-2254",
+        "AGC_WEB_SITE": "http://www.ifhmb.com",
+        "COUNSEL_SRV_DESC": "Mortgage Delinquency and Default Resolution Counseling",
+        "LAT": 34.04625,
+        "LON": -117.576187
+      },
+      "geometry": { "x": -117.576187, "y": 34.04625 }
+    }
+  ]
+}

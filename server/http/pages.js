@@ -26,6 +26,7 @@ const listings = require('../listings/listings');
 const store = require('../listings/store');
 const service = require('../listings/service');
 const { isStaff } = require('../listings/staff');
+const housingPlaces = require('../housing/places');
 
 const SITE_NAME = 'OpenVibe.Rent';
 const TAGLINE = 'Find a place, or rent yours out.';
@@ -165,6 +166,10 @@ ${notice(p && p.detail ? p.detail : 'You are over the limit for this.', 'warn')}
             jsonLd: homeJsonLd(config),
             styles: [showcase.STYLESHEET],
             body: html`${raw(hero)}
+<section class="sc-sec" aria-labelledby="h-housing"><h2 id="h-housing">Affordable housing near you</h2>
+<p class="sc-lede">Public housing, tax-credit (LIHTC) and HUD-assisted properties, and the authorities and counselling agencies to apply through — from U.S. HUD open data, useful before anyone has posted here.</p>
+<p><a class="sc-btn sc-primary" href="/housing">Find housing near you</a></p></section>
+
 <section class="sc-sec" aria-labelledby="h-search"><h2 id="h-search">Search the listings</h2>
 <p class="sc-lede">Straight to it, or <a href="/listings">browse everything</a>.</p>
 ${searchForm({}, { big: true })}</section>
@@ -191,6 +196,132 @@ ${raw(showcase.features({
 
 ${raw(showcase.cta({ title: 'Have something to rent out?', text: 'Post it in a minute: a description, a price, a period and where it is. You can edit, renew or hide it at any time.', actions: [{ label: 'Post a listing', href: '/post', primary: true }, { label: 'Safety rules', href: '/safety' }] }))}`,
         });
+    });
+
+    // ── Affordable housing near you ──────────────────────────
+    // HUD's data is public domain, but the licence still asks for credit; every /housing page carries it, linked back.
+    const hudNote = (fetchedAt) => html`<p class="attribution small muted"><a href="${housingPlaces.ATTRIBUTION.url}" rel="noopener">${housingPlaces.ATTRIBUTION.text}</a>. The data covers the United States, and availability must be confirmed with the property or authority.${fetchedAt ? html` Fetched ${time(fetchedAt)}.` : ''}</p>`;
+    // HUD's data covers the United States, so distances read in miles (the API keeps distance_km).
+    const housingMi = (km) => { const mi = Number(km) * 0.621371; return `${mi < 10 ? mi.toFixed(1) : Math.round(mi)} mi`; };
+    const housingQuery = (v) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 200) : null);
+    const SHOWN_PER_KIND = 24;
+    const phoneText = (p) => { const d = String(p).replace(/\D/g, ''); const t = d.length === 11 && d[0] === '1' ? d.slice(1) : d; return t.length === 10 ? `(${t.slice(0, 3)}) ${t.slice(3, 6)}-${t.slice(6)}` : String(p); };
+    const titleCase = (v) => (v && v === v.toUpperCase() ? v.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()) : v);
+
+    function housingForm({ q = '', selected = new Set() } = {}) {
+        return html`<form class="search-form housing-form" method="get" action="/housing" role="search">
+<div class="field"><label for="q">Where are you?</label>
+<input id="q" name="q" type="search" value="${q}" maxlength="200" placeholder="A city, ZIP code or address in the US" autocomplete="address-level2"></div>
+<fieldset class="housing-kinds"><legend>Show</legend>
+${housingPlaces.KINDS.map((k) => html`<label class="housing-kind"><input type="checkbox" name="kind" value="${k}"${selected.has(k) ? raw(' checked') : ''}><span>${housingPlaces.KIND_TEXT[k]}</span></label>`)}
+<p class="muted small">Leave them all unticked to see everything.</p></fieldset>
+<p><button class="sc-btn sc-primary" type="submit">Find housing</button>${q || selected.size ? html` <a class="sc-btn" href="/housing">Clear</a>` : ''}</p>
+</form>`;
+    }
+
+    const housingUnits = (r) => {
+        const bits = [];
+        if (r.units && r.units.total) bits.push(`${Number(r.units.total).toLocaleString('en-US')} home${Number(r.units.total) === 1 ? '' : 's'}`);
+        if (r.units && r.units.low_income != null && r.kind !== 'housing_authority') bits.push(`${Number(r.units.low_income).toLocaleString('en-US')} ${r.kind === 'multifamily' ? 'assisted' : 'low-income'}`);
+        if (r.extra && r.extra.section8_units) bits.push(`${Number(r.extra.section8_units).toLocaleString('en-US')} Section 8 vouchers`);
+        return bits.join(' · ') || null;
+    };
+    const housingDetails = (r) => {
+        const x = r.extra || {};
+        const out = [];
+        if (x.authority) out.push(html`Run by ${x.authority}`);
+        if (x.rent_per_month) out.push(html`Average tenant rent $${Number(x.rent_per_month).toLocaleString('en-US')} a month`);
+        if (x.year_placed) out.push(html`In service since ${x.year_placed}`);
+        if (x.property_category) out.push(html`${x.property_category}`);
+        if (x.expiration_date) out.push(html`Assistance contract runs to ${x.expiration_date}`);
+        if (x.services) out.push(html`${x.services}`);
+        if (x.languages) out.push(html`Languages: ${x.languages}`);
+        return out;
+    };
+
+    function housingRow(r) {
+        const where = [titleCase(r.address), titleCase(r.city), r.state, r.zip].filter(Boolean).join(', ');
+        const tel = r.phone ? String(r.phone).replace(/[^\d+]/g, '') : null;
+        const details = housingDetails(r);
+        const units = housingUnits(r);
+        const map = r.lat != null && r.lon != null ? `https://www.openstreetmap.org/?mlat=${r.lat}&mlon=${r.lon}#map=17/${r.lat}/${r.lon}` : null;
+        return html`<li class="housing-card" id="${r.id}">
+<div class="housing-card-head"><h4>${titleCase(r.name) || '—'}</h4><span class="housing-dist">${housingMi(r.distance_km)}</span></div>
+${where ? html`<p class="housing-addr">${where}</p>` : ''}
+${units ? html`<p class="housing-units">${units}</p>` : ''}
+${details.length ? html`<ul class="housing-facts">${details.map((d) => html`<li>${d}</li>`)}</ul>` : ''}
+<p class="housing-actions">${r.phone ? html`<a href="tel:${tel}">${phoneText(r.phone)}</a>` : ''}${r.extra && r.extra.email ? html`<a href="mailto:${r.extra.email}">Email</a>` : ''}${r.extra && r.extra.website ? html`<a href="${r.extra.website}" rel="nofollow noopener external">Website</a>` : ''}${map ? html`<a href="${map}" rel="noopener">Map</a>` : ''}</p>
+</li>`;
+    }
+
+    function housingResults(out) {
+        if (!out.results.length) return html`<p class="muted">Nothing was found in this area. Try a nearby town, or a wider place like a city.</p>`;
+        const present = out.kinds.filter((k) => (out.per_kind[k] || []).length);
+        return html`<ul class="housing-jump" aria-label="Found by kind">${present.map((k) => html`<li><a href="#h-${k}">${housingPlaces.KIND_TEXT[k]} <strong>${out.per_kind[k].length}</strong></a></li>`)}</ul>
+${present.map((k) => {
+        const rows = out.per_kind[k];
+        const first = rows.slice(0, SHOWN_PER_KIND);
+        const rest = rows.slice(SHOWN_PER_KIND);
+        return html`<section class="housing-group" aria-labelledby="h-${k}">
+<h3 id="h-${k}">${housingPlaces.KIND_TEXT[k]} <span class="muted">${rows.length}</span></h3>
+<p class="housing-explain">${housingPlaces.KIND_DESCRIPTIONS[k]}</p>
+<ul class="housing-list">${first.map(housingRow)}</ul>
+${rest.length ? html`<details class="housing-more"><summary>Show ${rest.length} more, further away</summary><ul class="housing-list">${rest.map(housingRow)}</ul></details>` : ''}
+</section>`;
+    })}`;
+    }
+
+    async function housingPage(req, res, { limited = false } = {}) {
+        const q = housingQuery(req.query.q) || '';
+        const rawKinds = [].concat(req.query.kind || []).flatMap((v) => String(v).split(','));
+        const selected = new Set(housingPlaces.KINDS.filter((k) => rawKinds.includes(k)));
+        const kindParam = [...selected].join(',');
+        let out = null;
+        let problem = null;
+        if (limited) {
+            problem = 'Too many searches from you just now. Try again in a minute.';
+        } else if (q) {
+            try {
+                out = await housingPlaces.searchPlaces(ctx.upstream, { q, kinds: kindParam || null }, config);
+            } catch (err) {
+                problem = err && err.code ? err.message : 'The housing search is unavailable right now. Try again in a few minutes.';
+            }
+        }
+        const title = out && out.location.name ? `Affordable housing near ${out.location.name.split(',').slice(0, 2).join(',')}` : 'Affordable housing near you';
+        page(req, res, {
+            index: true, cache: signedIn(req) ? null : PUBLIC_CACHE,
+            title,
+            description: 'Public housing, tax-credit and HUD-assisted properties, and the authorities and counselling agencies to apply through, near a place you choose — from HUD open data.',
+            crumbs: [{ label: 'Home', href: '/' }, { label: 'Affordable housing' }],
+            styles: [showcase.STYLESHEET], localStyles: ['css/housing.css'],
+            body: html`<h1>Affordable housing near you</h1>
+<p class="housing-lede">Public housing, tax-credit (LIHTC) and HUD-assisted homes near you, and the housing authorities and counselling agencies to apply through. From the U.S. Department of Housing and Urban Development's open data.</p>
+${housingForm({ q, selected })}
+${problem ? notice(problem, 'warn') : ''}
+${out ? html`<section class="housing-results">
+<h2 class="housing-where">${out.location.name || 'Around those coordinates'}</h2>
+${out.in_us
+        ? html`<p class="muted small">${out.counts.total} found in and around this area, nearest first. Call before you visit: waiting lists and availability change.</p>${housingResults(out)}`
+        : html`<p class="notice warn">HUD data covers the United States only.</p>`}
+</section>` : html`<p class="muted">Type a city, a ZIP code or an address above.</p>`}
+${hudNote(out ? out.fetched_at : null)}`,
+        }, limited ? 429 : 200);
+    }
+
+    const housingSearch = ctx.limits.budget('rent.housing.search');
+    r.get('/housing', (req, res) => {
+        // A page load only spends the shared Nominatim budget when it will actually search.
+        if (!housingQuery(req.query.q)) return housingPage(req, res);
+        let settled = false;
+        let retryAfter = '60';
+        const allowed = () => { if (!settled) { settled = true; housingPage(req, res); } };
+        const refused = () => {
+            if (settled) return;
+            settled = true;
+            res.set('Retry-After', retryAfter);
+            housingPage(req, res, { limited: true });
+        };
+        housingSearch(req, { statusCode: 200, setHeader: (k, v) => { if (String(k).toLowerCase() === 'retry-after') retryAfter = String(v); }, end: refused }, allowed);
     });
 
     // ── Search ───────────────────────────────────────────────

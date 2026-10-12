@@ -38,7 +38,7 @@ async function boot(opts = {}) {
     const { createStore } = require('../../server/db');
     const testdb = await require('./db').testDb();
     const store = createStore(testdb.db, { now: opts.now });
-    const built = await createApp({ config, store, log, limitsNow: opts.limitsNow, callerLimits: opts.callerLimits === true, accountSend: opts.accountSend });
+    const built = await createApp({ config, store, log, limitsNow: opts.limitsNow, callerLimits: opts.callerLimits === true, accountSend: opts.accountSend, housingFetchImpl: opts.housingFetchImpl });
     await built.ctx.keys.ensure();
     const server = await new Promise((resolve) => { const s = http.createServer(built.app); s.listen(0, '127.0.0.1', () => resolve(s)); });
     const base = `http://127.0.0.1:${server.address().port}`;
@@ -70,6 +70,7 @@ async function boot(opts = {}) {
         logs: () => captured.join('\n'),
         async close() {
             built.ctx.search.stop();
+            if (built.ctx.housingPruneTimer) clearInterval(built.ctx.housingPruneTimer);
             await new Promise((r) => server.close(r));
             built.ctx.keys.client.stop();
             await testdb.close();

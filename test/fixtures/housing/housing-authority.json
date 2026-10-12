@@ -1,0 +1,22 @@
+{
+  "objectIdFieldName": "OBJECTID",
+  "geometryType": "esriGeometryPoint",
+  "features": [
+    {
+      "attributes": {
+        "OBJECTID": 300,
+        "FORMAL_PARTICIPANT_NAME": "Springfield Housing Authority",
+        "STD_ADDR": "80 Main St",
+        "STD_CITY": "Springfield",
+        "STD_ST": "VT",
+        "STD_ZIP5": "05156",
+        "TOTAL_UNITS": 0,
+        "SECTION8_UNITS_CNT": 196,
+        "HA_PHN_NUM": "8028854905",
+        "HA_EMAIL_ADDR_TEXT": "lrsha@vermontel.net",
+        "LAST_UPDT_DTTM": 1783361504000
+      },
+      "geometry": { "x": -72.4807, "y": 43.2984 }
+    }
+  ]
+}

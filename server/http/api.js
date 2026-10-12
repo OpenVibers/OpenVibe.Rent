@@ -36,6 +36,7 @@ const listings = require('../listings/listings');
 const store = require('../listings/store');
 const service = require('../listings/service');
 const { isStaff } = require('../listings/staff');
+const housingPlaces = require('../housing/places');
 
 /** The listing columns a caller may set, as the validate() input names. */
 const INPUT_KEYS = ['kind', 'title', 'description', 'price', 'currency', 'period', 'city', 'region', 'country', 'neighbourhood', 'bedrooms'];
@@ -53,6 +54,24 @@ function createApi(ctx) {
 
     // Liveness: public, and counted per caller with the default read numbers.
     r.get('/ping', limits.reads('rent.api.read'), (_req, res) => res.json({ ok: true, service: config.service }));
+
+    // ── Affordable housing near you (public) ─────────────────
+    // No token: HUD's open data is the same for everyone. It spends Nominatim's shared one-request-a-second budget, so
+    // it takes the per-address budget in ./caller-limits.js rather than the default read numbers.
+    r.get('/housing', limits.budget('rent.housing.search'), async (req, res) => {
+        const one = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null);
+        const out = await housingPlaces.searchPlaces(ctx.upstream, {
+            q: one(req.query.q),
+            kinds: one(req.query.kind),
+        }, config).catch((err) => {
+            if (err && err.code) { problem(req, res, err.status || 502, err.code, err.message); return null; }
+            throw err;
+        });
+        if (!out) return undefined;
+        // HUD answers are public and change slowly; a short shared cache keeps repeat searches off the upstream.
+        res.set('Cache-Control', 'public, max-age=300');
+        return res.json(out);
+    });
 
     // ── Who may act ─────────────────────────────────────────
     /**

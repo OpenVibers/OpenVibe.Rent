@@ -42,7 +42,7 @@ async function start() {
     // RENT_EVENTS_SECRET). The consumer itself is mounted in server/app.js.
     const subscriptions = require('./events-consumer').startSubscriptions({ config, port: config.port, secret: config.events.secrets[0] || '' });
     const extra = [() => { if (subscriptions) subscriptions.stop(); }];
-    createLifecycle({ server, ctx, timers: [expiry.timer], extra });
+    createLifecycle({ server, ctx, timers: [expiry.timer, ctx.housingPruneTimer], extra });
     return { server, ctx, expiry };
 }
 

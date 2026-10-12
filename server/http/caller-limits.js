@@ -39,6 +39,10 @@ const BUDGETS = {
     'rent.listing.report': { minute: 10, hour: 60 },
     'rent.listing.renew': { minute: 10, hour: 60 },
     'rent.saved.create': { minute: 20, hour: 100 },
+    // "Affordable housing near you" spends Nominatim's shared one-request-a-second budget, so the route takes a
+    // per-address budget of its own (server/housing/upstream.js paces and caches; these numbers are for callers who
+    // keep asking for new places).
+    'rent.housing.search': { minute: 10, hour: 120 },
 };
 
 function createCallerLimits({ config, now = () => Date.now(), registry = null, log = console, enabled = true, valkey = null }) {
