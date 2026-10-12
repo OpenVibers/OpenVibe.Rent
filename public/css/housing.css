@@ -30,3 +30,14 @@
 .housing-more { margin-top: 10px; }
 .housing-more summary { cursor: pointer; color: var(--accent-light, #60a5fa); padding: 6px 0; }
 .housing-more .housing-list { margin-top: 8px; }
+
+/* "Home prices around here": the FHFA House Price Index card, two stat tiles and a source line. */
+.hpi-card { margin: 14px 0 6px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border, #1f2d47); background: var(--bg-card, #131c2e); }
+.hpi-title { margin: 0 0 10px; font-size: 1rem; line-height: 1.35; overflow-wrap: anywhere; }
+.hpi-stats { display: flex; flex-wrap: wrap; gap: 10px; }
+.hpi-stat { display: grid; gap: 2px; min-width: 132px; flex: 1 1 132px; padding: 10px 12px; border-radius: 10px; background: var(--bg-tertiary, #16223a); border: 1px solid var(--border, #1f2d47); }
+.hpi-num { font-size: 1.45rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--text-primary, #e6edf7); }
+.hpi-num.hpi-down { color: var(--accent-light, #60a5fa); }
+.hpi-label { font-size: .82rem; color: var(--text-secondary, #96a7c2); }
+.hpi-note { margin: 10px 0 0; font-size: .82rem; line-height: 1.5; color: var(--text-secondary, #96a7c2); }
+.hpi-note a { white-space: nowrap; }

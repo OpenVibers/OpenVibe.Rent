@@ -16,7 +16,7 @@
     "openvibe-shared v4.0.2",
     "openvibe-publishing v1.4.0"
   ],
-  "summary": "OpenVibe.Rent — Find a place, or rent yours out. One place to find and offer things to rent: apartments, rooms, houses, commercial space, parking and storage, and equipment. In this first version every listing is posted by a person on this site: no scraped listings and no partner feeds, no payments, no deposits and no messaging. Search with filters and facets, a listing page with a plain safety note, reports that hide a listing at 3 until staff look, saved searches that count what is new, and a 30-day expiry an owner can renew.",
+  "summary": "OpenVibe.Rent — Find a place, or rent yours out. One place to find and offer things to rent: apartments, rooms, houses, commercial space, parking and storage, and equipment. In this first version every listing is posted by a person on this site: no scraped listings and no partner feeds, no payments, no deposits and no messaging. Search with filters and facets, a listing page with a plain safety note, reports that hide a listing at 3 until staff look, saved searches that count what is new, a 30-day expiry an owner can renew, and a FHFA House Price Index card on the affordable-housing page.",
   "works": [
     "Posting: a signed-in person only (an app, agent or service token is refused), at most 10 active listings and 5 new ones a day, 30 days until expiry",
     "The field rules: kind, title ≤120, description ≤4000, price with an ISO 4217 currency from a short list, period, city, ISO 3166-1 alpha-2 country, optional region/neighbourhood/bedrooms/available-from, https or mailto contact link",
@@ -32,7 +32,8 @@
     "Same-origin writes for the session cookie, and per-caller budgets shared by the form and the API route",
     "Discovery: robots.txt (disallows /auth/, /api/, /post, /mine, /saved, /staff), sitemap.xml with every active listing (≤1000), llms.txt, llms-full.txt",
     "Tests: posting rules, search and paging and facets, contact hidden from signed-out viewers, report → hide at 3 → staff restore, expiry, owner-only edits, same-origin writes, saved searches, hostile text escaped",
-    "Account export and deletion (ADR-033): the listings a person posted, the reports they filed and the searches they saved are exported to OpenVibe.Network on network.account.export_requested and deleted whole on network.account.deleted (a report others left on a deleted listing cascades away with it), with the counts confirmed back; the two Events topics are subscribed at boot (server/identity/account-data.js)"
+    "Account export and deletion (ADR-033): the listings a person posted, the reports they filed and the searches they saved are exported to OpenVibe.Network on network.account.export_requested and deleted whole on network.account.deleted (a report others left on a deleted listing cascades away with it), with the counts confirmed back; the two Events topics are subscribed at boot (server/identity/account-data.js)",
+    "Housing price context: a card on /housing shows the FHFA House Price Index year and five-year change for the matching MSA or state, as a repeat-sales index (not a price), with the source linked back"
   ],
   "notYet": [
     "Listing sources beyond people posting here: scraped and partner feeds arrive only when their terms are verified, and then each listing will carry its provenance (source name, link back, fetched_at)",
@@ -55,8 +56,9 @@
     "server-rendered pages",
     "api mount",
     "limits and readiness",
-    "deploy files"
+    "deploy files",
+    "home-price context (FHFA)"
   ],
   "deployment": "openvibe-ovh: unit openvibe-rent.service on 127.0.0.1:5010 (git checkout /opt/openvibe.rent, env /etc/openvibe/rent.env, database ov_rent), deployed with `sudo ovhost deploy rent`; public at https://openvibe.rent since 2026-10-08.",
-  "updated": "2026-10-11"
+  "updated": "2026-10-12"
 }

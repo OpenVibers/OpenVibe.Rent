@@ -4,7 +4,7 @@
 
 **Status:** v1 works end to end: people post listings, anyone searches them, three reports hide one until staff look, and
 "Affordable housing near you" shows HUD's public-domain housing data (public housing, LIHTC, HUD-assisted multifamily,
-public housing authorities and housing counselling agencies) near a place a visitor types.
+public housing authorities and housing counselling agencies) near a place a visitor types, with FHFA home-price context beside it.
 **Domain:** `openvibe.rent` · **Port:** 5010 · **Service id:** `rent` · **Env prefix:** `RENT`
 **License:** AGPL-3.0 (same as every OpenVibe service).
 
@@ -20,7 +20,8 @@ Separately, the site is useful before anyone has posted anything: **"Affordable 
 public housing, tax-credit (LIHTC) and HUD-assisted multifamily properties, public housing authorities and housing
 counselling agencies near a place a visitor types, from the U.S. Department of Housing and Urban Development's open
 data (public domain). It is the same "near you" pattern as OpenVibe.Food's food banks, but from HUD's ArcGIS instead
-of OpenStreetMap.
+of OpenStreetMap. Beside those results, a small card shows what is happening to home prices there, from the FHFA House
+Price Index — a repeat-sales index, not a price.
 
 Three rules shape the product:
 
@@ -51,6 +52,9 @@ Rent's own data is its PostgreSQL database ([server/db.js](server/db.js)); the `
   Nominatim geocode and HUD ArcGIS query answer, kept for `RENT_HOUSING_CACHE_TTL_MS` (7 days), so a place is
   geocoded once and an area is asked once, not once per visitor
   ([migrations/0005_housing_cache.sql](migrations/0005_housing_cache.sql)).
+- **`area_price_index`** — the FHFA House Price Index rows behind "Home prices around here": the last six years of
+  traditional, all-transactions, quarterly State and MSA index values, replaced whole on each refresh
+  ([migrations/0006_area_price_index.sql](migrations/0006_area_price_index.sql)).
 
 `migrations/0001_initial.sql` creates no tables (the skeleton). Every row keys a person as `user:usr_…`, and the
 namespace is `rent.*`.
@@ -84,9 +88,10 @@ namespace is `rent.*`.
   `legal`, `cache-policy`, `serve`, `frame`, `shell`, `seo`, `app-icon`).
 
 For listings it fetches from no source and no third party: the only outbound calls are the Network and Events above.
-The "Affordable housing near you" feature adds two more outbound hosts, both open data with published usage policies —
-Nominatim (a place name → coordinates) and HUD's ArcGIS FeatureServer (the six housing layers) — paced and cached in
-[server/housing/upstream.js](server/housing/upstream.js).
+The "Affordable housing near you" feature adds three more outbound hosts, all open data with published usage policies —
+Nominatim (a place name → coordinates), HUD's ArcGIS FeatureServer (the six housing layers) and the FHFA House Price
+Index master CSV — paced and cached in [server/housing/upstream.js](server/housing/upstream.js) and streamed into
+[server/housing/hpi.js](server/housing/hpi.js).
 
 ## Capabilities
 
@@ -109,6 +114,7 @@ Nominatim (a place name → coordinates) and HUD's ArcGIS FeatureServer (the six
 | Staff | [server/listings/staff.js](server/listings/staff.js) | Who is staff is the Network **role claim** (`admin`, `global_mod`), decided in one place, exactly as at OpenVibe.Help. The pages and the API cannot drift apart. |
 | Saving a search | `/saved` | Save the current filters (signed in) and see, each time you open the page, how many listings have appeared since you last looked. Alerts by notification come later through OpenVibe.Watch. |
 | Affordable housing | [server/housing/places.js](server/housing/places.js), [upstream.js](server/housing/upstream.js) | `/housing` geocodes a place with Nominatim, then reads six HUD ArcGIS layers — public housing, LIHTC, HUD-assisted multifamily, public housing authorities, housing counselling agencies and HUD homes for sale (`SF_REO`, HUD's March 2026 snapshot, each linked to HUD Homestore to confirm it is still for sale) — normalised, distance-sorted and grouped, with the HUD attribution on the page. |
+| Home prices | [server/housing/hpi.js](server/housing/hpi.js) | A small card on `/housing` shows the FHFA House Price Index change over the past year and five years for the matching MSA (or the state), as a repeat-sales index — never a price — with the source linked back. |
 | Pages | [server/http/pages.js](server/http/pages.js) | Home, `/housing`, `/listings`, `/listings/:id`, `/listings/:id/edit`, `/post`, `/mine`, `/saved`, `/safety`, `/staff`, `/updates` — all server-rendered, all complete without JavaScript, forms are plain POSTs. |
 | Discovery | [server/http/discovery.js](server/http/discovery.js) | `robots.txt` (disallows `/auth/`, `/api/`, `/post`, `/mine`, `/saved`, `/staff`), `sitemap.xml` (every active `/listings/:id`, up to 1000), `llms.txt`, `llms-full.txt`. |
 | Sign-in | [server/auth/sso.js](server/auth/sso.js) | OAuth 2 authorization code with PKCE (S256) against OpenVibe.Network; httpOnly `rent_at` / `rent_rt` cookies; `/auth/me` for the shared navbar. |
@@ -147,8 +153,8 @@ scraped, imported or fetched from anywhere. There is no outbound fetch for a lis
 as text and shown as a link, and this service never opens it (a URL a caller sent must never decide what this service
 requests).
 
-**Affordable housing near you** has two verified, open sources, read live and cached for 7 days
-([server/housing/upstream.js](server/housing/upstream.js)):
+**Affordable housing near you** has three verified, open sources ([server/housing/upstream.js](server/housing/upstream.js)
+and [server/housing/hpi.js](server/housing/hpi.js)):
 
 - **U.S. Department of Housing and Urban Development (HUD)** open data, on ArcGIS — public housing, LIHTC, HUD-assisted
   multifamily, public housing authorities and housing counselling agencies. Public domain (USA.gov
@@ -158,6 +164,9 @@ requests).
   the property or authority.
 - **Nominatim** (OpenStreetMap) — the place name → coordinates and bounding box for the search box only; the housing
   results themselves come from HUD. One request a second at most, with a descriptive `RENT_USER_AGENT`.
+- **FHFA House Price Index** (U.S. Federal Housing Finance Agency) — the `hpi_master.csv` file, streamed line by line
+  and kept for the last six years; public domain (U.S. government work). The card says it is a repeat-sales index, not
+  a price, and links to https://www.fhfa.gov/data/hpi.
 
 The only other external service this process talks to is **OpenVibe.Network** (its own OAuth token endpoint and its
 JWKS), with its terms as the network's own service. When listing sources are added they will be named here with their
@@ -182,6 +191,10 @@ defaults):
 - `RENT_HOUSING_CACHE_TTL_MS` — `604800000` (7 days)
 - `RENT_HOUSING_MIN_INTERVAL_MS` — `1000` (one request a second to a host)
 - `RENT_HOUSING_TIMEOUT_MS` — `25000`
+- `RENT_HPI` — on in production, off elsewhere; turns the FHFA House Price Index ingest and card on
+- `RENT_HPI_URL` — `https://www.fhfa.gov/hpi/download/monthly/hpi_master.csv`
+- `RENT_HPI_TIMEOUT_MS` — `60000`
+- `RENT_HPI_REFRESH_TTL_MS` — `604800000` (one fetch at most every 7 days)
 
 ## Development and tests
 
@@ -218,6 +231,9 @@ through PostgreSQL and PgBouncer (see [.github/workflows/ci.yml](.github/workflo
   geocoding and bounding-box clipping, the ArcGIS query URL, normalisation of all six HUD layers (null for a missing
   value), distance sort, the cache (a second request does not fetch), the upstream-failure and non-US states, the page
   signed out with attribution, and the API.
+- [test/housing-hpi.test.js](test/housing-hpi.test.js) — the FHFA House Price Index ingest (streamed, matching rows only,
+  replaced whole), the MSA-then-state match, the percentages and the missing-quarter rule, the page card and its
+  absence without data, and the API `area_prices` field.
 - [test/account-data.test.js](test/account-data.test.js) — ADR-033 export and deletion through `/internal/events`
   with a stand-in Network: only the person's rows, a redelivery changes nothing, and a bad signature or forwarded
   request is refused.

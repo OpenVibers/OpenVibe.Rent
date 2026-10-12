@@ -326,7 +326,13 @@ async function searchPlaces(upstream, { q = null, kinds = null } = {}, config) {
         if (!Number.isFinite(la) || !Number.isFinite(lo)) throw new UpstreamError('housing.place.upstream', 'could not reach the place service right now (no coordinates for that place)');
         const country = hit.address && (hit.address.country_code || hit.address.country)
             ? String(hit.address.country_code || hit.address.country).toLowerCase() : null;
-        place = { name: hit.display_name || String(q), lat: la, lon: lo, from: 'geocode', geocoded_at: g.fetched_at, country_code: country, bbox: parseBbox(hit.boundingbox) };
+        // The two pieces the FHFA House Price Index lookup matches on (server/housing/hpi.js): a city and the
+        // two-letter state code. Nominatim gives the code as address.state_code for US places.
+        const addr = hit.address || {};
+        const city = str(addr.city) || str(addr.town) || str(addr.village) || str(addr.hamlet) || str(addr.municipality)
+            || str(addr.county) || str(addr.suburb) || str(addr.city_district);
+        const state = str(addr.state_code);
+        place = { name: hit.display_name || String(q), lat: la, lon: lo, from: 'geocode', geocoded_at: g.fetched_at, country_code: country, bbox: parseBbox(hit.boundingbox), city, state };
     } else {
         throw new UpstreamError('housing.place.invalid', 'q: a place to search for', { status: 422 });
     }
@@ -336,7 +342,7 @@ async function searchPlaces(upstream, { q = null, kinds = null } = {}, config) {
     const inUs = place.country_code == null || place.country_code === 'us';
 
     const out = {
-        location: { name: place.name, lat: place.lat, lon: place.lon, from: place.from, geocoded_at: place.geocoded_at, country_code: place.country_code },
+        location: { name: place.name, lat: place.lat, lon: place.lon, from: place.from, geocoded_at: place.geocoded_at, country_code: place.country_code, city: place.city, state: place.state },
         in_us: inUs,
         box,
         kinds: requested,
