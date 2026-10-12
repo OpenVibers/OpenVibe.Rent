@@ -1,6 +1,6 @@
 'use strict';
 /**
- * "Affordable housing near you" — the two upstream services (Nominatim + HUD ArcGIS), the five layers, and the
+ * "Affordable housing near you" — the two upstream services (Nominatim + HUD ArcGIS), the six layers, and the
  * page and API. The upstream fetch is injected through opts.housingFetchImpl (the sandbox has no network or loopback
  * to reach Nominatim/HUD), and the DB cache is the real migrated housing_geo_cache table.
  */
@@ -145,6 +145,20 @@ const mockFetch = async (url) => {
         assert.deepStrictEqual(r.units, { total: null, low_income: null });
         assert.strictEqual(r.extra.services, 'Mortgage Delinquency and Default Resolution Counseling');
         assert.strictEqual(r.extra.website, 'http://www.ifhmb.com/');
+    });
+
+    await check('normalises HUD homes for sale (SF_REO): padded street fields, ZIP, case number, HUD Homestore link', () => {
+        const r = places.normalizeFeature({ attributes: { OBJECTID: 9, CASE_NUM: '011-662347', STREET_NUM: '2220 ', DIRECTION_PREFIX: null, STREET_NAME: 'E TUSCALOOSA A                ', ADDRESS: '2220 E TUSCALOOSA A                ', CITY: 'GADSDEN', STATE_CODE: 'AL', DISPLAY_ZIP_CODE: 5904, DATE_ACQUIRED: 1713225600000, DATE_CLOSED: null }, geometry: { x: -86.03811, y: 34.028436 } }, def('hud_home'));
+        assert.strictEqual(r.kind, 'hud_home');
+        assert.strictEqual(r.id, 'hud-reo-011-662347');
+        assert.strictEqual(r.name, '2220 E TUSCALOOSA A');
+        assert.strictEqual(r.zip, '05904', 'a numeric ZIP keeps its leading zero');
+        assert.strictEqual(r.extra.case_number, '011-662347');
+        assert.strictEqual(r.extra.acquired, '2024-04-16T00:00:00.000Z');
+        assert.strictEqual(r.extra.homestore_url, 'https://www.hudhomestore.gov/searchresult?citystate=GADSDEN%2C%20AL');
+        assert.deepStrictEqual([r.lat, r.lon], [34.028436, -86.03811]);
+        assert.ok(places.KINDS.includes('hud_home'));
+        assert.match(places.KIND_DESCRIPTIONS.hud_home, /snapshot \(March 2026\)/);
     });
 
     await check('a missing value stays null, never invented', () => {
