@@ -236,11 +236,14 @@ ${housingPlaces.KINDS.map((k) => html`<label class="housing-kind"><input type="c
         if (x.expiration_date) out.push(html`Assistance contract runs to ${x.expiration_date}`);
         if (x.services) out.push(html`${x.services}`);
         if (x.languages) out.push(html`Languages: ${x.languages}`);
+        if (x.case_number) out.push(html`HUD case ${x.case_number}`);
+        if (x.acquired) out.push(html`Taken back by HUD in ${new Date(x.acquired).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })}`);
         return out;
     };
 
     function housingRow(r) {
-        const where = [titleCase(r.address), titleCase(r.city), r.state, r.zip].filter(Boolean).join(', ');
+        // A HUD home is named by its street, so its address line starts at the city.
+        const where = [r.kind === 'hud_home' ? null : titleCase(r.address), titleCase(r.city), r.state, r.zip].filter(Boolean).join(', ');
         const tel = r.phone ? String(r.phone).replace(/[^\d+]/g, '') : null;
         const details = housingDetails(r);
         const units = housingUnits(r);
@@ -250,7 +253,7 @@ ${housingPlaces.KINDS.map((k) => html`<label class="housing-kind"><input type="c
 ${where ? html`<p class="housing-addr">${where}</p>` : ''}
 ${units ? html`<p class="housing-units">${units}</p>` : ''}
 ${details.length ? html`<ul class="housing-facts">${details.map((d) => html`<li>${d}</li>`)}</ul>` : ''}
-<p class="housing-actions">${r.phone ? html`<a href="tel:${tel}">${phoneText(r.phone)}</a>` : ''}${r.extra && r.extra.email ? html`<a href="mailto:${r.extra.email}">Email</a>` : ''}${r.extra && r.extra.website ? html`<a href="${r.extra.website}" rel="nofollow noopener external">Website</a>` : ''}${map ? html`<a href="${map}" rel="noopener">Map</a>` : ''}</p>
+<p class="housing-actions">${r.phone ? html`<a href="tel:${tel}">${phoneText(r.phone)}</a>` : ''}${r.extra && r.extra.email ? html`<a href="mailto:${r.extra.email}">Email</a>` : ''}${r.extra && r.extra.website ? html`<a href="${r.extra.website}" rel="nofollow noopener external">Website</a>` : ''}${r.extra && r.extra.homestore_url ? html`<a href="${r.extra.homestore_url}" rel="noopener external">Check it on HUD Homestore</a>` : ''}${map ? html`<a href="${map}" rel="noopener">Map</a>` : ''}</p>
 </li>`;
     }
 

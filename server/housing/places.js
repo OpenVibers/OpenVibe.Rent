@@ -27,13 +27,14 @@ const SOURCE = {
     fetched_note: 'fetched by OpenVibe.Rent and cached for 7 days',
 };
 
-const KINDS = ['public_housing', 'lihtc', 'multifamily', 'housing_authority', 'counseling'];
+const KINDS = ['public_housing', 'lihtc', 'multifamily', 'housing_authority', 'counseling', 'hud_home'];
 const KIND_TEXT = {
     public_housing: 'Public housing',
     lihtc: 'Tax-credit (LIHTC) properties',
     multifamily: 'HUD-assisted multifamily',
     housing_authority: 'Public housing authorities',
     counseling: 'Housing counselling agencies',
+    hud_home: 'HUD homes for sale',
 };
 const KIND_DESCRIPTIONS = {
     public_housing: 'Public housing: homes owned by a local housing authority, rent based on income.',
@@ -41,6 +42,7 @@ const KIND_DESCRIPTIONS = {
     multifamily: 'HUD-assisted multifamily: privately owned apartments where HUD helps keep the rent affordable.',
     housing_authority: 'Public housing authorities: the local agency to apply to for public housing and housing vouchers.',
     counseling: 'Housing counselling agencies: HUD-approved local help with renting, buying and keeping a home.',
+    hud_home: 'HUD homes for sale: houses HUD took back after an FHA loan, sold through HUD Homestore. From HUD\'s published snapshot (March 2026), so a home may have sold since: confirm it on HUD Homestore before you plan around it.',
 };
 
 // Counts, rents and coordinates-free numbers: HUD marks a missing or suppressed value with a negative sentinel (-1, -4,
@@ -190,6 +192,33 @@ const LAYERS = [
                 phone: str(a.AGC_PHONE_NBR),
                 units: { total: null, low_income: null },
                 extra: { website: safeUrl(a.AGC_WEB_SITE), services: str(a.COUNSEL_SRV_DESC), languages: str(a.LANGUAGE_DESC) },
+            };
+        },
+    },    {
+        kind: 'hud_home',
+        service: 'SF_REO',
+        layer: 0,
+        fields: ['OBJECTID', 'CASE_NUM', 'STREET_NUM', 'DIRECTION_PREFIX', 'STREET_NAME', 'ADDRESS', 'CITY', 'STATE_CODE', 'DISPLAY_ZIP_CODE', 'DATE_ACQUIRED', 'DATE_CLOSED', 'MAP_LATITUDE', 'MAP_LONGITUDE'],
+        normalize(a) {
+            // The street fields are padded; ADDRESS already joins number, prefix and street when it is set.
+            const street = str(a.ADDRESS) || [str(a.STREET_NUM), str(a.DIRECTION_PREFIX), str(a.STREET_NAME)].filter(Boolean).join(' ') || null;
+            const city = str(a.CITY);
+            const state = str(a.STATE_CODE);
+            return {
+                id: idOf('hud-reo', a.CASE_NUM, a.OBJECTID),
+                name: street,
+                address: street,
+                city,
+                state,
+                zip: zip5(a.DISPLAY_ZIP_CODE),
+                phone: null,
+                units: { total: null, low_income: null },
+                extra: {
+                    case_number: str(a.CASE_NUM),
+                    acquired: epochIso(a.DATE_ACQUIRED),
+                    // HUD Homestore has no per-case link HUD publishes; its city search finds the home by its case number.
+                    homestore_url: city && state ? `https://www.hudhomestore.gov/searchresult?citystate=${encodeURIComponent(`${city}, ${state}`)}` : 'https://www.hudhomestore.gov/',
+                },
             };
         },
     },

@@ -85,7 +85,7 @@ namespace is `rent.*`.
 
 For listings it fetches from no source and no third party: the only outbound calls are the Network and Events above.
 The "Affordable housing near you" feature adds two more outbound hosts, both open data with published usage policies —
-Nominatim (a place name → coordinates) and HUD's ArcGIS FeatureServer (the five housing layers) — paced and cached in
+Nominatim (a place name → coordinates) and HUD's ArcGIS FeatureServer (the six housing layers) — paced and cached in
 [server/housing/upstream.js](server/housing/upstream.js).
 
 ## Capabilities
@@ -108,7 +108,7 @@ Nominatim (a place name → coordinates) and HUD's ArcGIS FeatureServer (the fiv
 | Reports | [server/listings/store.js](server/listings/store.js), `/staff` | Anyone signed in reports a listing once (reason + note ≤500). **3 distinct reports hide it** from search until staff look; staff restore, hide or remove it, and a listing staff restored is not hidden again by the same reports. |
 | Staff | [server/listings/staff.js](server/listings/staff.js) | Who is staff is the Network **role claim** (`admin`, `global_mod`), decided in one place, exactly as at OpenVibe.Help. The pages and the API cannot drift apart. |
 | Saving a search | `/saved` | Save the current filters (signed in) and see, each time you open the page, how many listings have appeared since you last looked. Alerts by notification come later through OpenVibe.Watch. |
-| Affordable housing | [server/housing/places.js](server/housing/places.js), [upstream.js](server/housing/upstream.js) | `/housing` geocodes a place with Nominatim, then reads five HUD ArcGIS layers — public housing, LIHTC, HUD-assisted multifamily, public housing authorities and housing counselling agencies — normalised, distance-sorted and grouped, with the HUD attribution on the page. |
+| Affordable housing | [server/housing/places.js](server/housing/places.js), [upstream.js](server/housing/upstream.js) | `/housing` geocodes a place with Nominatim, then reads six HUD ArcGIS layers — public housing, LIHTC, HUD-assisted multifamily, public housing authorities, housing counselling agencies and HUD homes for sale (`SF_REO`, HUD's March 2026 snapshot, each linked to HUD Homestore to confirm it is still for sale) — normalised, distance-sorted and grouped, with the HUD attribution on the page. |
 | Pages | [server/http/pages.js](server/http/pages.js) | Home, `/housing`, `/listings`, `/listings/:id`, `/listings/:id/edit`, `/post`, `/mine`, `/saved`, `/safety`, `/staff`, `/updates` — all server-rendered, all complete without JavaScript, forms are plain POSTs. |
 | Discovery | [server/http/discovery.js](server/http/discovery.js) | `robots.txt` (disallows `/auth/`, `/api/`, `/post`, `/mine`, `/saved`, `/staff`), `sitemap.xml` (every active `/listings/:id`, up to 1000), `llms.txt`, `llms-full.txt`. |
 | Sign-in | [server/auth/sso.js](server/auth/sso.js) | OAuth 2 authorization code with PKCE (S256) against OpenVibe.Network; httpOnly `rent_at` / `rent_rt` cookies; `/auth/me` for the shared navbar. |
@@ -215,7 +215,7 @@ through PostgreSQL and PgBouncer (see [.github/workflows/ci.yml](.github/workflo
 - [test/listings-pages.test.js](test/listings-pages.test.js) — the server-rendered pages and plain form POSTs, the
   safety note word for word, saved-search new counts, and a refused form re-rendering what was typed, escaped.
 - [test/housing.test.js](test/housing.test.js) — "Affordable housing near you", with the upstream fetch injected:
-  geocoding and bounding-box clipping, the ArcGIS query URL, normalisation of all five HUD layers (null for a missing
+  geocoding and bounding-box clipping, the ArcGIS query URL, normalisation of all six HUD layers (null for a missing
   value), distance sort, the cache (a second request does not fetch), the upstream-failure and non-US states, the page
   signed out with attribution, and the API.
 - [test/account-data.test.js](test/account-data.test.js) — ADR-033 export and deletion through `/internal/events`
