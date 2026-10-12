@@ -78,6 +78,21 @@ const epochIso = (v) => {
     return Number.isNaN(d.getTime()) ? null : d.toISOString();
 };
 
+const US_STATES = { alabama: 'AL', alaska: 'AK', arizona: 'AZ', arkansas: 'AR', california: 'CA', colorado: 'CO', connecticut: 'CT',
+    delaware: 'DE', 'district of columbia': 'DC', florida: 'FL', georgia: 'GA', hawaii: 'HI', idaho: 'ID', illinois: 'IL', indiana: 'IN',
+    iowa: 'IA', kansas: 'KS', kentucky: 'KY', louisiana: 'LA', maine: 'ME', maryland: 'MD', massachusetts: 'MA', michigan: 'MI',
+    minnesota: 'MN', mississippi: 'MS', missouri: 'MO', montana: 'MT', nebraska: 'NE', nevada: 'NV', 'new hampshire': 'NH',
+    'new jersey': 'NJ', 'new mexico': 'NM', 'new york': 'NY', 'north carolina': 'NC', 'north dakota': 'ND', ohio: 'OH', oklahoma: 'OK',
+    oregon: 'OR', pennsylvania: 'PA', 'puerto rico': 'PR', 'rhode island': 'RI', 'south carolina': 'SC', 'south dakota': 'SD',
+    tennessee: 'TN', texas: 'TX', utah: 'UT', vermont: 'VT', virginia: 'VA', washington: 'WA', 'west virginia': 'WV', wisconsin: 'WI', wyoming: 'WY' };
+
+/** A US place's two-letter state code from Nominatim's address: ISO3166-2-lvl4 ("US-CO") first, else the state's name. */
+function usStateCode(addr) {
+    const iso = /^US-([A-Z]{2})$/.exec(String(addr['ISO3166-2-lvl4'] || ''));
+    if (iso) return iso[1];
+    return US_STATES[String(addr.state || '').trim().toLowerCase()] || null;
+}
+
 /** A HUD-supplied URL, kept only when it parses and speaks http(s): it must never become a hostile href. */
 function safeUrl(v) {
     if (typeof v !== 'string' || !v.trim()) return null;
@@ -327,11 +342,12 @@ async function searchPlaces(upstream, { q = null, kinds = null } = {}, config) {
         const country = hit.address && (hit.address.country_code || hit.address.country)
             ? String(hit.address.country_code || hit.address.country).toLowerCase() : null;
         // The two pieces the FHFA House Price Index lookup matches on (server/housing/hpi.js): a city and the
-        // two-letter state code. Nominatim gives the code as address.state_code for US places.
+        // two-letter state code. Nominatim (addressdetails=1) gives a US state as "ISO3166-2-lvl4": "US-CO" and
+        // "state": "Colorado"; there is no state_code field (Rent#30 read one, so production never matched).
         const addr = hit.address || {};
         const city = str(addr.city) || str(addr.town) || str(addr.village) || str(addr.hamlet) || str(addr.municipality)
             || str(addr.county) || str(addr.suburb) || str(addr.city_district);
-        const state = str(addr.state_code);
+        const state = usStateCode(addr);
         place = { name: hit.display_name || String(q), lat: la, lon: lo, from: 'geocode', geocoded_at: g.fetched_at, country_code: country, bbox: parseBbox(hit.boundingbox), city, state };
     } else {
         throw new UpstreamError('housing.place.invalid', 'q: a place to search for', { status: 422 });
