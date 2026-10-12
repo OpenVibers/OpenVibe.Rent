@@ -37,6 +37,7 @@ const store = require('../listings/store');
 const service = require('../listings/service');
 const { isStaff } = require('../listings/staff');
 const housingPlaces = require('../housing/places');
+const housingHpi = require('../housing/hpi');
 
 /** The listing columns a caller may set, as the validate() input names. */
 const INPUT_KEYS = ['kind', 'title', 'description', 'price', 'currency', 'period', 'city', 'region', 'country', 'neighbourhood', 'bedrooms'];
@@ -68,9 +69,16 @@ function createApi(ctx) {
             throw err;
         });
         if (!out) return undefined;
+        let areaPrices = null;
+        if (out.in_us && config.hpi && config.hpi.enabled) {
+            areaPrices = await housingHpi.areaPricesFor(s, out.location).catch((err) => {
+                ctx.log.warn('[OpenVibe.Rent] FHFA HPI lookup failed:', err && err.message ? err.message : err);
+                return null;
+            });
+        }
         // HUD answers are public and change slowly; a short shared cache keeps repeat searches off the upstream.
         res.set('Cache-Control', 'public, max-age=300');
-        return res.json(out);
+        return res.json({ ...out, area_prices: areaPrices });
     });
 
     // ── Who may act ─────────────────────────────────────────

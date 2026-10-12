@@ -27,6 +27,7 @@ const store = require('../listings/store');
 const service = require('../listings/service');
 const { isStaff } = require('../listings/staff');
 const housingPlaces = require('../housing/places');
+const housingHpi = require('../housing/hpi');
 
 const SITE_NAME = 'OpenVibe.Rent';
 const TAGLINE = 'Find a place, or rent yours out.';
@@ -200,7 +201,18 @@ ${raw(showcase.cta({ title: 'Have something to rent out?', text: 'Post it in a m
 
     // ── Affordable housing near you ──────────────────────────
     // HUD's data is public domain, but the licence still asks for credit; every /housing page carries it, linked back.
-    const hudNote = (fetchedAt) => html`<p class="attribution small muted"><a href="${housingPlaces.ATTRIBUTION.url}" rel="noopener">${housingPlaces.ATTRIBUTION.text}</a>. The data covers the United States, and availability must be confirmed with the property or authority.${fetchedAt ? html` Fetched ${time(fetchedAt)}.` : ''}</p>`;
+    const hudNote = (fetchedAt) => html`<p class="attribution small muted"><a href="${housingPlaces.ATTRIBUTION.url}" rel="noopener">${housingPlaces.ATTRIBUTION.text}</a> · <a href="${housingHpi.ATTRIBUTION.url}" rel="noopener">${housingHpi.ATTRIBUTION.text}</a>. The housing data covers the United States, and availability must be confirmed with the property or authority.${fetchedAt ? html` Fetched ${time(fetchedAt)}.` : ''}</p>`;
+    // FHFA's index is a repeat-sales index, not a price: the card says so and links the source back.
+    const hpiPct = (n) => { const r = Math.round(n * 10) / 10; return `${r > 0 ? '+' : ''}${r.toFixed(1)} %`; };
+    const hpiCard = (p) => {
+        const stat = (n, label) => html`<div class="hpi-stat"><span class="hpi-num${n < 0 ? ' hpi-down' : ''}">${hpiPct(n)}</span><span class="hpi-label">${label}</span></div>`;
+        const stats = [p.year_change_pct != null ? stat(p.year_change_pct, 'over the past year') : '', p.five_year_change_pct != null ? stat(p.five_year_change_pct, 'over five years') : ''];
+        return html`<aside class="hpi-card" aria-labelledby="hpi-title">
+<h3 class="hpi-title" id="hpi-title">Home prices around ${p.place}</h3>
+<div class="hpi-stats">${stats}</div>
+<p class="hpi-note">FHFA all-transactions index, ${p.latest}. This is an index of repeat sales, not a price. <a href="${p.source.url}" rel="noopener">Source: ${p.source.name}</a></p>
+</aside>`;
+    };
     // HUD's data covers the United States, so distances read in miles (the API keeps distance_km).
     const housingMi = (km) => { const mi = Number(km) * 0.621371; return `${mi < 10 ? mi.toFixed(1) : Math.round(mi)} mi`; };
     const housingQuery = (v) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 200) : null);
@@ -290,6 +302,15 @@ ${rest.length ? html`<details class="housing-more"><summary>Show ${rest.length} 
                 problem = err && err.code ? err.message : 'The housing search is unavailable right now. Try again in a few minutes.';
             }
         }
+        let areaPrices = null;
+        if (out && out.in_us && config.hpi && config.hpi.enabled) {
+            try {
+                areaPrices = await housingHpi.areaPricesFor(s, out.location);
+            } catch (err) {
+                // Home prices are context, never a reason for the page itself to fail.
+                ctx.log.warn('[OpenVibe.Rent] FHFA HPI lookup failed:', err && err.message ? err.message : err);
+            }
+        }
         const title = out && out.location.name ? `Affordable housing near ${out.location.name.split(',').slice(0, 2).join(',')}` : 'Affordable housing near you';
         page(req, res, {
             index: true, cache: signedIn(req) ? null : PUBLIC_CACHE,
@@ -303,6 +324,7 @@ ${housingForm({ q, selected })}
 ${problem ? notice(problem, 'warn') : ''}
 ${out ? html`<section class="housing-results">
 <h2 class="housing-where">${out.location.name || 'Around those coordinates'}</h2>
+${areaPrices ? hpiCard(areaPrices) : ''}
 ${out.in_us
         ? html`<p class="muted small">${out.counts.total} found in and around this area, nearest first. Call before you visit: waiting lists and availability change.</p>${housingResults(out)}`
         : html`<p class="notice warn">HUD data covers the United States only.</p>`}

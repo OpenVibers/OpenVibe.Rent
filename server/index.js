@@ -10,6 +10,7 @@
 const { createApp } = require('./app');
 const { gracefulStop } = require('openvibe-sdk/service');
 const { startExpiryTimer } = require('./listings/expiry');
+const { startHpiTimer } = require('./housing/hpi');
 
 /**
  * The process stop (openvibe-sdk/service): the HTTP drain runs, then the timers clear, the Events subscriptions stop,
@@ -38,11 +39,15 @@ async function start() {
     const expiry = startExpiryTimer(ctx.s);
     await expiry.tick();
 
+    // FHFA House Price Index: one background refresh, gated to at most one fetch per 7 days (server/housing/hpi.js),
+    // off when RENT_HPI is off (the default in tests).
+    const hpiJob = config.hpi && config.hpi.enabled ? startHpiTimer(config, ctx.s) : null;
+
     // Subscribe to the two ADR-033 topics at OpenVibe.Events (idempotent; off without RENT_EVENTS_URL and
     // RENT_EVENTS_SECRET). The consumer itself is mounted in server/app.js.
     const subscriptions = require('./events-consumer').startSubscriptions({ config, port: config.port, secret: config.events.secrets[0] || '' });
     const extra = [() => { if (subscriptions) subscriptions.stop(); }];
-    createLifecycle({ server, ctx, timers: [expiry.timer, ctx.housingPruneTimer], extra });
+    createLifecycle({ server, ctx, timers: [expiry.timer, ctx.housingPruneTimer, ...(hpiJob ? [hpiJob.timer] : [])], extra });
     return { server, ctx, expiry };
 }
 

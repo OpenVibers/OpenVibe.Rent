@@ -2,6 +2,20 @@
 
 What changed in OpenVibe.Rent, newest first. Each site also publishes its patch notes at /updates.
 
+## 0.3.0 — 2026-10-12
+
+"Home prices around here" beside the affordable-housing results.
+
+- **FHFA House Price Index context.** `/housing` shows a small card above the results: the change in the FHFA
+  all-transactions index over the past year and five years, for the MSA that matches the place (or the state), rounded
+  to 0.1 %, with the latest quarter. The index is a repeat-sales index, not a price, and the card links back to FHFA.
+- **Ingest.** The FHFA master CSV is streamed line by line (never held whole), keeps only the traditional,
+  all-transactions, quarterly State and MSA rows from the last six years, and replaces them in one transaction — a
+  failed refresh keeps the previous rows. It runs from the background timer behind `RENT_HPI` (on in production) and
+  fetches at most once every 7 days.
+- **API.** `GET /api/v1/housing` answers `area_prices` (`{ place, level, year_change_pct, five_year_change_pct,
+  latest, source }`), or `null` when there is no data.
+
 ## 0.2.0 — 2026-10-08
 
 The product: people post listings, anyone searches them, and reports bring a listing to staff.

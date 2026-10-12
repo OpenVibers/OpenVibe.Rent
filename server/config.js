@@ -54,6 +54,16 @@ function load(env = process.env) {
             maxResults: 500,
         },
 
+        // FHFA House Price Index, behind "Home prices around here" on the affordable-housing page
+        // (server/housing/hpi.js). The ingest respects a 7-day gate, so RENT_HPI_REFRESH_TTL_MS is a floor, not a
+        // cadence. Off in tests and wherever RENT_HPI is unset; on in production by default.
+        hpi: {
+            enabled: env.RENT_HPI != null ? (env.RENT_HPI === 'true' || env.RENT_HPI === '1') : isProduction,
+            url: trim(env.RENT_HPI_URL || 'https://www.fhfa.gov/hpi/download/monthly/hpi_master.csv'),
+            timeoutMs: Math.max(1000, int(env.RENT_HPI_TIMEOUT_MS, 60_000)),
+            refreshTtlMs: Math.max(60_000, int(env.RENT_HPI_REFRESH_TTL_MS, 7 * 24 * 60 * 60 * 1000)),
+        },
+
         // OpenVibe.Network: SSO (OAuth2 authorization server with PKCE) and its JWKS.
         networkUrl,
         networkInternalUrl: trim(env.OV_NETWORK_INTERNAL_URL || 'http://127.0.0.1:4000'),
