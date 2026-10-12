@@ -1,0 +1,25 @@
+{
+  "objectIdFieldName": "OBJECTID",
+  "geometryType": "esriGeometryPoint",
+  "features": [
+    {
+      "attributes": {
+        "OBJECTID": 100,
+        "HUD_ID": "DCB20152001",
+        "PROJECT": "BRIGHTWOOD COMMUNITIES",
+        "PROJ_ADD": "5805 14TH STREET, NW",
+        "PROJ_CTY": "WASHINGTON",
+        "PROJ_ST": "DC",
+        "PROJ_ZIP": "20011",
+        "N_UNITS": 141,
+        "LI_UNITS": 127,
+        "YR_PIS": "2015",
+        "YR_ALLOC": "9999",
+        "TRGT_POP": "1",
+        "LAT": 38.960404,
+        "LON": -77.033167
+      },
+      "geometry": { "x": -77.033167, "y": 38.960404 }
+    }
+  ]
+}

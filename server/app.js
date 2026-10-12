@@ -24,6 +24,8 @@ const cache = require('openvibe-shared/cache-policy');
 const { createSearchIndex } = require('./search-index');
 const configLib = require('./config');
 const { openStore } = require('./db');
+const { createUpstream } = require('./housing/upstream');
+const housingStore = require('./housing/store');
 const { createKeyStore } = require('./auth/keys');
 const { createSso } = require('./auth/sso');
 const { createPrincipal } = require('./http/principal');
@@ -57,6 +59,15 @@ async function createApp(opts = {}) {
     // and a sweep runs on its own timer once server/index.js starts it.
     ctx.search = opts.search || createSearchIndex({ config, s, log });
     s.search = ctx.search;
+
+    // The only outbound client the housing feature has (Nominatim + HUD ArcGIS, paced and cached); the pages and the
+    // API get it from here. Its own wall clock, not the store's, so the pace between two calls does not depend on an
+    // injected test clock. A test injects a stand-in fetch through opts.housingFetchImpl (it must never reach the
+    // real Nominatim or HUD hosts from a sandbox).
+    ctx.upstream = createUpstream({ config, s, fetchImpl: opts.housingFetchImpl || fetchImpl, log });
+    // Drop expired geocode/area answers now and hourly; an expired row is ignored anyway, this only keeps the table
+    // small. The interval is unref'd and kept on ctx so the entry point clears it on shutdown (server/index.js).
+    ctx.housingPruneTimer = housingStore.startCachePrune(s, { log });
 
     // Account export and deletion (ADR-033, ./identity/account-data.js): the three tables that hold a person's rows.
     // The sender posts to Network's internal export/deletion routes with this service's own client-credentials token;

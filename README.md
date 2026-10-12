@@ -2,7 +2,9 @@
 
 > Find a place, or rent yours out.
 
-**Status:** v1 works end to end: people post listings, anyone searches them, three reports hide one until staff look.
+**Status:** v1 works end to end: people post listings, anyone searches them, three reports hide one until staff look, and
+"Affordable housing near you" shows HUD's public-domain housing data (public housing, LIHTC, HUD-assisted multifamily,
+public housing authorities and housing counselling agencies) near a place a visitor types.
 **Domain:** `openvibe.rent` · **Port:** 5010 · **Service id:** `rent` · **Env prefix:** `RENT`
 **License:** AGPL-3.0 (same as every OpenVibe service).
 
@@ -13,6 +15,12 @@ equipment. In this first version the listings are **posted by people on this sit
 and no partner feeds. Other sources come later, and only when their terms are verified; each listing will then carry
 its provenance (the source, a link back to it, and when it was read). Until then every listing here was written by
 the person who posted it, and the page says so.
+
+Separately, the site is useful before anyone has posted anything: **"Affordable housing near you"** (`/housing`) shows
+public housing, tax-credit (LIHTC) and HUD-assisted multifamily properties, public housing authorities and housing
+counselling agencies near a place a visitor types, from the U.S. Department of Housing and Urban Development's open
+data (public domain). It is the same "near you" pattern as OpenVibe.Food's food banks, but from HUD's ArcGIS instead
+of OpenStreetMap.
 
 Three rules shape the product:
 
@@ -39,6 +47,10 @@ Rent's own data is its PostgreSQL database ([server/db.js](server/db.js)); the `
   since you last looked" count. `ssv_<ULID>` ids.
 - **`account_data_events`** — the receipt of each ADR-033 account export or deletion delivery Rent has applied, so a
   redelivery changes nothing ([migrations/0003_account_data.sql](migrations/0003_account_data.sql)).
+- **`housing_geo_cache`** — the cache in front of the two "Affordable housing near you" upstream services: every
+  Nominatim geocode and HUD ArcGIS query answer, kept for `RENT_HOUSING_CACHE_TTL_MS` (7 days), so a place is
+  geocoded once and an area is asked once, not once per visitor
+  ([migrations/0005_housing_cache.sql](migrations/0005_housing_cache.sql)).
 
 `migrations/0001_initial.sql` creates no tables (the skeleton). Every row keys a person as `user:usr_…`, and the
 namespace is `rent.*`.
@@ -71,7 +83,10 @@ namespace is `rent.*`.
   `service`, `limits`, `account-data`, `events`, `valkey`), plus `openvibe-shared` (`release`, `metrics`, `ready`,
   `legal`, `cache-policy`, `serve`, `frame`, `shell`, `seo`, `app-icon`).
 
-It fetches from no listing source and no third party: the only outbound calls are the Network and Events above.
+For listings it fetches from no source and no third party: the only outbound calls are the Network and Events above.
+The "Affordable housing near you" feature adds two more outbound hosts, both open data with published usage policies —
+Nominatim (a place name → coordinates) and HUD's ArcGIS FeatureServer (the five housing layers) — paced and cached in
+[server/housing/upstream.js](server/housing/upstream.js).
 
 ## Capabilities
 
@@ -93,7 +108,8 @@ It fetches from no listing source and no third party: the only outbound calls ar
 | Reports | [server/listings/store.js](server/listings/store.js), `/staff` | Anyone signed in reports a listing once (reason + note ≤500). **3 distinct reports hide it** from search until staff look; staff restore, hide or remove it, and a listing staff restored is not hidden again by the same reports. |
 | Staff | [server/listings/staff.js](server/listings/staff.js) | Who is staff is the Network **role claim** (`admin`, `global_mod`), decided in one place, exactly as at OpenVibe.Help. The pages and the API cannot drift apart. |
 | Saving a search | `/saved` | Save the current filters (signed in) and see, each time you open the page, how many listings have appeared since you last looked. Alerts by notification come later through OpenVibe.Watch. |
-| Pages | [server/http/pages.js](server/http/pages.js) | Home, `/listings`, `/listings/:id`, `/listings/:id/edit`, `/post`, `/mine`, `/saved`, `/safety`, `/staff`, `/updates` — all server-rendered, all complete without JavaScript, forms are plain POSTs. |
+| Affordable housing | [server/housing/places.js](server/housing/places.js), [upstream.js](server/housing/upstream.js) | `/housing` geocodes a place with Nominatim, then reads five HUD ArcGIS layers — public housing, LIHTC, HUD-assisted multifamily, public housing authorities and housing counselling agencies — normalised, distance-sorted and grouped, with the HUD attribution on the page. |
+| Pages | [server/http/pages.js](server/http/pages.js) | Home, `/housing`, `/listings`, `/listings/:id`, `/listings/:id/edit`, `/post`, `/mine`, `/saved`, `/safety`, `/staff`, `/updates` — all server-rendered, all complete without JavaScript, forms are plain POSTs. |
 | Discovery | [server/http/discovery.js](server/http/discovery.js) | `robots.txt` (disallows `/auth/`, `/api/`, `/post`, `/mine`, `/saved`, `/staff`), `sitemap.xml` (every active `/listings/:id`, up to 1000), `llms.txt`, `llms-full.txt`. |
 | Sign-in | [server/auth/sso.js](server/auth/sso.js) | OAuth 2 authorization code with PKCE (S256) against OpenVibe.Network; httpOnly `rent_at` / `rent_rt` cookies; `/auth/me` for the shared navbar. |
 | Limits | [server/http/caller-limits.js](server/http/caller-limits.js) | Per-caller budgets for posting, reporting, renewing and saving a search. The page form and the API route take the same budget, so the form is not a way round a limit. |
@@ -110,6 +126,7 @@ edit, report or save anything here — a listing is somebody's own — so no rou
 | Route | Who | |
 |---|---|---|
 | `GET /ping` | anyone | liveness |
+| `GET /housing` | anyone | "Affordable housing near you": `q` (a city, ZIP code or address) and optional `kind` (comma-separated from `public_housing`, `lihtc`, `multifamily`, `housing_authority`, `counseling`); answers the geocoded `location` and normalised `results` (name, address, distance, units, phone, authority/agency, source), grouped and distance-sorted |
 | `GET /listings` | anyone | search: `q`, `kind`, `city`, `country`, `min`, `max`, `period`, `limit`, `before`; answers `listings`, `next`, `facets` |
 | `GET /listings/:id` | anyone | one listing; `contact_url` only when the caller is a signed-in person |
 | `POST /listings` | person | post one (201 + `Location`); 422 on a bad field, 429 on a cap |
@@ -125,13 +142,25 @@ edit, report or save anything here — a listing is somebody's own — so no rou
 
 ## Data sources and their terms
 
-**This version has none.** Every listing is text a person typed here, under the rules above; nothing is scraped,
-imported or fetched from anywhere. There is no outbound fetch for a listing at all — a contact URL is stored as
-text and shown as a link, and this service never opens it (a URL a caller sent must never decide what this service
+**Listings have no external source.** Every listing is text a person typed here, under the rules above; nothing is
+scraped, imported or fetched from anywhere. There is no outbound fetch for a listing at all — a contact URL is stored
+as text and shown as a link, and this service never opens it (a URL a caller sent must never decide what this service
 requests).
 
-The only external service this process talks to is **OpenVibe.Network** (its own OAuth token endpoint and its JWKS),
-with its terms as the network's own service. When listing sources are added they will be named here with their
+**Affordable housing near you** has two verified, open sources, read live and cached for 7 days
+([server/housing/upstream.js](server/housing/upstream.js)):
+
+- **U.S. Department of Housing and Urban Development (HUD)** open data, on ArcGIS — public housing, LIHTC, HUD-assisted
+  multifamily, public housing authorities and housing counselling agencies. Public domain (USA.gov
+  [public domain label](https://www.usa.gov/government-copyright)). Attribution on every page and in every API answer:
+  *"Source: U.S. Department of Housing and Urban Development (HUD), public domain"*, linked to
+  https://hudgis-hud.opendata.arcgis.com/. The data covers the United States, and availability must be confirmed with
+  the property or authority.
+- **Nominatim** (OpenStreetMap) — the place name → coordinates and bounding box for the search box only; the housing
+  results themselves come from HUD. One request a second at most, with a descriptive `RENT_USER_AGENT`.
+
+The only other external service this process talks to is **OpenVibe.Network** (its own OAuth token endpoint and its
+JWKS), with its terms as the network's own service. When listing sources are added they will be named here with their
 terms, and each listing will carry its provenance (source name, a link back, and `fetched_at`) both in the API and
 on the page.
 
@@ -142,9 +171,17 @@ Network), `BASE_URL`, `DATABASE_URL` and `DATABASE_DIRECT_URL`. The database is 
 the Network signing key, the OAuth client and Valkey are optional (the service says so, per check, on
 `/api/ready`).
 
-The product adds no environment variables of its own beyond the OpenVibe.Events ones below: its numbers (10 active
-listings, 5 a day, 30 days, 3 reports, 30 a page, the per-caller budgets) are constants next to the rules they belong
-to, not deployment settings.
+The listing product adds no environment variables of its own beyond the OpenVibe.Events ones below: its numbers (10
+active listings, 5 a day, 30 days, 3 reports, 30 a page, the per-caller budgets) are constants next to the rules they
+belong to, not deployment settings. "Affordable housing near you" adds the following (all optional, with safe
+defaults):
+
+- `RENT_NOMINATIM_URL` — `https://nominatim.openstreetmap.org`
+- `RENT_HUD_ARCGIS_URL` — `https://services.arcgis.com/VTyQ9soqVukalItT/arcgis/rest/services`
+- `RENT_USER_AGENT` — `OpenVibeRent/0.1 (+BASE_URL)`; a descriptive contact, never a browser's
+- `RENT_HOUSING_CACHE_TTL_MS` — `604800000` (7 days)
+- `RENT_HOUSING_MIN_INTERVAL_MS` — `1000` (one request a second to a host)
+- `RENT_HOUSING_TIMEOUT_MS` — `25000`
 
 ## Development and tests
 
@@ -177,6 +214,10 @@ through PostgreSQL and PgBouncer (see [.github/workflows/ci.yml](.github/workflo
   hidden again.
 - [test/listings-pages.test.js](test/listings-pages.test.js) — the server-rendered pages and plain form POSTs, the
   safety note word for word, saved-search new counts, and a refused form re-rendering what was typed, escaped.
+- [test/housing.test.js](test/housing.test.js) — "Affordable housing near you", with the upstream fetch injected:
+  geocoding and bounding-box clipping, the ArcGIS query URL, normalisation of all five HUD layers (null for a missing
+  value), distance sort, the cache (a second request does not fetch), the upstream-failure and non-US states, the page
+  signed out with attribution, and the API.
 - [test/account-data.test.js](test/account-data.test.js) — ADR-033 export and deletion through `/internal/events`
   with a stand-in Network: only the person's rows, a redelivery changes nothing, and a bad signature or forwarded
   request is refused.

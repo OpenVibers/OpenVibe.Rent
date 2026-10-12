@@ -26,6 +26,7 @@ const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
 // not here — they are for one signed-in person, and a link in everyone's navbar would be an invitation to a 401.
 // They are linked from the pages that lead to them (/listings, /post, /safety).
 const NAV = [
+    { label: 'Affordable housing', href: '/housing' },
     { label: 'Listings', href: '/listings' },
     { label: 'Post a listing', href: '/post' },
     { label: 'Safety', href: '/safety' },
@@ -49,7 +50,7 @@ function setRelease(id) { if (id) RELEASE = String(id); }
 
 /**
  * o: title, description, body (html), viewer, config, path, index (default false), scripts [rel],
- *    crumbs [{ label, href }], jsonLd [nodes] (serialised by openvibe-shared/seo), styles [openvibe-shared stylesheet names]
+ *    crumbs [{ label, href }], jsonLd [nodes] (serialised by openvibe-shared/seo), styles [openvibe-shared stylesheet names], localStyles [this service's own extra stylesheets under public/, e.g. css/housing.css]
  */
 function renderPage(o) {
     const viewer = o.viewer || { kind: 'anonymous' };
@@ -94,6 +95,7 @@ function renderPage(o) {
 ${appIcon.headTags({ site: 'rent' })}
 <link rel="stylesheet" href="${asset('css/app.css')}">
 ${(o.styles || []).map((name) => `<link rel="stylesheet" href="${esc(ovServe.url(name))}">`).join('\n')}
+${(o.localStyles || []).map((rel) => `<link rel="stylesheet" href="${asset(rel)}">`).join('\n')}
 ${render(scripts)}
 <meta name="ov-boost" content="rent@${esc(RELEASE)}">
 <script src="${ovServe.url('boost.js')}" data-main="#main" defer></script>`,

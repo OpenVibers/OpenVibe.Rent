@@ -1,0 +1,14 @@
+[
+  {
+    "place_id": 3,
+    "licence": "Data © OpenStreetMap contributors, ODbL 1.0",
+    "lat": "47.6062",
+    "lon": "-122.3321",
+    "display_name": "Seattle, King County, Washington, United States",
+    "boundingbox": ["47.4955", "47.7341", "-122.4359", "-122.2363"],
+    "address": {
+      "country": "United States",
+      "country_code": "us"
+    }
+  }
+]
