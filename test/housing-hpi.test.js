@@ -46,12 +46,12 @@ const jsonResponse = (obj, status = 200) => new Response(JSON.stringify(obj), { 
 const denverPlace = [{
     place_id: 1, lat: '39.7392', lon: '-104.9903', display_name: 'Denver, Colorado, United States',
     boundingbox: ['39.61', '39.86', '-105.11', '-104.88'],
-    address: { country: 'United States', country_code: 'us', state: 'Colorado', state_code: 'CO', city: 'Denver' },
+    address: { country: 'United States', country_code: 'us', state: 'Colorado', 'ISO3166-2-lvl4': 'US-CO', city: 'Denver' },
 }];
 const telluridePlace = [{
     place_id: 2, lat: '37.9375', lon: '-107.8123', display_name: 'Telluride, Colorado, United States',
     boundingbox: ['37.92', '37.95', '-107.84', '-107.78'],
-    address: { country: 'United States', country_code: 'us', state: 'Colorado', state_code: 'CO', city: 'Telluride' },
+    address: { country: 'United States', country_code: 'us', state: 'Colorado', city: 'Telluride' },
 }];
 
 const mockFetch = async (url) => {
