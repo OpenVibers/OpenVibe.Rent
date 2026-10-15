@@ -1,0 +1,13 @@
+/* OpenVibe.Homes (server/homes/pages.js): the search's context cards, the records list and the mortgage calculator. */
+.homes-cards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); align-items: start; }
+.homes-card { padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border, #1f2d47); background: var(--bg-card, #131c2e); }
+.homes-card h3 { margin: 0 0 6px; font-size: 1rem; }
+.homes-card p { margin: 0; }
+.homes-states { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 6px 14px; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.homes-states li.on a { font-weight: 700; }
+.homes-calc { max-width: 560px; }
+.homes-result { margin-top: 18px; max-width: 560px; }
+.homes-table { width: 100%; border-collapse: collapse; }
+.homes-table th, .homes-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border, #1f2d47); }
+.homes-table td { text-align: right; font-variant-numeric: tabular-nums; }
+.homes-total th, .homes-total td { font-weight: 700; font-size: 1.05rem; }

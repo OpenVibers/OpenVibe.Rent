@@ -9,6 +9,15 @@ public housing authorities and housing counselling agencies) near a place a visi
 **Domain:** `openvibe.rent` · **Port:** 5010 · **Service id:** `rent` · **Env prefix:** `RENT`
 **License:** AGPL-3.0 (same as every OpenVibe service).
 
+
+**OpenVibe.Homes** (since 2026-10-15, https://openvibe.homes): the buying side, served by this process for its own host
+(`server/homes`, `deploy/nginx/openvibe.homes.conf`).
+- **Search:** one place opens every for-sale site's own search (Zillow, Realtor.com, Redfin by ZIP, Homes.com, Trulia,
+  Craigslist), the government and bank homes (HUD Homestore, Fannie Mae HomePath, Auction.com), land (LandWatch) and
+  commercial property (LoopNet).
+- **Around the place:** the state's county records (NETR Online's directory) and the FHFA price index for the area.
+- **Mortgage calculator:** server-side arithmetic, nothing saved.
+- **Links back to Rent:** renting and the board stay on OpenVibe.Rent.
 ## What it is
 
 The rental aggregator the owner asked for (2026-09-28): one consumer-friendly place that combines every rental site,

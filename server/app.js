@@ -188,6 +188,10 @@ async function createApp(opts = {}) {
 
     // ── Pages ───────────────────────────────────────────────
     app.use(rateLimit({ windowMs: 60_000, limit: Number(process.env.RENT_RATE_LIMIT_PER_MIN) || 300, standardHeaders: true, legacyHeaders: false }));
+    // OpenVibe.Homes (server/homes/pages.js): the same process, its own host and pages.
+    const homesHost = (() => { try { return new URL(config.homes.url).hostname; } catch { return 'openvibe.homes'; } })();
+    const homesRoutes = require('./homes/pages').createHomesRoutes(ctx);
+    app.use((req, res, next) => (req.hostname === homesHost ? homesRoutes(req, res, next) : next()));
     app.use(createPageRoutes(ctx));
     app.use((req, res) => send(res, 404, { viewer: req.viewer, config, path: req.originalUrl, title: 'Not found', body: html`<h1>Not found</h1><p>No page here. Try <a href="/">the home page</a> or <a href="/updates">the update log</a>.</p>` }));
 
