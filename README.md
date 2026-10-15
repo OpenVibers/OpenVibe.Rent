@@ -1,20 +1,47 @@
 # OpenVibe.Rent
 
-> Find a place, or rent yours out.
+> Every rental site, one search.
 
-**Status:** v1 works end to end: people post listings, anyone searches them, three reports hide one until staff look, and
-"Affordable housing near you" shows HUD's public-domain housing data (public housing, LIHTC, HUD-assisted multifamily,
+**Status:** a rental aggregator. **Search everywhere** (`/everywhere`) opens every major rental site's own search for one
+place and set of filters. People post listings here too, anyone searches them, and three reports hide one until staff
+look. "Affordable housing near you" shows HUD's public-domain housing data (public housing, LIHTC, HUD-assisted multifamily,
 public housing authorities and housing counselling agencies) near a place a visitor types, with FHFA home-price context beside it.
 **Domain:** `openvibe.rent` · **Port:** 5010 · **Service id:** `rent` · **Env prefix:** `RENT`
 **License:** AGPL-3.0 (same as every OpenVibe service).
 
 ## What it is
 
-One place to find and offer things to rent: apartments, rooms, houses, commercial space, parking and storage, and
-equipment. In this first version the listings are **posted by people on this site** — there are no scraped listings
-and no partner feeds. Other sources come later, and only when their terms are verified; each listing will then carry
-its provenance (the source, a link back to it, and when it was read). Until then every listing here was written by
-the person who posted it, and the page says so.
+The rental aggregator the owner asked for (2026-09-28): one consumer-friendly place that combines every rental site,
+from apartments to commercial space and much more.
+
+**Search everywhere** (`/everywhere`, `GET /api/v1/everywhere`, [server/aggregate/everywhere.js](server/aggregate/everywhere.js))
+takes one place (a city and state, or a ZIP code) and what you are looking for, and opens each site's own search there,
+with the price and bedroom filters where the site takes them:
+
+- **Apartments and houses:** Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper, Rent.com, RentCafe,
+  Apartment List, PadMapper, HotPads, Trulia and Realtor.com.
+- **Rooms:** Craigslist, Facebook, Zumper, Roomies and Furnished Finder.
+- **Furnished and monthly stays:** Craigslist sublets, Furnished Finder and Airbnb monthly.
+- **Commercial space:** Craigslist and LoopNet.
+- **Parking:** Craigslist and SpotHero.
+- **Storage:** Craigslist and SpareFoot.
+- **Cars:** Turo.
+
+Every URL form was opened in a real browser for several cities, including one-word and multi-word names, on
+2026-10-15 (`test/everywhere.test.js` pins them). The listings, messages and payments stay on each site; the person
+sees them in their own browser and account.
+
+This is the permitted way to aggregate sites whose terms forbid automated collection, as the owner decided on
+2026-09-28 (deep links out, a browser extension inside the person's own sessions, licensed APIs, people posting).
+Next:
+- a board that saves listings from any site into one OpenVibe list;
+- the OpenVibe Companion extension;
+- licensed listing feeds through OpenVibe.Sources.
+
+The United States comes first. A place elsewhere gets the sites that work worldwide.
+
+People also **post listings here** (apartments, rooms, houses, commercial space, parking and storage, equipment), and
+each one is written by the person who posted it.
 
 Separately, the site is useful before anyone has posted anything: **"Affordable housing near you"** (`/housing`) shows
 public housing, tax-credit (LIHTC) and HUD-assisted multifamily properties, public housing authorities and housing

@@ -28,9 +28,10 @@ const service = require('../listings/service');
 const { isStaff } = require('../listings/staff');
 const housingPlaces = require('../housing/places');
 const housingHpi = require('../housing/hpi');
+const everywhere = require('../aggregate/everywhere');
 
 const SITE_NAME = 'OpenVibe.Rent';
-const TAGLINE = 'Find a place, or rent yours out.';
+const TAGLINE = 'Every rental site, one search.';
 const HOME_LATEST = 6;
 
 const STATE_KIND = { active: 'ok', hidden: 'warn', expired: '', removed: 'bad' };
@@ -154,50 +155,123 @@ ${notice(p && p.detail ? p.detail : 'You are over the limit for this.', 'warn')}
         const latest = await store.search(s, listings.normalizeFilters({}), { limit: HOME_LATEST });
         const hero = showcase.hero({
             eyebrow: `${SITE_NAME} · ${TAGLINE}`,
-            title: 'Find somewhere to live, work or park.',
-            accent: 'Posted by people.',
-            lede: `${SITE_NAME} is one place to find and offer things to rent: apartments, rooms, houses, commercial space, parking and storage, and equipment. In this first version people post the listings here themselves — nothing is scraped from another site, and nothing is paid for here.`,
-            actions: signedIn(req)
-                ? [{ label: 'Post a listing', href: '/post', primary: true }, { label: 'Your listings', href: '/mine' }]
-                : [{ label: 'Browse listings', href: '/listings', primary: true }, { label: 'Sign in to post', href: '/auth/login?next=%2Fpost' }],
-            note: 'No payments, no deposits, no messaging: a listing carries a way to make contact and nothing more.',
+            title: 'Every rental site.',
+            accent: 'One search.',
+            lede: `${SITE_NAME} searches Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper, Rent.com and a dozen more at once: apartments, houses, rooms, furnished stays, commercial space, parking, storage and cars. Next to them, affordable housing from HUD and listings people post here, all under one OpenVibe account.`,
+            actions: [
+                { label: 'Search every site', href: '/everywhere', primary: true },
+                { label: 'Affordable housing', href: '/housing' },
+                signedIn(req) ? { label: 'Post a listing', href: '/post' } : { label: 'Sign in to post', href: '/auth/login?next=%2Fpost' },
+            ],
+            note: 'Open source (AGPL-3.0). Listings, messages and payments stay on each site; OpenVibe never takes a deposit.',
+            aside: { html: String(everywhereForm({}, { big: true })) },
         });
         page(req, res, {
             index: true, cache: signedIn(req) ? null : PUBLIC_CACHE,
-            description: 'Find somewhere to live, work or park, posted by people, and affordable housing near you from U.S. HUD open data. No payments, no scraping.',
+            description: 'Search Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper and more at once: apartments, houses, rooms, stays, commercial space, parking, storage and cars, plus affordable housing from HUD.',
             jsonLd: homeJsonLd(config),
             styles: [showcase.STYLESHEET],
             body: html`${raw(hero)}
+<section class="sc-sec" aria-labelledby="h-sites"><h2 id="h-sites">The sites it searches</h2>
+<p class="sc-lede">Type a place once. Each site opens its own search there, with your price and bedrooms where it takes them, so you see every site's newest listings without repeating yourself.</p>
+<ul class="ew-chips">${everywhere.SITES.map((site) => html`<li title="${site.best}">${site.name}</li>`)}</ul>
+<p class="small muted">The United States first; more countries next.</p></section>
+
 <section class="sc-sec" aria-labelledby="h-housing"><h2 id="h-housing">Affordable housing near you</h2>
-<p class="sc-lede">Public housing, tax-credit (LIHTC) and HUD-assisted properties, and the authorities and counselling agencies to apply through — from U.S. HUD open data, useful before anyone has posted here.</p>
+<p class="sc-lede">Public housing, tax-credit (LIHTC) and HUD-assisted properties, and the authorities and counselling agencies to apply through, from U.S. HUD open data.</p>
 <p><a class="sc-btn sc-primary" href="/housing">Find housing near you</a></p></section>
 
-<section class="sc-sec" aria-labelledby="h-search"><h2 id="h-search">Search the listings</h2>
-<p class="sc-lede">Straight to it, or <a href="/listings">browse everything</a>.</p>
-${searchForm({}, { big: true })}</section>
-
-<section class="sc-sec" aria-labelledby="h-latest"><h2 id="h-latest">Latest listings</h2>
-<p class="sc-lede">The newest active listings, posted by people on ${SITE_NAME}.</p>
-${listingList(latest.rows, { empty: 'No listings yet — yours could be the first.' })}
-<p><a class="sc-btn" href="/listings">Every listing</a> <a class="sc-btn" href="/post">Post a listing</a></p></section>
+<section class="sc-sec" aria-labelledby="h-latest"><h2 id="h-latest">Posted on ${SITE_NAME}</h2>
+<p class="sc-lede">Listings people post here themselves: apartments, rooms, houses, commercial space, parking and storage, and equipment. <a href="/listings">Browse them</a> or search them by place.</p>
+${listingList(latest.rows, { empty: 'Nobody has posted here yet: yours could be the first.' })}
+<p><a class="sc-btn" href="/listings">Every listing posted here</a> <a class="sc-btn" href="/post">Post a listing</a></p></section>
 
 ${raw(showcase.features({
                 title: 'How it works',
-                lede: 'A listing here is somebody offering something, and the rules are the same for everyone.',
+                lede: 'One account for every rental search you make, wherever the listing lives.',
                 items: [
-                    { icon: 'ov:account', title: 'Posted by people', text: 'Every listing is posted by a signed-in person, who can edit, renew, hide or delete it. Nothing here is scraped from another site.' },
-                    { icon: 'ov:gauge', title: 'Safety first', text: 'Never pay or send a deposit before you have seen the place and signed an agreement. OpenVibe does not handle payments for listings.' },
-                    { icon: 'ov:page', title: 'Reported listings are checked', text: 'Three distinct reports hide a listing until OpenVibe staff look at it and restore or remove it.' },
-                    { icon: 'ov:db', title: 'Searches you can keep', text: 'Save your filters and see how many listings are new since you last looked. Alerts come later through OpenVibe.Watch.' },
-                    { icon: 'ov:deploy', title: 'No addresses', text: 'A listing names a city and a neighbourhood, never a street address: a house number with a street is refused.' },
+                    { icon: 'ov:search', title: 'One search, every site', text: 'Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper, Rent.com, RentCafe, Apartment List, PadMapper, HotPads, Trulia, Realtor.com, Roomies, Furnished Finder, Airbnb, LoopNet, SpotHero, SpareFoot and Turo, opened at your place.', href: '/everywhere' },
+                    { icon: 'ov:map', title: 'Affordable housing', text: 'Public housing, tax-credit and HUD-assisted homes near any U.S. place, with the agencies to apply through.', href: '/housing' },
+                    { icon: 'ov:account', title: 'Post your own', text: 'Anyone signed in can list a place, a room, a parking spot or equipment here, and edit, renew or hide it at any time.', href: '/post' },
+                    { icon: 'ov:bell', title: 'Alerts that keep looking', text: 'Save a search and get alerts through OpenVibe.Watch when something new matches.' },
+                    { icon: 'ov:gauge', title: 'Safety first', text: 'Never pay or send a deposit before you have seen the place and signed an agreement. Reported listings are hidden until staff look.', href: '/safety' },
                 ],
             }))}
 
 <section class="sc-sec" aria-labelledby="h-sources"><h2 id="h-sources">Where the listings come from</h2>
-<p class="sc-prose">Today: people, posting here themselves. There are no scraped listings and no partner feeds — other sources arrive only when their terms are verified, and each listing will then say where it came from and link back to it. <a href="/safety">The safety rules</a> are on every listing page.</p></section>
+<p class="sc-prose">From every major rental site, opened at your place and filters: the listings, the landlord and the payment stay on that site. From U.S. HUD open data, for affordable housing. And from people posting here. Partner feeds and licensed listing data join as they are signed, each listing labelled with its source. <a href="/safety">How to rent safely</a>.</p></section>
 
-${raw(showcase.cta({ title: 'Have something to rent out?', text: 'Post it in a minute: a description, a price, a period and where it is. You can edit, renew or hide it at any time.', actions: [{ label: 'Post a listing', href: '/post', primary: true }, { label: 'Safety rules', href: '/safety' }] }))}`,
+${raw(showcase.cta({ title: 'Have something to rent out?', text: 'Post it in a minute: a description, a price, a period and where it is. You can edit, renew or hide it at any time.', actions: [{ label: 'Post a listing', href: '/post', primary: true }, { label: 'Search every site', href: '/everywhere' }] }))}`,
         });
+    });
+
+    // ── Search everywhere: every rental site's own search for one place ──
+    // What each search-everywhere kind is called on this site's own listings (null: no listing kind matches).
+    const str = (v) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 200) : null);
+    const OWN_KIND = { apartment: 'apartment', house: 'house', room: 'room', stay: null, commercial: 'commercial', parking: 'parking', storage: 'parking', vehicle: 'equipment' };
+    const HUD_KINDS = new Set(['apartment', 'house', 'room']);
+    const everywhereForm = (v = {}, { big = false } = {}) => html`<form class="search-form everywhere-form${big ? ' everywhere-big' : ''}" method="get" action="/everywhere" role="search">
+<div class="field"><label for="ew-q">Where</label><input id="ew-q" name="q" type="search" required maxlength="200" placeholder="A city and state, or a ZIP code" value="${v.q || ''}" autocomplete="address-level2"></div>
+<div class="field-row">
+<div class="field"><label for="ew-kind">Looking for</label><select id="ew-kind" name="kind">${everywhere.KINDS.map((k) => html`<option value="${k}"${k === (v.kind || 'apartment') ? raw(' selected') : ''}>${everywhere.KIND_TEXT[k]}</option>`)}</select></div>
+<div class="field"><label for="ew-max">Up to, a month</label><input id="ew-max" name="max" type="number" min="1" max="100000" step="1" inputmode="numeric" placeholder="Any price" value="${v.max || ''}"></div>
+<div class="field"><label for="ew-beds">Bedrooms</label><select id="ew-beds" name="beds"><option value="">Any</option>${[1, 2, 3, 4].map((n) => html`<option value="${n}"${String(n) === String(v.beds || '') ? raw(' selected') : ''}>${n}+</option>`)}</select></div>
+</div>
+<p><button class="sc-btn sc-primary" type="submit">Search every site</button></p>
+</form>`;
+
+    async function everywherePage(req, res, { limited = false } = {}) {
+        const v = { q: str(req.query.q), kind: everywhere.KINDS.includes(String(req.query.kind)) ? String(req.query.kind) : 'apartment', max: str(req.query.max), beds: str(req.query.beds) };
+        let place = null;
+        let problem = null;
+        if (limited) problem = 'Too many searches from you just now. Try again in a minute.';
+        else if (v.q) {
+            try { place = await housingPlaces.geocodePlace(ctx.upstream, v.q); } catch (err) {
+                problem = err && err.code === 'housing.place.not_found' ? err.message : 'The place search is unavailable right now. Try again in a few minutes.';
+            }
+        }
+        const label = place ? [place.city, place.state || (place.country_name || '')].filter(Boolean).join(', ') : null;
+        const links = place ? everywhere.linksFor({ city: place.city, state: place.state, country: place.country_code, postcode: place.postcode, lat: place.lat, lon: place.lon, countryName: place.country_name }, { kind: v.kind, maxPrice: v.max, minBeds: v.beds }) : [];
+        const own = place && OWN_KIND[v.kind] ? `/listings?${listings.filtersToQuery({ kind: OWN_KIND[v.kind], city: place.city, max: v.max ? Number(v.max) || null : null })}` : null;
+        const tab = (k) => `/everywhere?${new URLSearchParams({ q: v.q || '', kind: k, ...(v.max ? { max: v.max } : {}), ...(v.beds ? { beds: v.beds } : {}) })}`;
+        const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
+        page(req, res, {
+            title: label ? `${everywhere.KIND_TEXT[v.kind]} near ${label}` : 'Search every rental site',
+            description: 'One search across Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper, Rent.com and more: apartments, houses, rooms, furnished stays, commercial space, parking, storage and cars.',
+            index: !v.q, cache: v.q ? null : PUBLIC_CACHE,
+            crumbs: [{ label: 'Home', href: '/' }, { label: 'Search everywhere' }],
+            styles: [showcase.STYLESHEET], localStyles: ['css/everywhere.css'],
+            body: html`<h1>${label ? html`${everywhere.KIND_TEXT[v.kind]} near ${label}` : 'Search every rental site'}</h1>
+<p class="sc-lede">One search, every site: ${SITE_NAME} opens Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper and more at the place and filters you choose, next to the listings people post here and affordable housing from HUD.</p>
+${everywhereForm(v)}
+${problem ? notice(problem, 'warn') : ''}
+${place ? html`<nav class="everywhere-kinds" aria-label="What to look for">${everywhere.KINDS.map((k) => (k === v.kind ? html`<span class="ew-kind on" aria-current="page">${everywhere.KIND_TEXT[k]}</span>` : html`<a class="ew-kind" href="${tab(k)}">${everywhere.KIND_TEXT[k]}</a>`))}</nav>
+<section class="sc-sec" aria-labelledby="h-sites"><h2 id="h-sites">On every site</h2>
+${links.length ? html`<ul class="everywhere-sites">${links.map((l) => html`<li class="ew-site"><a class="ew-open" href="${l.url}" target="_blank" rel="noopener nofollow"><span class="ew-name">${l.name}</span><span class="ew-host">${hostOf(l.url)} ↗</span></a><p class="ew-best">${l.best}</p></li>`)}</ul>
+<p class="small muted">Each link opens that site's own search for this place in a new tab, with your filters where the site takes them. Listings, messages and payments stay on that site: never pay a deposit before you have seen a place (<a href="/safety">the safety rules</a>).</p>`
+        : html`<p class="muted">No site in the list covers this place and kind yet. The list starts with the United States; more countries come next.</p>`}
+</section>
+<section class="sc-sec" aria-labelledby="h-here"><h2 id="h-here">On ${SITE_NAME}</h2><ul class="everywhere-here">
+${own ? html`<li><a href="${own}">Listings people posted here near ${place.city}</a></li>` : ''}
+${HUD_KINDS.has(v.kind) && (place.country_code || 'us') === 'us' ? html`<li><a href="/housing?${new URLSearchParams({ q: v.q })}">Affordable housing near ${place.city}</a>: public housing, tax-credit and HUD-assisted homes</li>` : ''}
+<li><a href="/post">Post a listing</a> of your own</li></ul></section>` : ''}`,
+        }, limited ? 429 : 200);
+    }
+
+    // The geocode spends the same per-caller budget as /housing and the API; over it, the page says so (429).
+    const everywhereSearch = ctx.limits.budget('rent.housing.search');
+    r.get('/everywhere', (req, res) => {
+        if (!str(req.query.q)) return everywherePage(req, res);
+        let settled = false;
+        let retryAfter = '60';
+        const allowed = () => { if (!settled) { settled = true; everywherePage(req, res); } };
+        const refused = () => {
+            if (settled) return;
+            settled = true;
+            res.set('Retry-After', retryAfter);
+            everywherePage(req, res, { limited: true });
+        };
+        everywhereSearch(req, { statusCode: 200, setHeader: (k, val) => { if (String(k).toLowerCase() === 'retry-after') retryAfter = String(val); }, end: refused }, allowed);
     });
 
     // ── Affordable housing near you ──────────────────────────

@@ -1,0 +1,15 @@
+/* OpenVibe.Rent — /everywhere only (every rental site's own search for one place), so app.css stays inside its budget. */
+.everywhere-kinds { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 4px; }
+.ew-kind { display: inline-block; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border-light, #2c3d5c); background: var(--bg-secondary, #0f1729); color: var(--text-primary, #e6edf7); text-decoration: none; font-size: .9rem; }
+a.ew-kind:hover { border-color: var(--accent, #3b82f6); }
+.ew-kind.on { border-color: var(--accent, #3b82f6); background: color-mix(in srgb, var(--accent, #3b82f6) 18%, var(--bg-secondary, #0f1729)); font-weight: 650; }
+.everywhere-sites { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.ew-site { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border, #1f2d47); background: var(--bg-card, #131c2e); transition: border-color .15s ease, transform .15s ease; }
+.ew-site:hover { border-color: var(--accent, #3b82f6); transform: translateY(-1px); }
+.ew-open { display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--text-primary, #e6edf7); }
+.ew-open:focus-visible { outline: 2px solid var(--accent, #3b82f6); outline-offset: 3px; border-radius: 6px; }
+.ew-name { font-weight: 700; font-size: 1.05rem; }
+.ew-host { font-size: .82rem; color: var(--accent-text, var(--accent, #3b82f6)); overflow-wrap: anywhere; }
+.ew-best { margin: 0; font-size: .9rem; color: var(--text-secondary, #96a7c2); }
+.everywhere-here { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+@media (prefers-reduced-motion: reduce) { .ew-site, .ew-site:hover { transition: none; transform: none; } }

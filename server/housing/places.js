@@ -315,6 +315,30 @@ function elementsToResults(features, def, origin, limit) {
 }
 
 /**
+ * A place name → one geocoded place: name, coordinates, country code, city and two-letter US state code, the postcode
+ * and the country's name (Nominatim, cached by the upstream). Shared by the affordable-housing search and the
+ * search-everywhere page. Throws housing.place.not_found when nothing matches.
+ */
+async function geocodePlace(upstream, q) {
+    const g = await upstream.geocode(q, { limit: 1 });
+    const hit = Array.isArray(g.body) ? g.body[0] : null;
+    if (!hit) throw new UpstreamError('housing.place.not_found', `no place called “${String(q).slice(0, 80)}”; try a city and state, or a ZIP code`, { status: 404 });
+    const la = Number(hit.lat);
+    const lo = Number(hit.lon);
+    if (!Number.isFinite(la) || !Number.isFinite(lo)) throw new UpstreamError('housing.place.upstream', 'could not reach the place service right now (no coordinates for that place)');
+    const country = hit.address && (hit.address.country_code || hit.address.country)
+        ? String(hit.address.country_code || hit.address.country).toLowerCase() : null;
+    // The two pieces the FHFA House Price Index lookup matches on (server/housing/hpi.js): a city and the
+    // two-letter state code. Nominatim (addressdetails=1) gives a US state as "ISO3166-2-lvl4": "US-CO" and
+    // "state": "Colorado"; there is no state_code field (Rent#30 read one, so production never matched).
+    const addr = hit.address || {};
+    const city = str(addr.city) || str(addr.town) || str(addr.village) || str(addr.hamlet) || str(addr.municipality)
+        || str(addr.county) || str(addr.suburb) || str(addr.city_district);
+    const state = usStateCode(addr);
+    return { name: hit.display_name || String(q), lat: la, lon: lo, from: 'geocode', geocoded_at: g.fetched_at, country_code: country, bbox: parseBbox(hit.boundingbox), city, state, postcode: str(addr.postcode), country_name: str(addr.country) };
+}
+
+/**
  * The place search behind both the API and the pages.
  *
  *   { q, kinds }
@@ -333,22 +357,7 @@ async function searchPlaces(upstream, { q = null, kinds = null } = {}, config) {
 
     let place = null;
     if (q && String(q).trim()) {
-        const g = await upstream.geocode(q, { limit: 1 });
-        const hit = Array.isArray(g.body) ? g.body[0] : null;
-        if (!hit) throw new UpstreamError('housing.place.not_found', `no place called “${String(q).slice(0, 80)}”; try a city and state, or a ZIP code`, { status: 404 });
-        const la = Number(hit.lat);
-        const lo = Number(hit.lon);
-        if (!Number.isFinite(la) || !Number.isFinite(lo)) throw new UpstreamError('housing.place.upstream', 'could not reach the place service right now (no coordinates for that place)');
-        const country = hit.address && (hit.address.country_code || hit.address.country)
-            ? String(hit.address.country_code || hit.address.country).toLowerCase() : null;
-        // The two pieces the FHFA House Price Index lookup matches on (server/housing/hpi.js): a city and the
-        // two-letter state code. Nominatim (addressdetails=1) gives a US state as "ISO3166-2-lvl4": "US-CO" and
-        // "state": "Colorado"; there is no state_code field (Rent#30 read one, so production never matched).
-        const addr = hit.address || {};
-        const city = str(addr.city) || str(addr.town) || str(addr.village) || str(addr.hamlet) || str(addr.municipality)
-            || str(addr.county) || str(addr.suburb) || str(addr.city_district);
-        const state = usStateCode(addr);
-        place = { name: hit.display_name || String(q), lat: la, lon: lo, from: 'geocode', geocoded_at: g.fetched_at, country_code: country, bbox: parseBbox(hit.boundingbox), city, state };
+        place = await geocodePlace(upstream, q);
     } else {
         throw new UpstreamError('housing.place.invalid', 'q: a place to search for', { status: 422 });
     }
@@ -392,6 +401,6 @@ async function searchPlaces(upstream, { q = null, kinds = null } = {}, config) {
 }
 
 module.exports = {
-    searchPlaces, haversineKm, envelopeFor, parseBbox, normalizeFeature, toResult, elementsToResults, safeUrl,
+    searchPlaces, geocodePlace, haversineKm, envelopeFor, parseBbox, normalizeFeature, toResult, elementsToResults, safeUrl,
     LAYERS, KINDS, KIND_TEXT, KIND_DESCRIPTIONS, ATTRIBUTION, SOURCE, UpstreamError,
 };

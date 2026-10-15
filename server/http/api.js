@@ -38,6 +38,7 @@ const service = require('../listings/service');
 const { isStaff } = require('../listings/staff');
 const housingPlaces = require('../housing/places');
 const housingHpi = require('../housing/hpi');
+const everywhere = require('../aggregate/everywhere');
 
 /** The listing columns a caller may set, as the validate() input names. */
 const INPUT_KEYS = ['kind', 'title', 'description', 'price', 'currency', 'period', 'city', 'region', 'country', 'neighbourhood', 'bedrooms'];
@@ -57,6 +58,27 @@ function createApi(ctx) {
     r.get('/ping', limits.reads('rent.api.read'), (_req, res) => res.json({ ok: true, service: config.service }));
 
     // ── Affordable housing near you (public) ─────────────────
+    // Search everywhere (server/aggregate/everywhere.js): one place and filters → every rental site's own search for it.
+    // No token; it geocodes, so it takes the same per-address budget as /housing.
+    r.get('/everywhere', limits.budget('rent.housing.search'), async (req, res) => {
+        const one = (v) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 200) : null);
+        const kind = one(req.query.kind) || 'apartment';
+        if (!everywhere.KINDS.includes(kind)) return problem(req, res, 422, 'rent.everywhere.invalid', `kind: one of ${everywhere.KINDS.join(', ')}`);
+        if (!one(req.query.q)) return problem(req, res, 422, 'rent.everywhere.invalid', 'q: a place to search, such as a city and state or a ZIP code');
+        const place = await housingPlaces.geocodePlace(ctx.upstream, one(req.query.q)).catch((err) => {
+            if (err && err.code) { problem(req, res, err.status || 502, err.code, err.message); return null; }
+            throw err;
+        });
+        if (!place) return undefined;
+        const sites = everywhere.linksFor({ city: place.city, state: place.state, country: place.country_code, postcode: place.postcode, lat: place.lat, lon: place.lon, countryName: place.country_name },
+            { kind, maxPrice: one(req.query.max_price), minBeds: one(req.query.min_beds) });
+        res.set('Cache-Control', 'public, max-age=300');
+        return res.json({
+            place: { name: place.name, city: place.city, state: place.state, country: place.country_code, lat: place.lat, lon: place.lon },
+            kind, sites,
+        });
+    });
+
     // No token: HUD's open data is the same for everyone. It spends Nominatim's shared one-request-a-second budget, so
     // it takes the per-address budget in ./caller-limits.js rather than the default read numbers.
     r.get('/housing', limits.budget('rent.housing.search'), async (req, res) => {
