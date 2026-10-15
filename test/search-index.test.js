@@ -15,7 +15,9 @@ const DAY = 86_400_000;
 
 (async () => {
     const clock = { t: Date.now() };   // real time: the test's sign-in tokens are issued now
-    const t = await boot({ now: () => clock.t });
+    const pinged = [];
+    const indexnow = { enabled: true, keyFile: (req, res, next) => next(), pingSoon: (urls) => { pinged.push(...urls); return urls.length; } };
+    const t = await boot({ now: () => clock.t, indexnow });
     const { s, search } = t.ctx;
     const kim = t.network.addUser('kim');
     const outbox = async () => (await s.db.many('SELECT envelope FROM event_outbox ORDER BY id')).map((r) => r.envelope);
@@ -51,6 +53,8 @@ const DAY = 86_400_000;
             const text = JSON.stringify(envs[0]);
             assert.ok(!text.includes('example.com/rooms'), 'the contact link stays off Search');
             assert.ok(!text.includes('usr_'), 'the poster is not in the document');
+            // Search engines hear about the new page (IndexNow, through openvibe-publishing/search-feed).
+            assert.deepStrictEqual(pinged, [`https://openvibe.rent/listings/${id}`, 'https://openvibe.rent/sitemap.xml']);
         });
 
         await check('an edit is the next revision; a sweep then sends nothing', async () => {
@@ -60,9 +64,11 @@ const DAY = 86_400_000;
             assert.strictEqual(env.payload.revision, 2);
             assert.match(env.payload.title, /bills included/);
             const before = (await outbox()).length;
+            pinged.length = 0;
             const res = await search.sweep();
             assert.strictEqual(res.listing.sent, 0);
             assert.strictEqual((await outbox()).length, before);
+            assert.deepStrictEqual(pinged, [], 'a sweep with nothing changed pings nothing');
         });
 
         await check('hidden by staff is a tombstone, restored is a document again', async () => {

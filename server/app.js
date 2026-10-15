@@ -22,6 +22,7 @@ const contracts = require('openvibe-contracts');
 const cache = require('openvibe-shared/cache-policy');
 
 const { createSearchIndex } = require('./search-index');
+const { createIndexNow } = require('openvibe-shared/indexnow');
 const configLib = require('./config');
 const { openStore } = require('./db');
 const { createUpstream } = require('./housing/upstream');
@@ -57,7 +58,16 @@ async function createApp(opts = {}) {
     const ctx = { config, s, keys, sso, principal, log };
     // Listing pages in OpenVibe.Search (./search-index.js): every store write names the listing it touched (s.search),
     // and a sweep runs on its own timer once server/index.js starts it.
-    ctx.search = opts.search || createSearchIndex({ config, s, log });
+    // IndexNow: off without INDEXNOW_KEY; a malformed key warns and stays off rather than stopping the site.
+    const indexnow = opts.indexnow || (() => {
+        const warn = (...a) => (log.warn || console.warn)(...a);
+        try { return createIndexNow({ host: config.baseUrl, key: config.indexnow.key, fetch: fetchImpl, log: warn }); } catch (err) {
+            warn(`[Rent] ${err.message} — IndexNow is off until INDEXNOW_KEY is fixed`);
+            return createIndexNow({ host: config.baseUrl, key: '', fetch: fetchImpl, log: warn });
+        }
+    })();
+    ctx.indexnow = indexnow;
+    ctx.search = opts.search || createSearchIndex({ config, s, log, indexnow });
     s.search = ctx.search;
 
     // The only outbound client the housing feature has (Nominatim + HUD ArcGIS, paced and cached); the pages and the
@@ -140,6 +150,8 @@ async function createApp(opts = {}) {
 
     // ── Static assets (content-hashed ?v= → immutable) ──────
     app.use('/shared', require('openvibe-shared/serve').handler());
+    // GET /<key>.txt — the IndexNow key file, only when a key is configured.
+    if (indexnow.enabled) app.use(indexnow.keyFile);
     app.use(express.static(PUBLIC_DIR, {
         index: false, redirect: false,
         setHeaders(res, filePath) {
