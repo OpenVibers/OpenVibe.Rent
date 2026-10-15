@@ -21,11 +21,13 @@ const { html, raw, esc } = require('./html');
 const NETWORK_URL = 'https://openvibe.network';
 const SITE_NAME = 'OpenVibe.Rent';
 const TAGLINE = 'Find a place, or rent yours out.';
+const RENT_NAME = SITE_NAME;
+const RENT_TAGLINE = TAGLINE;
 const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
 // The product's own navigation: one entry per public page it serves. /mine, /saved and the staff queue /staff are
 // not here — they are for one signed-in person, and a link in everyone's navbar would be an invitation to a 401.
 // They are linked from the pages that lead to them (/listings, /post, /safety).
-const NAV = [
+const RENT_NAV = [
     { label: 'Search everywhere', href: '/everywhere' },
     { label: 'Your board', href: '/board' },
     { label: 'Affordable housing', href: '/housing' },
@@ -34,6 +36,19 @@ const NAV = [
     { label: 'Safety', href: '/safety' },
     { label: 'What shipped', href: '/updates' },
 ];
+
+// OpenVibe.Homes (server/homes) uses this layout with its own name and navigation; sign-in and the board stay on
+// OpenVibe.Rent (one account place), so the Homes navbar sends people there.
+const HOMES = {
+    name: 'OpenVibe.Homes',
+    tagline: 'Find a home to buy.',
+    nav: [
+        { label: 'Search every site', href: '/search' },
+        { label: 'Property records', href: '/records' },
+        { label: 'Mortgage calculator', href: '/mortgage' },
+        { label: 'Renting instead', href: 'https://openvibe.rent/everywhere' },
+    ],
+};
 
 const hashes = new Map();
 function assetVersion(rel) {
@@ -59,22 +74,34 @@ function renderPage(o) {
     const signedIn = viewer.kind === 'user';
     const pathNow = o.path || '/';
     const loginNext = encodeURIComponent(pathNow);
-    const canonical = `${o.config.baseUrl}${pathNow.split('?')[0]}`;
+    const homes = o.site === 'homes';
+    const SITE_NAME = homes ? HOMES.name : RENT_NAME;
+    const TAGLINE = homes ? HOMES.tagline : RENT_TAGLINE;
+    const NAV = homes ? HOMES.nav : RENT_NAV;
+    const base = homes ? o.config.homes.url : o.config.baseUrl;
+    const canonical = `${base}${pathNow.split('?')[0]}`;
     const nav = {
         service: 'rent',
         apiBase: NETWORK_URL,
         links: NAV.map((l) => ({ label: l.label, href: l.href, active: pathNow === l.href || pathNow.startsWith(`${l.href}/`) })),
         history: { type: 'page', title: o.title || SITE_NAME },
-        silentLogin: `${o.config.baseUrl}/auth/login?silent=1&next={url}`,
-        sessionUrl: '/auth/me',
-        loginUrl: '/auth/login?next={path}',           // filled from the current page (boost moves between pages)
-        logoutUrl: '/auth/logout?next={path}',   // Sign out in the shared navbar ends this site's session too
-        notificationsRealtime: true,             // the bell hears new notifications over OpenVibe.Events (Shared 1.22.0)
+        // On Homes the account lives on OpenVibe.Rent: its session probe answers signed out, and sign-in goes there.
+        ...(homes ? {
+            loginUrl: `${o.config.baseUrl}/auth/login?next=/board`,
+        } : {
+            silentLogin: `${o.config.baseUrl}/auth/login?silent=1&next={url}`,
+            sessionUrl: '/auth/me',
+            loginUrl: '/auth/login?next={path}',           // filled from the current page (boost moves between pages)
+            logoutUrl: '/auth/logout?next={path}',   // Sign out in the shared navbar ends this site's session too
+            notificationsRealtime: true,             // the bell hears new notifications over OpenVibe.Events (Shared 1.22.0)
+        }),
     };
-    const footer = { service: 'rent', variant: 'full', mount: '#ov-footer', brandName: SITE_NAME, updates: '/updates' };
-    const account = signedIn
-        ? html`Signed in as <strong>${viewer.displayName || viewer.username || 'you'}</strong> · <a href="/auth/logout?next=${loginNext}">Sign out</a>`
-        : html`<a href="/auth/login?next=${loginNext}">Sign in with OpenVibe</a>`;
+    const footer = { service: 'rent', variant: 'full', mount: '#ov-footer', brandName: SITE_NAME, updates: homes ? `${o.config.baseUrl}/updates` : '/updates' };
+    const account = homes
+        ? html`<a href="${o.config.baseUrl}/board">Your board on OpenVibe.Rent</a>`
+        : signedIn
+            ? html`Signed in as <strong>${viewer.displayName || viewer.username || 'you'}</strong> · <a href="/auth/logout?next=${loginNext}">Sign out</a>`
+            : html`<a href="/auth/login?next=${loginNext}">Sign in with OpenVibe</a>`;
     const crumbs = (o.crumbs || []).length
         ? html`<nav class="crumbs" aria-label="Breadcrumbs">${o.crumbs.map((c, i) => html`${i ? ' / ' : ''}${c.href ? html`<a href="${c.href}">${c.label}</a>` : c.label}`)}</nav>`
         : '';
@@ -108,7 +135,7 @@ ${render(scripts)}
 <main id="main" class="page">
 ${render(crumbs)}
 ${render(o.body)}
-${o.path === '/' ? frame.shipped({ service: 'rent', title: `Recently shipped on ${SITE_NAME}` }) : ''}
+${o.path === '/' && !homes ? frame.shipped({ service: 'rent', title: `Recently shipped on ${SITE_NAME}` }) : ''}
 </main>
 <script>
 window.__OV_PAGE = ${JSON.stringify({ navbar: nav, footer }).replace(/</g, '\\u003c')};
@@ -130,4 +157,6 @@ function send(res, status, o) {
     res.status(status).type('html').send(renderPage(o));
 }
 
-module.exports = { renderPage, send, asset, assetVersion, setRelease, SITE_NAME, NETWORK_URL, NAV, raw, html };
+const NAV = RENT_NAV;
+
+module.exports = { renderPage, send, asset, assetVersion, setRelease, SITE_NAME, NETWORK_URL, NAV, HOMES, raw, html };

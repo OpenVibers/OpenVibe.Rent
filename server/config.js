@@ -24,6 +24,10 @@ function load(env = process.env) {
         nodeEnv,
         isProduction,
         baseUrl,
+        // OpenVibe.Homes (server/homes): buying, served by this process for its own host.
+        homes: {
+            url: trim(env.RENT_HOMES_URL || (isProduction ? 'https://openvibe.homes' : `http://homes.localhost:${port}`)),
+        },
         // IndexNow (openvibe-shared/indexnow): with a key, each page Search gains, changes or loses is sent to search
         // engines in one batch (openvibe-publishing/search-feed), and the key is served at /<key>.txt. Unset: off.
         indexnow: { key: String(env.INDEXNOW_KEY || '').trim() },
