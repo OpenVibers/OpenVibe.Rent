@@ -47,11 +47,12 @@ const q = (params) => {
 /**
  * The sites. `kinds` says which searches each one answers; `build(place, f)` returns the URL for a place
  * ({ city, state, country, postcode, lat, lon }) and filters ({ kind, maxPrice, minBeds }), or null when it cannot
- * serve that place. `us: true` sites need a US city and state.
+ * serve that place. `us: true` sites need a US city and state. `host` is the site's domain (its listings may sit on a
+ * subdomain, e.g. saltlakecity.craigslist.org).
  */
 const SITES = [
     {
-        id: 'craigslist', name: 'Craigslist', us: true,
+        id: 'craigslist', name: 'Craigslist', host: 'craigslist.org', us: true,
         kinds: ['apartment', 'house', 'room', 'stay', 'commercial', 'parking', 'storage'],
         best: 'Local listings from owners and small landlords, often not anywhere else.',
         build: (p, f) => {
@@ -61,18 +62,18 @@ const SITES = [
         },
     },
     {
-        id: 'facebook', name: 'Facebook Marketplace', us: false,
+        id: 'facebook', name: 'Facebook Marketplace', host: 'facebook.com', us: false,
         kinds: ['apartment', 'house', 'room'],
         best: 'Rooms, sublets and homes from people nearby; sign in to Facebook to see them all.',
         build: (p) => `https://www.facebook.com/marketplace/${slug(p.city).replace(/-/g, '')}/propertyrentals`,
     },
     {
-        id: 'zillow', name: 'Zillow', us: true, kinds: ['apartment', 'house'],
+        id: 'zillow', name: 'Zillow', host: 'zillow.com', us: true, kinds: ['apartment', 'house'],
         best: 'The largest US listing database, with a map and price history.',
         build: (p, f) => `https://www.zillow.com/${slug(p.city)}-${p.state.toLowerCase()}/${f.kind === 'house' ? 'rent-houses' : 'rentals'}/`,
     },
     {
-        id: 'apartments', name: 'Apartments.com', us: true, kinds: ['apartment'],
+        id: 'apartments', name: 'Apartments.com', host: 'apartments.com', us: true, kinds: ['apartment'],
         best: 'Managed apartment buildings with floor plans and availability.',
         build: (p, f) => {
             const parts = [f.minBeds ? `${f.minBeds}-bedrooms` : null, f.maxPrice ? `under-${f.maxPrice}` : null].filter(Boolean).join('-');
@@ -80,77 +81,77 @@ const SITES = [
         },
     },
     {
-        id: 'zumper', name: 'Zumper', us: true, kinds: ['apartment', 'house', 'room'],
+        id: 'zumper', name: 'Zumper', host: 'zumper.com', us: true, kinds: ['apartment', 'house', 'room'],
         best: 'Fresh listings updated daily, including rooms and houses.',
         build: (p, f) => `https://www.zumper.com/${{ house: 'houses-for-rent', room: 'rooms-for-rent' }[f.kind] || 'apartments-for-rent'}/${slug(p.city)}-${p.state.toLowerCase()}`,
     },
     {
-        id: 'rentcom', name: 'Rent.com', us: true, kinds: ['apartment', 'house'],
+        id: 'rentcom', name: 'Rent.com', host: 'rent.com', us: true, kinds: ['apartment', 'house'],
         best: 'Apartments and houses with verified photos and pricing.',
         build: (p, f) => (US_STATE_NAMES[p.state] ? `https://www.rent.com/${US_STATE_NAMES[p.state]}/${slug(p.city)}-${f.kind === 'house' ? 'houses' : 'apartments'}` : null),
     },
     {
-        id: 'rentcafe', name: 'RentCafe', us: true, kinds: ['apartment'],
+        id: 'rentcafe', name: 'RentCafe', host: 'rentcafe.com', us: true, kinds: ['apartment'],
         best: 'Apartment communities with online applications.',
         build: (p) => `https://www.rentcafe.com/apartments-for-rent/${slug(p.city)}-${p.state.toLowerCase()}/`,
     },
     {
-        id: 'apartmentlist', name: 'Apartment List', us: true, kinds: ['apartment'],
+        id: 'apartmentlist', name: 'Apartment List', host: 'apartmentlist.com', us: true, kinds: ['apartment'],
         best: 'Matches you to buildings by budget and commute.',
         build: (p) => `https://www.apartmentlist.com/${p.state.toLowerCase()}/${slug(p.city)}`,
     },
     {
-        id: 'padmapper', name: 'PadMapper', us: true, kinds: ['apartment', 'house'],
+        id: 'padmapper', name: 'PadMapper', host: 'padmapper.com', us: true, kinds: ['apartment', 'house'],
         best: 'A map view across many listing sources.',
         build: (p) => `https://www.padmapper.com/apartments/${slug(p.city)}-${p.state.toLowerCase()}`,
     },
     {
-        id: 'hotpads', name: 'HotPads', us: true, kinds: ['apartment', 'house'],
+        id: 'hotpads', name: 'HotPads', host: 'hotpads.com', us: true, kinds: ['apartment', 'house'],
         best: 'Map-first search with many houses and condos.',
         build: (p, f) => `https://hotpads.com/${slug(p.city)}-${p.state.toLowerCase()}/${f.kind === 'house' ? 'houses-for-rent' : 'apartments-for-rent'}`,
     },
     {
-        id: 'trulia', name: 'Trulia', us: true, kinds: ['apartment', 'house'],
+        id: 'trulia', name: 'Trulia', host: 'trulia.com', us: true, kinds: ['apartment', 'house'],
         best: 'Neighbourhood details: commute, schools, crime.',
         build: (p) => `https://www.trulia.com/for_rent/${titleSlug(p.city).replace(/-/g, '_')},${p.state}/`,
     },
     {
-        id: 'realtor', name: 'Realtor.com', us: true, kinds: ['apartment', 'house'],
+        id: 'realtor', name: 'Realtor.com', host: 'realtor.com', us: true, kinds: ['apartment', 'house'],
         best: 'Rentals listed by agents.',
         build: (p) => `https://www.realtor.com/apartments/${titleSlug(p.city)}_${p.state}`,
     },
     {
-        id: 'roomies', name: 'Roomies', us: true, kinds: ['room'],
+        id: 'roomies', name: 'Roomies', host: 'roomies.com', us: true, kinds: ['room'],
         best: 'Rooms and roommates.',
         build: (p) => `https://www.roomies.com/rooms/${slug(p.city)}-${p.state.toLowerCase()}`,
     },
     {
-        id: 'furnishedfinder', name: 'Furnished Finder', us: true, kinds: ['stay', 'room'],
+        id: 'furnishedfinder', name: 'Furnished Finder', host: 'furnishedfinder.com', us: true, kinds: ['stay', 'room'],
         best: 'Furnished monthly rentals (made for travel nurses, open to all).',
         build: (p) => `https://www.furnishedfinder.com/housing/us--${p.state.toLowerCase()}--${slug(p.city)}`,
     },
     {
-        id: 'airbnb', name: 'Airbnb (monthly)', us: false, kinds: ['stay'],
+        id: 'airbnb', name: 'Airbnb (monthly)', host: 'airbnb.com', us: false, kinds: ['stay'],
         best: 'Furnished stays of a month or more, worldwide.',
         build: (p) => `https://www.airbnb.com/s/${titleSlug(p.city)}--${p.state || titleSlug(p.countryName || '')}/homes?monthly_stay=true`,
     },
     {
-        id: 'loopnet', name: 'LoopNet', us: true, kinds: ['commercial'],
+        id: 'loopnet', name: 'LoopNet', host: 'loopnet.com', us: true, kinds: ['commercial'],
         best: 'Office, retail and industrial space for lease.',
         build: (p) => `https://www.loopnet.com/search/commercial-real-estate/${slug(p.city)}-${p.state.toLowerCase()}/for-lease/`,
     },
     {
-        id: 'spothero', name: 'SpotHero', us: true, kinds: ['parking'],
+        id: 'spothero', name: 'SpotHero', host: 'spothero.com', us: true, kinds: ['parking'],
         best: 'Monthly and daily parking in garages and lots.',
         build: (p) => (p.lat != null && p.lon != null ? `https://spothero.com/search${q({ latitude: Number(p.lat).toFixed(4), longitude: Number(p.lon).toFixed(4), kind: 'monthly' })}` : null),
     },
     {
-        id: 'sparefoot', name: 'SpareFoot', us: true, kinds: ['storage'],
+        id: 'sparefoot', name: 'SpareFoot', host: 'sparefoot.com', us: true, kinds: ['storage'],
         best: 'Self-storage units compared by price and size.',
         build: (p) => `https://www.sparefoot.com/${titleSlug(p.city)}-${p.state}-self-storage.html`,
     },
     {
-        id: 'turo', name: 'Turo', us: true, kinds: ['vehicle'],
+        id: 'turo', name: 'Turo', host: 'turo.com', us: true, kinds: ['vehicle'],
         best: 'Cars rented from their owners.',
         build: (p) => `https://turo.com/us/en/search${q({ country: 'US', location: `${p.city}, ${p.state}` })}`,
     },
@@ -177,9 +178,15 @@ function linksFor(place, { kind = 'apartment', maxPrice = null, minBeds = null }
     return out;
 }
 
+/** The catalog site a host belongs to (www. and city subdomains included), or null. */
+function siteForHost(host) {
+    const h = String(host || '').toLowerCase().replace(/\.$/, '');
+    return SITES.find((x) => h === x.host || h.endsWith(`.${x.host}`)) || null;
+}
+
 function positiveInt(v, max) {
     const n = Number(v);
     return Number.isInteger(n) && n > 0 && n <= max ? n : null;
 }
 
-module.exports = { KINDS, KIND_TEXT, SITES, US_STATE_NAMES, linksFor, slug, titleSlug };
+module.exports = { KINDS, KIND_TEXT, SITES, US_STATE_NAMES, linksFor, siteForHost, slug, titleSlug };

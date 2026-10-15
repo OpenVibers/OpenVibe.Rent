@@ -26,8 +26,10 @@ const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
 // not here — they are for one signed-in person, and a link in everyone's navbar would be an invitation to a 401.
 // They are linked from the pages that lead to them (/listings, /post, /safety).
 const NAV = [
+    { label: 'Search everywhere', href: '/everywhere' },
+    { label: 'Your board', href: '/board' },
     { label: 'Affordable housing', href: '/housing' },
-    { label: 'Listings', href: '/listings' },
+    { label: 'Posted here', href: '/listings' },
     { label: 'Post a listing', href: '/post' },
     { label: 'Safety', href: '/safety' },
     { label: 'What shipped', href: '/updates' },

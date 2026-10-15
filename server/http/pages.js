@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Public pages: home, search (/listings), one listing, /post, /mine, /saved, /safety, the staff report queue and
+ * Public pages: home, search (/listings), one listing, /post, /mine, /saved, /board (http/board-pages.js), /safety, the staff report queue and
  * the update log. Crawl artifacts (robots.txt, sitemap.xml, llms.txt, llms-full.txt, JSON-LD) are http/discovery.js.
  *
  * Every page works without JavaScript and is server-rendered through openvibe-shared/shell (render/layout.js):
@@ -29,6 +29,7 @@ const { isStaff } = require('../listings/staff');
 const housingPlaces = require('../housing/places');
 const housingHpi = require('../housing/hpi');
 const everywhere = require('../aggregate/everywhere');
+const { mountBoardPages } = require('./board-pages');
 
 const SITE_NAME = 'OpenVibe.Rent';
 const TAGLINE = 'Every rental site, one search.';
@@ -190,9 +191,8 @@ ${raw(showcase.features({
                 title: 'How it works',
                 lede: 'One account for every rental search you make, wherever the listing lives.',
                 items: [
-                    { icon: 'ov:search', title: 'One search, every site', text: 'Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper, Rent.com, RentCafe, Apartment List, PadMapper, HotPads, Trulia, Realtor.com, Roomies, Furnished Finder, Airbnb, LoopNet, SpotHero, SpareFoot and Turo, opened at your place.', href: '/everywhere' },
-                    { icon: 'ov:map', title: 'Affordable housing', text: 'Public housing, tax-credit and HUD-assisted homes near any U.S. place, with the agencies to apply through.', href: '/housing' },
-                    { icon: 'ov:account', title: 'Post your own', text: 'Anyone signed in can list a place, a room, a parking spot or equipment here, and edit, renew or hide it at any time.', href: '/post' },
+                    { icon: 'ov:search', title: 'One search, every site', text: 'Type a place once and every site above opens its own search there, with your price and bedrooms.', href: '/everywhere' },
+                    { icon: 'ov:check', title: 'Your board', text: 'Keep the listings you like from any site in one list, with your notes and how far you got.', href: '/board' },
                     { icon: 'ov:bell', title: 'Alerts that keep looking', text: 'Save a search and get alerts through OpenVibe.Watch when something new matches.' },
                     { icon: 'ov:gauge', title: 'Safety first', text: 'Never pay or send a deposit before you have seen the place and signed an agreement. Reported listings are hidden until staff look.', href: '/safety' },
                 ],
@@ -248,7 +248,8 @@ ${problem ? notice(problem, 'warn') : ''}
 ${place ? html`<nav class="everywhere-kinds" aria-label="What to look for">${everywhere.KINDS.map((k) => (k === v.kind ? html`<span class="ew-kind on" aria-current="page">${everywhere.KIND_TEXT[k]}</span>` : html`<a class="ew-kind" href="${tab(k)}">${everywhere.KIND_TEXT[k]}</a>`))}</nav>
 <section class="sc-sec" aria-labelledby="h-sites"><h2 id="h-sites">On every site</h2>
 ${links.length ? html`<ul class="everywhere-sites">${links.map((l) => html`<li class="ew-site"><a class="ew-open" href="${l.url}" target="_blank" rel="noopener nofollow"><span class="ew-name">${l.name}</span><span class="ew-host">${hostOf(l.url)} ↗</span></a><p class="ew-best">${l.best}</p></li>`)}</ul>
-<p class="small muted">Each link opens that site's own search for this place in a new tab, with your filters where the site takes them. Listings, messages and payments stay on that site: never pay a deposit before you have seen a place (<a href="/safety">the safety rules</a>).</p>`
+<p class="small muted">Each link opens that site's own search for this place in a new tab, with your filters where the site takes them. Listings, messages and payments stay on that site: never pay a deposit before you have seen a place (<a href="/safety">the safety rules</a>).</p>
+<p class="ew-board">Found one you like? <a href="/board">Keep it on your board</a>: every listing from every site in one list, with your notes and how far you got.</p>`
         : html`<p class="muted">No site in the list covers this place and kind yet. The list starts with the United States; more countries come next.</p>`}
 </section>
 <section class="sc-sec" aria-labelledby="h-here"><h2 id="h-here">On ${SITE_NAME}</h2><ul class="everywhere-here">
@@ -837,6 +838,9 @@ ${it.newCount ? html` <span class="badge info">${it.newCount} new</span>` : html
         if (listings.isSavedId(id)) await store.deleteSaved(s, id, requesterOf(req));
         return res.redirect(303, '/saved');
     });
+
+    // ── The board: listings kept from any site (http/board-pages.js) ──
+    mountBoardPages(r, { config, s, page, signedIn, requesterOf, mustSignIn, budgeted, sameSite, signInPrompt });
 
     // ── Reporting ────────────────────────────────────────────
     r.post('/listings/:id/reports', mustSignIn('/listings'), budgeted('rent.listing.report'), async (req, res) => {

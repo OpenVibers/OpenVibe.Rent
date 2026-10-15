@@ -33,9 +33,9 @@ sees them in their own browser and account.
 
 This is the permitted way to aggregate sites whose terms forbid automated collection, as the owner decided on
 2026-09-28 (deep links out, a browser extension inside the person's own sessions, licensed APIs, people posting).
-Next:
-- a board that saves listings from any site into one OpenVibe list;
-- the OpenVibe Companion extension;
+**The board** (`/board`) keeps what you find there: the listings from any site in one OpenVibe list, with your notes
+and how far you got. Next:
+- the OpenVibe Companion extension (keep a listing to the board from the page you are on);
 - licensed listing feeds through OpenVibe.Sources.
 
 The United States comes first. A place elsewhere gets the sites that work worldwide.
@@ -73,6 +73,10 @@ Rent's own data is its PostgreSQL database ([server/db.js](server/db.js)); the `
   three. `rpt_<ULID>` ids.
 - **`rent_listing_checks`** (0008) — the latest AI screen of each listing (below): the content hash it read, `allow` or
   `review`, the signs and the quoted words, and which member of staff marked it reviewed. It goes with its listing.
+- **`rent_board_items`** (0009) — the board: the listings a person keeps from any site, each with its link on that site,
+  the site's host, a title, an optional price with currency and period, place and notes, and how far they got
+  (`interested`, `contacted`, `viewing`, `applied`, `declined`, `rented`). One row per person per link, at most 500.
+  `rbi_<ULID>` ids.
 - **`rent_saved_searches`** — a person's saved filter sets, one per distinct set, with `last_seen_at` for the "new
   since you last looked" count. `ssv_<ULID>` ids.
 - **`account_data_events`** — the receipt of each ADR-033 account export or deletion delivery Rent has applied, so a
@@ -143,13 +147,14 @@ Index master CSV — paced and cached in [server/housing/upstream.js](server/hou
 | Staff | [server/listings/staff.js](server/listings/staff.js) | Who is staff is the Network **role claim** (`admin`, `global_mod`), decided in one place, exactly as at OpenVibe.Help. The pages and the API cannot drift apart. |
 | AI screen | [server/listings/screen.js](server/listings/screen.js), `/staff?state=flagged` | Each listing a person posts or edits is read by OpenVibe.AI's `rent.screen_listing` for the signs of a rental scam (payment before a viewing, wire/gift-card/crypto payment, an owner who cannot show the place, pressure, identity or bank details up front, only a private channel), never with the poster or the contact link. `review` puts it in the staff page's **flagged** queue with the signs and the quoted words; nothing is hidden or refused, and staff decide (**Looks fine**, hide, remove). The same words are never screened twice; a failed run is retried by a sweep every 30 minutes. Off without `OV_AI_INTERNAL_URL` (and the client secret). |
 | Saving a search | `/saved` | Save the current filters (signed in) and see, each time you open the page, how many listings have appeared since you last looked. |
+| The board | [server/board/board.js](server/board/board.js), [server/http/board-pages.js](server/http/board-pages.js), `/board` | Keep a listing from any site with its link, title, price, place and notes, and move it along as you go (interested, contacted, viewing booked, applied, rented, not for me). The same link twice is one item; at most 500. A bookmarklet (shown as text to copy) opens `/board?url=&title=` from the listing you are on, with the site's name taken off the page title. Rent stores what you send and never fetches the listing: it, the messages and any payment stay on its site. |
 | Alerts | `/listings.atom`, Get alerts | Every search is an Atom feed with the same filters (the newest 25, cached 5 minutes), linked from the listings page's head. **Get alerts** on the listings page and on each saved search opens OpenVibe.Watch's feed form with that feed filled in, so Watch tells you, or runs your agent, when a listing that fits appears. |
 | Affordable housing | [server/housing/places.js](server/housing/places.js), [upstream.js](server/housing/upstream.js) | `/housing` geocodes a place with Nominatim, then reads six HUD ArcGIS layers — public housing, LIHTC, HUD-assisted multifamily, public housing authorities, housing counselling agencies and HUD homes for sale (`SF_REO`, HUD's March 2026 snapshot, each linked to HUD Homestore to confirm it is still for sale) — normalised, distance-sorted and grouped, with the HUD attribution on the page. |
 | Home prices | [server/housing/hpi.js](server/housing/hpi.js) | A small card on `/housing` shows the FHFA House Price Index change over the past year and five years for the matching MSA (or the state), as a repeat-sales index — never a price — with the source linked back. |
-| Pages | [server/http/pages.js](server/http/pages.js) | Home, `/housing`, `/listings`, `/listings/:id`, `/listings/:id/edit`, `/post`, `/mine`, `/saved`, `/safety`, `/staff`, `/updates` — all server-rendered, all complete without JavaScript, forms are plain POSTs. |
-| Discovery | [server/http/discovery.js](server/http/discovery.js) | `robots.txt` (disallows `/auth/`, `/api/`, `/post`, `/mine`, `/saved`, `/staff`), `sitemap.xml` (every active `/listings/:id`, up to 1000), `llms.txt`, `llms-full.txt`; with `INDEXNOW_KEY`, each listing page Search gains or changes is sent to IndexNow (through `openvibe-publishing/search-feed`). |
+| Pages | [server/http/pages.js](server/http/pages.js) | Home, `/everywhere`, `/board`, `/housing`, `/listings`, `/listings/:id`, `/listings/:id/edit`, `/post`, `/mine`, `/saved`, `/safety`, `/staff`, `/updates` — all server-rendered, all complete without JavaScript, forms are plain POSTs. |
+| Discovery | [server/http/discovery.js](server/http/discovery.js) | `robots.txt` (disallows `/auth/`, `/api/`, `/post`, `/mine`, `/saved`, `/board`, `/staff`), `sitemap.xml` (every active `/listings/:id`, up to 1000), `llms.txt`, `llms-full.txt`; with `INDEXNOW_KEY`, each listing page Search gains or changes is sent to IndexNow (through `openvibe-publishing/search-feed`). |
 | Sign-in | [server/auth/sso.js](server/auth/sso.js) | OAuth 2 authorization code with PKCE (S256) against OpenVibe.Network; httpOnly `rent_at` / `rent_rt` cookies; `/auth/me` for the shared navbar. |
-| Limits | [server/http/caller-limits.js](server/http/caller-limits.js) | Per-caller budgets for posting, reporting, renewing and saving a search. The page form and the API route take the same budget, so the form is not a way round a limit. |
+| Limits | [server/http/caller-limits.js](server/http/caller-limits.js) | Per-caller budgets for posting, reporting, renewing, saving a search and changing the board. The page form and the API route take the same budget, so the form is not a way round a limit. |
 | Store | [server/db.js](server/db.js), [migrations/](migrations/) | PostgreSQL through `openvibe-sdk/db`, `NNNN_*.sql` applied at boot, PGlite in development and in tests. |
 
 ## API
@@ -174,6 +179,10 @@ edit, report or save anything here — a listing is somebody's own — so no rou
 | `GET /saved-searches` | person | yours, each with `new_count` |
 | `POST /saved-searches` | person | save the filters in the body |
 | `DELETE /saved-searches/:id` | person | forget one (204) |
+| `GET /board` | person | your board: `items` (newest change first), `statuses`, `max_items` |
+| `POST /board` | person | keep one: `url` (http or https), optional `title`, `price`, `currency`, `period`, `place`, `notes`, `status`; 201 + `Location`, or 200 when that link was already there (it is updated); 409 `board.full` at 500 |
+| `PATCH /board/:id` | person | change any of those fields; 409 `board.duplicate` if the new link is already on the board |
+| `DELETE /board/:id` | person | forget one (204) |
 | `GET /staff/reports` | staff | the queue, `?state=hidden\|active\|removed\|all` |
 | `POST /listings/:id/state` | staff | `{ "state": "active" \| "hidden" \| "removed" }` |
 
@@ -303,13 +312,13 @@ through PostgreSQL and PgBouncer (see [.github/workflows/ci.yml](.github/workflo
 
 A person's account at OpenVibe.Network can be exported and deleted, and every service holding their rows answers its
 part (ADR-033). Rent receives `network.account.export_requested` and `network.account.deleted` at `POST /internal/events`
-(loopback only) — the three tables are mapped in [server/identity/account-data.js](server/identity/account-data.js), and
+(loopback only) — the four tables are mapped in [server/identity/account-data.js](server/identity/account-data.js), and
 the boot-time subscriptions are created by [server/events-consumer.js](server/events-consumer.js):
 
-- **Exported:** the listings a person posted (`listings.json`), the reports they filed (`reports.json`) and the searches
-  they saved (`saved_searches.json`), pushed to `POST /internal/account-exports/:id/parts` with this service's own
+- **Exported:** the listings a person posted (`listings.json`), the reports they filed (`reports.json`), the searches
+  they saved (`saved_searches.json`) and their board (`board.json`), pushed to `POST /internal/account-exports/:id/parts` with this service's own
   token. Nothing here is a secret — Rent stores no token, key or credential.
-- **Erased:** all three tables hold the person's own rows, so they are deleted whole and nothing is kept. Rent then
+- **Erased:** all four tables hold the person's own rows, so they are deleted whole and nothing is kept. Rent then
   confirms with `POST /internal/account-deletions/:id/confirmations` and the counts.
 - **Anonymized:** nothing. Rent keeps no row by this person that another person's page must still read — the reports
   other people left on a deleted listing cascade away with it.

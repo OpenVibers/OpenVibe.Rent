@@ -14,6 +14,7 @@ const { signDeliveryHeaders } = require('openvibe-sdk/events');
 const rentStore = require('../server/listings/store');
 const rentService = require('../server/listings/service');
 const listings = require('../server/listings/listings');
+const board = require('../server/board/board');
 
 const A = 'usr_01JZ0000000000000000000AAA';
 const B = 'usr_01JZ0000000000000000000BBB';
@@ -77,8 +78,16 @@ async function makeReport(t, listingId, subject, note) {
     return r.report;
 }
 
+/** Keep one listing from another site on a person's board (server/board/board.js). */
+async function makeBoardItem(t, subject, title) {
+    const v = board.validate({ url: `https://www.craigslist.org/apa/${title}.html`, title });
+    const r = await board.save(t.ctx.s, `user:${subject}`, v.item);
+    assert.ok(r.ok, `board item for ${subject}`);
+    return r.row;
+}
+
 /**
- * A listing, a saved search and a report each for A and B. The reports cross: A's is on B's listing and B's is on
+ * A listing, a saved search, a board item and a report each for A and B. The reports cross: A's is on B's listing and B's is on
  * A's — so A's part must carry A's report and not B's, and deleting A takes B's report on A's listing with it
  * (rent_reports.listing_id REFERENCES rent_listings(id) ON DELETE CASCADE), which is the documented cascade.
  */
@@ -87,6 +96,8 @@ async function seed(t) {
     const b = await makeListing(t, B, 'person-b');
     await makeSearch(t, A, 'Aton');
     await makeSearch(t, B, 'Bville');
+    await makeBoardItem(t, A, 'a-board-item');
+    await makeBoardItem(t, B, 'b-board-item');
     await makeReport(t, b.id, A, 'a-report-note');
     await makeReport(t, a.id, B, 'b-report-note');
     return { a, b };
@@ -108,11 +119,13 @@ async function seed(t) {
             assert.ok(part, 'the part was pushed to Network');
             assert.strictEqual(part.auth, 'Bearer tok_rent', 'with this service\'s own token');
             assert.strictEqual(part.body.subject, A);
-            assert.deepStrictEqual(part.body.files.map((f) => f.name).sort(), ['listings.json', 'reports.json', 'saved_searches.json']);
+            assert.deepStrictEqual(part.body.files.map((f) => f.name).sort(), ['board.json', 'listings.json', 'reports.json', 'saved_searches.json']);
             const body = JSON.stringify(part.body);
             assert.ok(body.includes('person-a'), 'person A\'s listing');
             assert.ok(body.includes('a-report-note'), 'person A\'s report');
             assert.ok(body.includes('Aton'), 'person A\'s saved search');
+            assert.ok(body.includes('a-board-item'), 'person A\'s board');
+            assert.ok(!body.includes('b-board-item'), 'nobody else\'s board');
             assert.ok(!body.includes('person-b'), 'nobody else\'s listing');
             assert.ok(!body.includes('b-report-note'), 'nobody else\'s report');
             assert.ok(!body.includes('Bville'), 'nobody else\'s saved search');
@@ -137,12 +150,14 @@ async function seed(t) {
             assert.strictEqual(await count('SELECT count(*)::int FROM rent_saved_searches WHERE subject = $1', A), 0, 'the person\'s saved search is gone');
             assert.strictEqual(await listingsFor(B), 1, 'someone else\'s listing stays');
             assert.strictEqual(await count('SELECT count(*)::int FROM rent_saved_searches WHERE subject = $1', B), 1, 'someone else\'s saved search stays');
+            assert.strictEqual(await count('SELECT count(*)::int FROM rent_board_items WHERE subject = $1', A), 0, 'the person\'s board is gone');
+            assert.strictEqual(await count('SELECT count(*)::int FROM rent_board_items WHERE subject = $1', B), 1, 'someone else\'s board stays');
             // The report B left on A's listing cascades away with the listing it named.
             assert.strictEqual(await t.ctx.s.db.value("SELECT count(*)::int FROM rent_reports WHERE listing_id = $1", [a.id]), 0);
 
             const confirmation = stub.calls.find((c) => c.url === `/internal/account-deletions/${DEL}/confirmations`);
             assert.ok(confirmation, 'the confirmation was sent');
-            assert.deepStrictEqual(confirmation.body.erased, { rent_listings: 1, rent_reports: 1, rent_saved_searches: 1 });
+            assert.deepStrictEqual(confirmation.body.erased, { rent_listings: 1, rent_reports: 1, rent_saved_searches: 1, rent_board_items: 1 });
             assert.deepStrictEqual(confirmation.body.retained, {});
             assert.ok(!Number.isNaN(Date.parse(confirmation.body.completed_at)));
 

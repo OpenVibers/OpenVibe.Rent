@@ -13,6 +13,10 @@
  *   GET    /saved-searches         person   your saved searches, each with its count of new listings
  *   POST   /saved-searches         person   save the current filters
  *   DELETE /saved-searches/:id     person   forget one
+ *   GET    /board                  person   your board: listings you keep from any site, with how far you got
+ *   POST   /board                  person   keep one (its link, title, price, place, notes); the same link again updates it
+ *   PATCH  /board/:id              person   change one (status: interested, contacted, viewing, applied, declined, rented)
+ *   DELETE /board/:id              person   forget one
  *   GET    /staff/reports          staff    the report queue
  *   POST   /listings/:id/state     staff    restore (active), hide or remove
  *
@@ -36,6 +40,7 @@ const listings = require('../listings/listings');
 const store = require('../listings/store');
 const service = require('../listings/service');
 const { isStaff } = require('../listings/staff');
+const board = require('../board/board');
 const housingPlaces = require('../housing/places');
 const housingHpi = require('../housing/hpi');
 const everywhere = require('../aggregate/everywhere');
@@ -306,6 +311,52 @@ function createApi(ctx) {
         const row = listings.isSavedId(id) ? await store.getSaved(s, id) : null;
         if (!row || row.subject !== req.principal.requester) return problem(req, res, 404, 'saved.not_found', 'No such saved search.');
         await store.deleteSaved(s, id, req.principal.requester);
+        return res.status(204).end();
+    });
+
+    // ── The board ───────────────────────────────────────────
+    // Listings a person keeps from any site (server/board/board.js). Rent stores what the person sends and never
+    // fetches the link.
+    r.get('/board', person, limits.reads('rent.board.read'), async (req, res) => {
+        const rows = await board.list(s, req.principal.requester);
+        return res.json({ items: rows.map(board.toWire), statuses: board.STATUSES, max_items: board.MAX_ITEMS });
+    });
+
+    r.post('/board', person, limits.budget('rent.board.write'), async (req, res) => {
+        const v = board.validate(req.body || {});
+        if (!v.ok) return problem(req, res, 422, v.code, v.detail);
+        const out = await board.save(s, req.principal.requester, v.item);
+        if (!out.ok) return problem(req, res, 409, out.code, out.detail);
+        if (out.created) res.set('Location', `/api/v1/board/${out.row.id}`);
+        return res.status(out.created ? 201 : 200).json(board.toWire(out.row));
+    });
+
+    async function loadItem(req, res) {
+        const id = String(req.params.id || '');
+        const row = board.isItemId(id) ? await board.get(s, id) : null;
+        if (!row || row.subject !== req.principal.requester) {
+            problem(req, res, 404, 'board.not_found', 'No such listing on your board.');
+            return null;
+        }
+        return row;
+    }
+
+    r.patch('/board/:id', person, limits.budget('rent.board.write'), async (req, res) => {
+        const row = await loadItem(req, res);
+        if (!row) return undefined;
+        const v = board.validate(req.body || {}, { partial: true });
+        if (!v.ok) return problem(req, res, 422, v.code, v.detail);
+        if (v.item.url && v.item.url !== row.url) {
+            const clash = await s.db.maybe('SELECT id FROM rent_board_items WHERE subject = $1 AND url = $2', [row.subject, v.item.url]);
+            if (clash) return problem(req, res, 409, 'board.duplicate', 'That link is already on your board.');
+        }
+        return res.json(board.toWire(await board.update(s, row.id, v.item)));
+    });
+
+    r.delete('/board/:id', person, limits.budget('rent.board.write'), async (req, res) => {
+        const row = await loadItem(req, res);
+        if (!row) return undefined;
+        await board.remove(s, row.id, req.principal.requester);
         return res.status(204).end();
     });
 

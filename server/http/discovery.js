@@ -20,7 +20,7 @@ const listings = require('../listings/listings');
 
 const SITE_NAME = 'OpenVibe.Rent';
 const DESCRIPTION = 'OpenVibe.Rent — one place to find and offer things to rent: apartments, rooms, houses, commercial space, parking and storage, and equipment. Listings are posted by people; no payments are handled here.';
-const DISALLOW = ['/auth/', '/api/', '/post', '/mine', '/saved', '/staff'];
+const DISALLOW = ['/auth/', '/api/', '/post', '/mine', '/saved', '/board', '/staff'];
 // A sitemap floor and a ceiling that keeps llms-full.txt inside its own byte budget, so the two stay in step.
 const LISTINGS_MAX = 1000;
 
