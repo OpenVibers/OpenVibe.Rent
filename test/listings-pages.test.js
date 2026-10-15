@@ -16,16 +16,17 @@ const listings = require('../server/listings/listings');
     const lee = t.network.addUser('lee');
     const nia = t.network.addUser('nia');
 
-    await check('the home page: a search box, the latest listings, how it works, and no payments said plainly', async () => {
+    await check('the home page: a search over every rental site, the latest listings posted here, how it works, and no deposits said plainly', async () => {
         const made = await post(t, kim, { title: 'A flat on the home page' });
         assert.strictEqual(made.status, 201, made.text);
         const r = await t.get('/');
         assert.strictEqual(r.status, 200);
-        assert.match(r.text, /action="\/listings"/, 'the search box posts to /listings');
+        assert.match(r.text, /action="\/everywhere"/, 'the search box searches every rental site');
+        assert.match(r.text, /href="\/listings"/, 'the listings posted here are one click away');
         assert.ok(r.text.includes('A flat on the home page'), 'the latest listings are on the home page');
         assert.match(r.text, /How it works/);
-        assert.ok(r.text.includes('OpenVibe does not handle payments for listings'), 'the no-payments rule');
-        assert.match(r.text, /no scraped listings and no partner feeds/i, 'the sources-to-come statement');
+        assert.ok(r.text.includes('Never pay or send a deposit before you have seen the place'), 'the no-deposit rule');
+        assert.match(r.text, /Where the listings come from/, 'where the listings come from');
         assert.match(r.text, /href="\/post"/);
         assert.match(r.text, /href="\/safety"/);
     });

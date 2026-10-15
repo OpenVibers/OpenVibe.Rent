@@ -48,6 +48,7 @@ const listingText = (row) => `${listings.KIND_TEXT[row.kind] || row.kind} in ${[
 async function publicPages(s) {
     const static_ = [
         { path: '/', changefreq: 'daily', priority: 1.0, title: 'OpenVibe.Rent home', text: 'One place to find and offer things to rent: apartments, rooms, houses, commercial space, parking and storage, and equipment. Listings are posted by people; OpenVibe handles no payments and no deposits.' },
+        { path: '/everywhere', changefreq: 'weekly', priority: 0.9, title: 'Search every rental site', text: 'One search across Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper, Rent.com and more: apartments, houses, rooms, furnished stays, commercial space, parking, storage and cars.' },
         { path: '/housing', changefreq: 'daily', priority: 0.8, title: 'Affordable housing near you', text: 'Public housing, tax-credit (LIHTC) and HUD-assisted properties, and the authorities and counselling agencies to apply through, near a place — from U.S. Department of Housing and Urban Development open data (public domain).' },
         { path: '/listings', changefreq: 'hourly', priority: 0.9, title: 'Listings for rent', text: 'Search every active listing by kind, city, country, price and period, newest first.' },
         { path: '/safety', changefreq: 'monthly', priority: 0.6, title: 'Renting safely', text: 'Never pay or send a deposit before you have seen the place and signed an agreement. OpenVibe does not handle payments for listings.' },
@@ -83,6 +84,7 @@ function createDiscoveryRoutes(ctx) {
             sections: [
                 { title: 'Start here', links: [
                     { title: 'OpenVibe.Rent', url: abs('/'), note: 'find something to rent, or offer your own' },
+                    { title: 'Search every rental site', url: abs('/everywhere'), note: 'one place and filters open Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper and more at once' },
                     { title: 'Affordable housing', url: abs('/housing'), note: 'public housing, LIHTC and HUD-assisted properties, and where to apply, near you' },
                     { title: 'Listings', url: abs('/listings'), note: 'search by kind, city, country, price and period' },
                     { title: 'Renting safely', url: abs('/safety'), note: 'the rules, including the one about deposits' },
@@ -90,6 +92,7 @@ function createDiscoveryRoutes(ctx) {
                 ] },
                 { title: 'Machine-readable', links: [
                     { title: 'Listings (JSON)', url: abs('/api/v1/listings'), note: 'active listings, newest first, with facets' },
+                    { title: 'Search every rental site (JSON)', url: abs('/api/v1/everywhere?q=salt+lake+city&kind=apartment'), note: 'the geocoded place and the search link on every rental site' },
                     { title: 'Affordable housing (JSON)', url: abs('/api/v1/housing?q=washington'), note: 'the geocoded place and normalised HUD housing results near it' },
                     { title: 'Sitemap', url: abs('/sitemap.xml') },
                     { title: 'Full text for language models', url: abs('/llms-full.txt') },
