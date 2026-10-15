@@ -19,6 +19,8 @@ const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const contracts = require('openvibe-contracts');
+const { createAiClient } = require('openvibe-publishing/ai');
+const { createScreen } = require('./listings/screen');
 const cache = require('openvibe-shared/cache-policy');
 
 const { createSearchIndex } = require('./search-index');
@@ -92,6 +94,17 @@ async function createApp(opts = {}) {
         : async () => { throw new Error('OV_OAUTH_CLIENT_SECRET is not set: Rent cannot answer account events'); });
     ctx.accountData = accountData;
     ctx.accountSend = accountSend;
+
+    // The AI listing screen (server/listings/screen.js): with OV_AI_INTERNAL_URL and a client secret, Rent asks
+    // OpenVibe.AI's rent.screen_listing about each posted or edited listing with its own service token (Network grants
+    // rent ai.run.* on rent.*); the answer is for staff. Off otherwise. A test injects a stand-in through opts.ai.
+    const aiTokenClient = config.aiUrl && config.oauth.clientSecret ? contracts.serviceAuth.createTokenClient({
+        tokenUrl: `${config.networkInternalUrl}/oauth/token`, clientId: config.oauth.clientId, clientSecret: config.oauth.clientSecret,
+        audience: 'openvibe.ai', scope: 'ai.run.create ai.run.read', fetchImpl,
+    }) : null;
+    const ai = opts.ai !== undefined ? opts.ai : (aiTokenClient ? createAiClient({ baseUrl: config.aiUrl, tokenClient: aiTokenClient, fetch: fetchImpl }) : null);
+    ctx.screen = createScreen({ s, ai, log });
+    s.screen = ctx.screen;
 
     const app = express();
     app.disable('x-powered-by');

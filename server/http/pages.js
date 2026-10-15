@@ -785,6 +785,17 @@ ${it.newCount ? html` <span class="badge info">${it.newCount} new</span>` : html
     });
 
     // ── The report queue (staff) ─────────────────────────────
+    // The AI screen's signs, in staff's words (server/listings/screen.js names them).
+    const SIGN_TEXT = {
+        payment_before_viewing: 'payment before a viewing',
+        unusual_payment: 'wire, gift card, crypto or a payment app',
+        owner_unavailable: 'an owner who cannot show the place',
+        pressure: 'pressure to decide or pay',
+        personal_data_request: 'identity or bank details up front',
+        off_platform_only: 'only a private channel, no calls or visits',
+    };
+    const listOf = (v) => (Array.isArray(v) ? v : (() => { try { return JSON.parse(v || '[]'); } catch { return []; } })());
+
     r.get('/staff', async (req, res) => {
         if (!signedIn(req)) return page(req, res, {
             title: 'Report queue',
@@ -796,9 +807,10 @@ ${it.newCount ? html` <span class="badge info">${it.newCount} new</span>` : html
             crumbs: [{ label: 'Home', href: '/' }, { label: 'Report queue' }],
             body: html`<h1>Staff only</h1><p class="muted">The report queue is for OpenVibe staff — a Network role of <code>admin</code> or <code>global_mod</code>. Yours is <code>${truncate(req.viewer.role || 'user', 32)}</code>. <a href="/mine">Your listings</a>.</p>`,
         }, 403);
-        const state = ['hidden', 'active', 'removed', 'all'].includes(String(req.query.state)) ? String(req.query.state) : 'hidden';
-        const out = await store.staffQueue(s, { state, limit: 50 });
+        const state = ['flagged', 'hidden', 'active', 'removed', 'all'].includes(String(req.query.state)) ? String(req.query.state) : 'hidden';
+        const out = state === 'flagged' ? { rows: await store.flaggedQueue(s, { limit: 50 }) } : await store.staffQueue(s, { state, limit: 50 });
         const counts = await store.staffCounts(s);
+        const flagged = await store.countFlagged(s);
         const items = [];
         for (const row of out.rows) items.push({ row, reports: await store.reportsFor(s, row.id) });
         return page(req, res, {
@@ -807,9 +819,10 @@ ${it.newCount ? html` <span class="badge info">${it.newCount} new</span>` : html
             crumbs: [{ label: 'Home', href: '/' }, { label: 'Report queue' }],
             body: html`<h1>The report queue</h1>
 <p class="sc-lede">${counts.hidden} hidden by reports, ${counts.active} reported but still active, ${counts.removed} removed. A listing is hidden automatically at ${listings.HIDE_AT_REPORTS} distinct reports.</p>
+<p class="small">${flagged ? html`<a href="/staff?state=flagged">${flagged} flagged by the AI screen</a>` : 'Nothing flagged by the AI screen.'} <span class="muted">OpenVibe.AI reads each listing a person posts or edits for the signs of a rental scam; a flag only asks for a look, and the listing stays up until you decide.</span></p>
 <form class="card filters" method="get" action="/staff">
 <div class="field"><label for="state">Show</label><select id="state" name="state">
-${['hidden', 'active', 'removed', 'all'].map((x) => html`<option value="${x}"${x === state ? raw(' selected') : ''}>${x === 'hidden' ? 'hidden (needs a look)' : x}</option>`)}
+${['flagged', 'hidden', 'active', 'removed', 'all'].map((x) => html`<option value="${x}"${x === state ? raw(' selected') : ''}>${x === 'hidden' ? 'hidden (needs a look)' : x === 'flagged' ? 'flagged by the AI screen' : x}</option>`)}
 </select></div>
 <p><button class="sc-btn sc-primary" type="submit">Filter</button> <a class="sc-btn" href="/staff">Clear</a></p>
 </form>
@@ -817,6 +830,10 @@ ${items.length ? items.map((it) => html`<section class="card staff-item">
 <h2><a href="/listings/${it.row.id}">${truncate(it.row.title, 80)}</a> ${stateBadge(it.row.state)}</h2>
 <p class="small muted">Posted by <code>${it.row.owner}</code> · ${whereOf(it.row)} · ${priceOf(it.row)} · ${it.row.report_count} report${Number(it.row.report_count) === 1 ? '' : 's'}</p>
 ${textBlock(truncate(it.row.description, 400))}
+${it.row.check_signals !== undefined ? html`<div class="screen-flag small"><p><b>The AI screen saw:</b> ${listOf(it.row.check_signals).map((x) => SIGN_TEXT[x] || x).join('; ')}</p>
+${it.row.check_rationale ? html`<p class="muted">${truncate(it.row.check_rationale, 400)}</p>` : ''}
+${listOf(it.row.check_spans).length ? html`<ul>${listOf(it.row.check_spans).map((sp) => html`<li>“${truncate(sp.quote, 200)}”${sp.signal && SIGN_TEXT[sp.signal] ? html` <span class="muted">(${SIGN_TEXT[sp.signal]})</span>` : ''}</li>`)}</ul>` : ''}
+<form class="inline" method="post" action="/listings/${it.row.id}/check"><button class="sc-btn" type="submit">Looks fine</button></form></div>` : ''}
 <ul class="report-list small">${it.reports.map((rp) => html`<li><b>${rp.reason}</b> · <code>${rp.reporter}</code> · ${time(rp.created_at)}${rp.note ? html` — ${rp.note}` : ''}</li>`)}</ul>
 <form class="inline" method="post" action="/listings/${it.row.id}/state"><input type="hidden" name="state" value="active"><button class="sc-btn" type="submit">Restore it</button></form>
 <form class="inline" method="post" action="/listings/${it.row.id}/state"><input type="hidden" name="state" value="hidden"><button class="sc-btn" type="submit">Hide it</button></form>
@@ -841,6 +858,19 @@ ${textBlock(truncate(it.row.description, 400))}
         const state = String((req.body || {}).state || '');
         if (['active', 'hidden', 'removed'].includes(state)) await store.setState(s, row.id, state);
         return res.redirect(303, '/staff');
+    });
+
+    // A member of staff looked at a listing the AI screen flagged and left it up: it leaves the flagged queue until its
+    // words change and the screen flags it again.
+    r.post('/listings/:id/check', async (req, res) => {
+        if (!signedIn(req) || !staffViewer(req)) return page(req, res, {
+            title: 'Staff only',
+            crumbs: [{ label: 'Home', href: '/' }, { label: 'Report queue' }],
+            body: html`<h1>Staff only</h1><p class="muted">Reviewing a flagged listing is for OpenVibe staff.</p>`,
+        }, signedIn(req) ? 403 : 401);
+        if (!sameSite(req, res, '/staff?state=flagged')) return;
+        if (listings.isListingId(req.params.id)) await store.markCheckReviewed(s, req.params.id, requesterOf(req));
+        return res.redirect(303, '/staff?state=flagged');
     });
 
     // ── Safety ───────────────────────────────────────────────
