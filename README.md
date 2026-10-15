@@ -57,6 +57,11 @@ Rent's own data is its PostgreSQL database ([server/db.js](server/db.js)); the `
 - **`area_price_index`** — the FHFA House Price Index rows behind "Home prices around here": the last six years of
   traditional, all-transactions, quarterly State and MSA index values, replaced whole on each refresh
   ([migrations/0006_area_price_index.sql](migrations/0006_area_price_index.sql)).
+- **`telemetry_samples`** — request telemetry (`platform.telemetry-sample@1`): each request by route template, method
+  and status class, never the raw URL. Once a minute one `http.request` sample per key, plus the active-requests,
+  p95 latency and event-loop-lag gauges, is written; rows over 14 days old are deleted daily. `/shared` files,
+  static assets, health, readiness and `/metrics` are not counted; wired in [server/app.js](server/app.js),
+  [server/index.js](server/index.js) ([migrations/0007_telemetry.sql](migrations/0007_telemetry.sql)).
 
 `migrations/0001_initial.sql` creates no tables (the skeleton). Every row keys a person as `user:usr_…`, and the
 namespace is `rent.*`.
