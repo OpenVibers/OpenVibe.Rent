@@ -55,6 +55,23 @@ const listings = require('../server/listings/listings');
         assert.match(empty.text, /No listing matches those filters/);
         const bad = await t.get('/listings?kind=nonsense&before=nope');
         assert.strictEqual(bad.status, 200, 'a filter we do not know is not an error');
+
+        // The search is an Atom feed with the same filters; the page links it and offers alerts through Watch.
+        const feed = await t.get('/listings.atom?kind=room&city=Lisbon');
+        assert.strictEqual(feed.status, 200);
+        assert.match(feed.headers.get('content-type'), /^application\/atom\+xml/);
+        assert.strictEqual(feed.headers.get('cache-control'), 'public, max-age=300');
+        const entries = [...feed.text.matchAll(/<entry>([\s\S]*?)<\/entry>/g)].map((m) => m[1]);
+        assert.ok(entries.length >= 1 && entries.every((e) => /<summary>Room — /.test(e)), 'rooms only');
+        assert.ok(entries.some((e) => e.includes('<title>A room in Lisbon')), 'the match is an entry');
+        assert.ok(!feed.text.includes('A flat on the home page'), 'a filtered listing is not');
+        assert.match(feed.text, /<link rel="self" href="[^"]*\/listings\.atom\?kind=room&amp;city=Lisbon"\/>/);
+        assert.ok(r.text.includes('<link rel="alternate" type="application/atom+xml" title="Room in Lisbon" href="/listings.atom?kind=room&amp;city=Lisbon">'), 'the feed link in the head');
+        const alert = /href="(https:\/\/openvibe\.watch\/watches\/new\?[^"]+)">Get alerts for this search/.exec(r.text);
+        assert.ok(alert, 'the alerts link');
+        const u = new URL(alert[1].replace(/&amp;/g, '&'));
+        const fu = new URL(u.searchParams.get('url'));
+        assert.deepStrictEqual([u.searchParams.get('template'), fu.pathname + fu.search, u.searchParams.get('name')], ['feed', '/listings.atom?kind=room&city=Lisbon', 'Rent: Room in Lisbon']);
     });
 
     await check('/post: sign-in is asked for, and the form is the same rules as the API', async () => {
@@ -164,6 +181,7 @@ const listings = require('../server/listings/listings');
         assert.match(page.text, /1 new/);
         assert.match(page.text, /Room in Lisbon/i, 'the filters are shown as a sentence');
         assert.match(page.text, /OpenVibe\.Watch/, 'the alert story names OpenVibe.Watch');
+        assert.match(page.text, /href="https:\/\/openvibe\.watch\/watches\/new\?template=feed&amp;url=[^"]*listings\.atom[^"]*">Get alerts</, 'each saved search offers alerts');
         const again = await t.get('/saved', { as: kim });
         assert.match(again.text, /nothing new/, 'looking at the page is looking at the searches');
         assert.ok(!again.text.includes('1 new'));

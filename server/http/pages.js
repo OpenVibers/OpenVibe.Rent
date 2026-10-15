@@ -349,6 +349,33 @@ ${hudNote(out ? out.fetched_at : null)}`,
         housingSearch(req, { statusCode: 200, setHeader: (k, v) => { if (String(k).toLowerCase() === 'retry-after') retryAfter = String(v); }, end: refused }, allowed);
     });
 
+    // ── Alerts: a search as an Atom feed, followed by OpenVibe.Watch ──
+    const WATCH_NEW = 'https://openvibe.watch/watches/new';
+    const feedPath = (filters) => { const qs = listings.filtersToQuery(filters); return `/listings.atom${qs ? `?${qs}` : ''}`; };
+    /** Watch's new-watch form, filled in to follow one search's feed; the person reviews and creates it on Watch. */
+    const alertHref = (filters) => `${WATCH_NEW}?${new URLSearchParams({ template: 'feed', url: `${base()}${feedPath(filters)}`, name: `Rent: ${savedTitle(filters)}`.slice(0, 80) })}`;
+    const xml = (v) => String(v == null ? '' : v).replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' }[c]))
+        .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '');
+    const isoOf = (v) => { const t = Date.parse(v); return Number.isFinite(t) ? new Date(t).toISOString() : new Date().toISOString(); };
+
+    r.get('/listings.atom', async (req, res) => {
+        const filters = listings.normalizeFilters(req.query);
+        const out = await store.search(s, filters, {});
+        const rows = out.rows.slice(0, 25);
+        const self = `${base()}${feedPath(filters)}`;
+        const entries = rows.map((row) => `<entry><id>${xml(`${base()}/listings/${row.id}`)}</id><title>${xml(`${row.title} · ${listings.priceText(row)}`)}</title>`
+            + `<link rel="alternate" type="text/html" href="${xml(`${base()}/listings/${row.id}`)}"/><updated>${isoOf(row.created_at)}</updated>`
+            + `<summary>${xml([listings.KIND_TEXT[row.kind] || row.kind, whereOf(row), truncate(row.description || '', 300)].filter(Boolean).join(' — '))}</summary></entry>`);
+        res.set('Cache-Control', 'public, max-age=300');
+        res.type('application/atom+xml; charset=utf-8').send(`<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><id>${xml(self)}</id><title>${xml(`OpenVibe.Rent: ${savedTitle(filters)}`)}</title>`
+            + `<link rel="self" href="${xml(self)}"/><link rel="alternate" type="text/html" href="${xml(`${base()}${feedPath(filters).replace('/listings.atom', '/listings')}`)}"/>`
+            + `<updated>${rows.length ? isoOf(rows[0].created_at) : new Date().toISOString()}</updated><generator>OpenVibe.Rent</generator>
+${entries.join('\n')}
+</feed>
+`);
+    });
+
     // ── Search ───────────────────────────────────────────────
     r.get('/listings', async (req, res) => {
         const filters = listings.normalizeFilters(req.query);
@@ -360,6 +387,7 @@ ${hudNote(out ? out.fetched_at : null)}`,
         const facetLink = (dim, value) => `/listings?${new URLSearchParams({ ...Object.fromEntries(new URLSearchParams(qs)), [dim]: value }).toString()}`;
         page(req, res, {
             index: true, cache: signedIn(req) ? null : PUBLIC_CACHE,
+            feed: { title: savedTitle(filters), href: feedPath(filters) },
             title: 'Listings',
             description: 'Search apartments, rooms, houses, commercial space, parking and storage, and equipment for rent — posted by people on OpenVibe.Rent.',
             crumbs: [{ label: 'Home', href: '/' }, { label: 'Listings' }],
@@ -373,6 +401,7 @@ ${facetList('Country', 'country', facets.country, filters.country, facetLink)}
 ${qs ? html`<div class="small"><a href="/listings">Clear all filters</a>${signedIn(req) ? html` · <form class="inline" method="post" action="/saved">
 <input type="hidden" name="q" value="${filters.q || ''}"><input type="hidden" name="kind" value="${filters.kind || ''}"><input type="hidden" name="city" value="${filters.city || ''}"><input type="hidden" name="country" value="${filters.country || ''}"><input type="hidden" name="period" value="${filters.period || ''}"><input type="hidden" name="min" value="${filters.min == null ? '' : filters.min}"><input type="hidden" name="max" value="${filters.max == null ? '' : filters.max}">
 <button class="sc-btn" type="submit">Save this search</button></form>` : ''}</div>` : ''}
+<p class="listing-alert"><a class="sc-btn" href="${alertHref(filters)}">Get alerts for this search</a> <span class="small muted">OpenVibe.Watch follows <a href="${feedPath(filters)}">its feed</a> and tells you when a new listing appears.</span></p>
 ${listingList(out.rows, { empty: html`No listing matches those filters. <a href="/listings">Clear them</a> and try again.` })}
 ${out.next ? html`<p><a href="${more({ before: out.next })}">Older listings</a>${before ? html` · <a href="/listings${qs ? `?${qs}` : ''}">Newest first</a>` : ''}</p>` : ''}
 </section>`,
@@ -700,10 +729,11 @@ ${items.length
 <a href="/listings?${listings.filtersToQuery(it.filters)}"><b>${savedTitle(it.filters)}</b></a>
 ${it.newCount ? html` <span class="badge info">${it.newCount} new</span>` : html` <span class="badge">nothing new</span>`}
 <span class="small muted"> · saved ${time(it.row.created_at)} · last looked ${time(it.row.last_seen_at)}</span>
+<a class="sc-btn" href="${alertHref(it.filters)}">Get alerts</a>
 <form class="inline" method="post" action="/saved/${it.row.id}/delete"><button class="sc-btn" type="submit">Forget it</button></form>
 </li>`)}</ul>`
                 : html`<p class="muted">No saved searches yet. Search the listings, then save the filters to see what is new each time you come back.</p>`}
-<div class="notice">Alerts that come to you — a notification, an email — arrive later through OpenVibe.Watch. For now a saved search is a page you open.</div>`,
+<div class="notice">Get alerts opens OpenVibe.Watch with the search's feed filled in: Watch checks it and tells you (or runs your agent) when a listing that fits appears. Every search has its feed at <code>/listings.atom</code> with the same filters.</div>`,
         });
     });
 

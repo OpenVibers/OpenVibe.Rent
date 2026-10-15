@@ -40,6 +40,7 @@ form.inline { display: inline; }
 /* Listings: one card per listing — what kind, the title, where, the price on the right. */
 .txt { white-space: pre-line; }
 .listing-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 10px; }
+.listing-alert { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
 .listing { --k: 212; display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border, #1f2d47); background: var(--bg-card, #131c2e); transition: border-color .15s, transform .15s; }
 .listing:hover { border-color: color-mix(in srgb, var(--accent, #3b82f6) 55%, var(--border, #1f2d47)); transform: translateY(-1px); }
 .listing.kind-room { --k: 265; } .listing.kind-house { --k: 150; } .listing.kind-commercial { --k: 32; } .listing.kind-parking { --k: 190; } .listing.kind-equipment { --k: 340; } .listing.kind-other { --k: 220; }
