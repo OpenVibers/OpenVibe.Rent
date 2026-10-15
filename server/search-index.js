@@ -47,13 +47,13 @@ function describe(row, nowMs) {
     };
 }
 
-function createSearchIndex({ config, s, log = console, outbox = null }) {
+function createSearchIndex({ config, s, log = console, outbox = null, indexnow = null }) {
     const out = outbox || createServiceOutbox({
         db: s.db, source: 'rent', eventsUrl: config.events.url || null, networkInternalUrl: config.networkInternalUrl,
         clientId: config.oauth.clientId, clientSecret: config.oauth.clientSecret, log, eventTypes: EVENT_TYPES,
     });
     const feed = createSearchFeed({
-        owner: 'rent', db: s.db, outbox: out, baseUrl: config.baseUrl, now: s.now, log,
+        owner: 'rent', db: s.db, outbox: out, baseUrl: config.baseUrl, now: s.now, log, indexnow,
         types: {
             listing: {
                 page: (row) => `/listings/${row.id}`,
