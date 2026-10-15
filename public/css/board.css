@@ -1,0 +1,27 @@
+/* OpenVibe.Rent — /board only (listings kept from any site), so app.css stays inside its budget. */
+.bd-summary { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 4px; }
+.bd-tab { display: inline-flex; gap: 6px; align-items: baseline; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border-light, #2c3d5c); background: var(--bg-secondary, #0f1729); color: var(--text-primary, #e6edf7); text-decoration: none; font-size: .9rem; }
+.bd-tab b { font-variant-numeric: tabular-nums; color: var(--accent-text, var(--accent, #3b82f6)); }
+a.bd-tab:hover { border-color: var(--accent, #3b82f6); }
+.bd-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 10px; }
+.bd-item { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border, #1f2d47); background: var(--bg-card, #131c2e); scroll-margin-top: 80px; }
+.bd-item:target { border-color: var(--accent, #3b82f6); box-shadow: 0 0 0 1px var(--accent, #3b82f6); }
+.bd-head { display: flex; gap: 12px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
+.bd-title { font-weight: 650; font-size: 1.04rem; color: var(--text-primary, #e6edf7); text-decoration: none; overflow-wrap: anywhere; min-width: 0; }
+.bd-title:hover { color: var(--accent-light, #60a5fa); text-decoration: underline; text-underline-offset: 3px; }
+.bd-out { color: var(--text-muted, #7386a3); font-weight: 400; }
+.bd-price { white-space: nowrap; color: var(--text-primary, #e6edf7); }
+.bd-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bd-notes { margin: 0; padding: 8px 10px; border-radius: 8px; background: var(--bg-secondary, #0f1729); font-size: .92rem; color: var(--text-secondary, #96a7c2); overflow-wrap: anywhere; }
+.bd-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.bd-move select { max-width: 100%; }
+.bd-edit summary { cursor: pointer; font-size: .9rem; color: var(--accent-text, var(--accent, #3b82f6)); width: fit-content; }
+.bd-edit[open] summary { margin-bottom: 8px; }
+.bd-add-from { padding: 14px 16px; border-radius: 14px; border: 1px solid var(--accent, #3b82f6); background: color-mix(in srgb, var(--accent, #3b82f6) 8%, var(--bg-card, #131c2e)); }
+.bd-add-from h2 { margin-top: 0; }
+.bd-empty { margin: 18px 0; padding: 18px; border-radius: 14px; border: 1px dashed var(--border-light, #2c3d5c); text-align: center; }
+.bd-empty p { margin: 4px 0; }
+.bd-code { width: 100%; box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .82rem; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-light, #2c3d5c); background: var(--bg-secondary, #0f1729); color: var(--text-primary, #e6edf7); resize: vertical; overflow-wrap: anywhere; }
+.bd-add textarea, .bd-edit textarea { font: inherit; width: 100%; box-sizing: border-box; min-height: 84px; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--border-light, #2c3d5c); background: var(--bg-secondary, #0f1729); color: var(--text-primary, #e6edf7); resize: vertical; }
+.bd-add textarea:focus-visible, .bd-edit textarea:focus-visible { outline: 2px solid color-mix(in srgb, var(--accent, #3b82f6) 70%, transparent); outline-offset: 1px; border-color: var(--accent, #3b82f6); }
+.bd-move select { font: inherit; font-size: .92rem; height: 38px; max-width: 100%; padding: 0 10px; border-radius: 10px; border: 1px solid var(--border-light, #2c3d5c); background: var(--bg-secondary, #0f1729); color: var(--text-primary, #e6edf7); }

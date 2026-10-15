@@ -39,6 +39,8 @@ const BUDGETS = {
     'rent.listing.report': { minute: 10, hour: 60 },
     'rent.listing.renew': { minute: 10, hour: 60 },
     'rent.saved.create': { minute: 20, hour: 100 },
+    // Keeping listings from other sites on the board (server/board/board.js): adding, updating and removing them.
+    'rent.board.write': { minute: 30, hour: 300 },
     // "Affordable housing near you" spends Nominatim's shared one-request-a-second budget, so the route takes a
     // per-address budget of its own (server/housing/upstream.js paces and caches; these numbers are for callers who
     // keep asking for new places).

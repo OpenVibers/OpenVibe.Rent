@@ -27,6 +27,7 @@ const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
 // They are linked from the pages that lead to them (/listings, /post, /safety).
 const NAV = [
     { label: 'Search everywhere', href: '/everywhere' },
+    { label: 'Your board', href: '/board' },
     { label: 'Affordable housing', href: '/housing' },
     { label: 'Posted here', href: '/listings' },
     { label: 'Post a listing', href: '/post' },
