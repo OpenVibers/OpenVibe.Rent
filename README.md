@@ -34,9 +34,9 @@ sees them in their own browser and account.
 This is the permitted way to aggregate sites whose terms forbid automated collection, as the owner decided on
 2026-09-28 (deep links out, a browser extension inside the person's own sessions, licensed APIs, people posting).
 **The board** (`/board`) keeps what you find there: the listings from any site in one OpenVibe list, with your notes
-and how far you got. Next:
-- the OpenVibe Companion extension (keep a listing to the board from the page you are on);
-- licensed listing feeds through OpenVibe.Sources.
+and how far you got. The [OpenVibe Companion](https://github.com/OpenVibers/OpenVibe.Extensions/releases/latest) browser
+extension keeps a listing on the board from the page you are on (its *Keep on my Rent board* button opens
+`/board?url=&title=`). Next: licensed listing feeds through OpenVibe.Sources.
 
 The United States comes first. A place elsewhere gets the sites that work worldwide.
 
