@@ -9,6 +9,7 @@
  */
 const { createApp } = require('./app');
 const { gracefulStop } = require('openvibe-sdk/service');
+const { startTelemetryRetention } = require('openvibe-sdk/telemetry');
 const { startExpiryTimer } = require('./listings/expiry');
 const { startHpiTimer } = require('./housing/hpi');
 
@@ -20,7 +21,7 @@ const { startHpiTimer } = require('./housing/hpi');
 function createLifecycle({ server, ctx, exit, signals, timers = [], extra = [] }) {
     return gracefulStop({
         name: 'OpenVibe.Rent', server, deadlineExitCode: 0, exit, signals, deadlineMs: 10_000,
-        close: [() => { for (const t of timers) clearInterval(t); }, () => ctx.keys.client.stop(), () => ctx.search.stop(), () => ctx.s.close(), ...extra],
+        close: [() => { for (const t of timers) clearInterval(t); }, () => ctx.keys.client.stop(), () => ctx.search.stop(), async () => { if (ctx.retention) await ctx.retention.stop(); if (ctx.telemetry) await ctx.telemetry.stop(); }, () => ctx.s.close(), ...extra],
     });
 }
 
@@ -32,6 +33,8 @@ async function start() {
         console.log(`[OpenVibe.Rent] ${config.nodeEnv} on http://${config.host}:${config.port} → ${config.baseUrl} (db ${ctx.s.db.store})`);
     });
     server.keepAliveTimeout = 65_000;
+    // telemetry_samples rows older than 30 days go: a minute after start, then daily (openvibe-sdk/telemetry).
+    ctx.retention = startTelemetryRetention({ db: ctx.s.db, log: ctx.log || console });
     ctx.keys.client.start();
     ctx.search.start();
 
