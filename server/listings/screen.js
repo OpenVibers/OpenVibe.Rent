@@ -46,14 +46,25 @@ function screenInput(row) {
     };
 }
 
-/** Bound and validate the workflow's output: unknown signs are dropped; `review` without a sign is `allow`. */
-function readOutput(output) {
+const norm = (t) => String(t == null ? '' : t).toLowerCase().replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/\s+/g, ' ').trim();
+
+/**
+ * Bound, validate and ground the workflow's output in the listing it read. A quote counts only when its words really
+ * are in the listing's title or description (a model may paraphrase or invent one), and a sign counts only when a
+ * grounded quote is labelled with it: staff never read a sign the text does not show. (On its first production run
+ * the local model named all six signs for a text that showed three.) With no grounded sign the answer is allow.
+ */
+function readOutput(output, row = null) {
     const o = output && typeof output === 'object' ? output : {};
-    const signals = [...new Set((Array.isArray(o.signals) ? o.signals : []).filter((x) => SIGNALS.includes(x)))];
-    const action = o.action === 'review' && signals.length ? 'review' : 'allow';
-    const spans = (Array.isArray(o.spans) ? o.spans : []).slice(0, 10)
-        .filter((x) => x && typeof x.quote === 'string' && x.quote.trim())
+    const text = row ? norm(`${row.title || ''}\n${row.description || ''}`) : null;
+    const spans = (Array.isArray(o.spans) ? o.spans : [])
+        .filter((x) => x && typeof x.quote === 'string' && norm(x.quote))
+        .filter((x) => !text || text.includes(norm(x.quote)))
+        .slice(0, 10)
         .map((x) => ({ quote: x.quote.trim().slice(0, 300), signal: SIGNALS.includes(x.signal) ? x.signal : null }));
+    const backed = new Set(spans.map((x) => x.signal).filter(Boolean));
+    const signals = SIGNALS.filter((x) => backed.has(x));
+    const action = o.action === 'review' && signals.length ? 'review' : 'allow';
     const rationale = typeof o.rationale === 'string' ? o.rationale.trim().slice(0, 1000) : '';
     return { action, signals: action === 'review' ? signals : [], spans: action === 'review' ? spans : [], rationale };
 }
@@ -86,7 +97,7 @@ function createScreen({ s, ai = null, log = console }) {
             log.warn(`[Screen] listing ${id}: ${(err && err.message) || err}`);
             return 'failed';
         }
-        const out = readOutput(run && run.output);
+        const out = readOutput(run && run.output, row);
         await store.putCheck(s, { listingId: row.id, contentHash: hash, ...out, runId: (run && run.runId) || null });
         if (out.action === 'review') log.log(`[Screen] listing ${row.id} flagged for staff: ${out.signals.join(', ')}`);
         return out.action;

@@ -25,7 +25,18 @@ const SCAM = 'I am abroad for work so I cannot show it. Send the deposit by wire
             return {
                 runId: `run_${calls.length}`,
                 output: scam
-                    ? { action: 'review', signals: ['owner_unavailable', 'payment_before_viewing', 'unusual_payment', 'made_up'], rationale: 'Pay by wire before any viewing; the owner is away.', spans: [{ quote: 'Send the deposit by wire transfer today', signal: 'payment_before_viewing' }] }
+                    ? {
+                        action: 'review', rationale: 'Pay by wire before any viewing; the owner is away.',
+                        // Named but unbacked (pressure, personal_data_request), unknown (made_up), and one invented quote:
+                        // only the signs a quote from the listing stands behind reach staff.
+                        signals: ['owner_unavailable', 'payment_before_viewing', 'unusual_payment', 'pressure', 'personal_data_request', 'made_up'],
+                        spans: [
+                            { quote: 'Send the deposit by wire  transfer today', signal: 'payment_before_viewing' },
+                            { quote: 'by wire transfer', signal: 'unusual_payment' },
+                            { quote: 'I am abroad for work so I cannot show it.', signal: 'owner_unavailable' },
+                            { quote: 'Pay in bitcoin within the hour', signal: 'pressure' },
+                        ],
+                    }
                     : { action: 'allow', signals: ['none'], rationale: '', spans: [] },
             };
         },
@@ -59,7 +70,8 @@ const SCAM = 'I am abroad for work so I cannot show it. Send the deposit by wire
             await t.ctx.screen.settle();
             const c = await store.getCheck(s, scam.id);
             assert.strictEqual(c.action, 'review');
-            assert.deepStrictEqual(c.signals, ['owner_unavailable', 'payment_before_viewing', 'unusual_payment'], 'an unknown sign is dropped');
+            assert.deepStrictEqual(c.signals, ['payment_before_viewing', 'unusual_payment', 'owner_unavailable'], 'only signs a real quote backs: unknown, unbacked and invented ones are dropped');
+            assert.strictEqual(c.spans.length, 3, 'the invented quote is gone');
             assert.strictEqual(await store.countFlagged(s), 1);
             assert.strictEqual((await t.get(`/api/v1/listings/${scam.id}`)).status, 200, 'still public: a flag only asks staff to look');
             const page = await t.get('/staff?state=flagged', { as: ada });
@@ -110,13 +122,16 @@ const SCAM = 'I am abroad for work so I cannot show it. Send the deposit by wire
             assert.strictEqual((await store.getCheck(s, late.id)).action, 'allow');
         });
 
-        await check('the output is bounded: review without a known sign is allow; quotes are trimmed and capped', () => {
-            assert.deepStrictEqual(readOutput({ action: 'review', signals: ['none'] }), { action: 'allow', signals: [], spans: [], rationale: '' });
-            assert.strictEqual(readOutput(null).action, 'allow');
-            const many = readOutput({ action: 'review', signals: ['pressure'], spans: Array.from({ length: 30 }, () => ({ quote: ` ${'x'.repeat(400)} `, signal: 'nope' })) });
+        await check('the output is grounded and bounded: a sign needs a quote from the listing; quotes are trimmed and capped', () => {
+            const row = { title: 'Room', description: `Act fast, ${'x'.repeat(400)} today only.` };
+            assert.deepStrictEqual(readOutput({ action: 'review', signals: ['none'] }, row), { action: 'allow', signals: [], spans: [], rationale: '' });
+            assert.strictEqual(readOutput(null, row).action, 'allow');
+            assert.strictEqual(readOutput({ action: 'review', signals: ['pressure'], spans: [{ quote: 'Wire it now', signal: 'pressure' }] }, row).action, 'allow', 'an invented quote backs nothing');
+            const real = readOutput({ action: 'review', signals: ['pressure'], spans: [{ quote: 'ACT  FAST', signal: 'pressure' }, { quote: 'today only', signal: 'nope' }] }, row);
+            assert.deepStrictEqual([real.action, real.signals, real.spans.length, real.spans[1].signal], ['review', ['pressure'], 2, null], 'case and spacing do not matter');
+            const many = readOutput({ action: 'review', spans: Array.from({ length: 30 }, () => ({ quote: ` ${'x'.repeat(400)} `, signal: 'pressure' })) }, row);
             assert.strictEqual(many.spans.length, 10);
             assert.strictEqual(many.spans[0].quote.length, 300);
-            assert.strictEqual(many.spans[0].signal, null);
         });
 
         await check('without OpenVibe.AI nothing is screened and nothing starts', async () => {
