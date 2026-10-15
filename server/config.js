@@ -86,6 +86,9 @@ function load(env = process.env) {
         // for rotation, 32+ characters each); unset turns POST /internal/events off (503). The url is where the
         // network.account.export_requested and network.account.deleted subscriptions are created at boot, off when
         // unset. Both topics are ADR-033: account export and deletion (server/identity/account-data.js).
+        // OpenVibe.AI → the listing screen (server/listings/screen.js): each posted or edited listing is read by the
+        // rent.screen_listing workflow for the signs of a rental scam, for staff. Unset: off (nothing is screened).
+        aiUrl: trim(env.OV_AI_INTERNAL_URL || ''),
         events: {
             secrets: String(env.RENT_EVENTS_SECRET || '').split(',').map((x) => x.trim()).filter(Boolean),
             url: trim(env.RENT_EVENTS_URL || env.EVENTS_URL || ''),

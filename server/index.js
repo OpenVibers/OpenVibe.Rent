@@ -21,7 +21,7 @@ const { startHpiTimer } = require('./housing/hpi');
 function createLifecycle({ server, ctx, exit, signals, timers = [], extra = [] }) {
     return gracefulStop({
         name: 'OpenVibe.Rent', server, deadlineExitCode: 0, exit, signals, deadlineMs: 10_000,
-        close: [() => { for (const t of timers) clearInterval(t); }, () => ctx.keys.client.stop(), () => ctx.search.stop(), async () => { clearInterval(ctx.telemetryTick); if (ctx.retention) await ctx.retention.stop(); if (ctx.telemetry) await ctx.telemetry.stop(); }, () => ctx.s.close(), ...extra],
+        close: [() => { for (const t of timers) clearInterval(t); }, () => ctx.keys.client.stop(), () => ctx.search.stop(), () => ctx.screen.stop(), async () => { clearInterval(ctx.telemetryTick); if (ctx.retention) await ctx.retention.stop(); if (ctx.telemetry) await ctx.telemetry.stop(); }, () => ctx.s.close(), ...extra],
     });
 }
 
@@ -41,6 +41,7 @@ async function start() {
     ctx.telemetryTick.unref();
     ctx.keys.client.start();
     ctx.search.start();
+    ctx.screen.start();   // the AI listing screen's sweep (off without OpenVibe.AI)
 
     // One sweep at boot (a restart must not leave a stale listing up a moment longer than it should), then a timer.
     const expiry = startExpiryTimer(ctx.s);

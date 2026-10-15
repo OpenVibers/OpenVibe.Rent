@@ -15,7 +15,9 @@
  * Nothing is anonymized: Rent keeps no row by this person that another person's page must still read. A listing is
  * the poster's own; the reports other people left on it cascade away with it (rent_reports.listing_id REFERENCES
  * rent_listings(id) ON DELETE CASCADE in migrations/0002_rent.sql), which is right — a report about a listing that no
- * longer exists has nothing left to say. Nothing here is a secret: no token, key or credential is stored, so every
+ * longer exists has nothing left to say. So does the AI screen's check of a listing (rent_listing_checks, migration
+ * 0008): a staff-only moderation note about the listing, not a record of the person, gone with the listing and not
+ * exported. Nothing here is a secret: no token, key or credential is stored, so every
  * column of the three tables may be exported.
  */
 const { createAccountData, TOPICS } = require('openvibe-sdk/account-data');

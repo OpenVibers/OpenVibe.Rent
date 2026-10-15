@@ -15,8 +15,11 @@ const listings = require('./listings');
 
 const DAY_MS = 86_400_000;
 
-/** A write changed this listing: OpenVibe.Search syncs it shortly (server/search-index.js; absent in some tests). */
-const touched = (s, id) => { if (s.search) s.search.touch(id); };
+/**
+ * A write changed this listing: OpenVibe.Search syncs it shortly (server/search-index.js) and the AI screen reads it
+ * again if its words changed (server/listings/screen.js); either may be absent in a test.
+ */
+const touched = (s, id) => { if (s.search) s.search.touch(id); if (s.screen) s.screen.touch(id); };
 
 /** The WHERE clause for a filter set. `exclude` leaves one dimension out — how the kind and country facets count. */
 function buildWhere(f, { exclude = [], sinceISO = null } = {}) {
@@ -186,6 +189,42 @@ const staffCounts = async (s) => ({
     removed: Number(await s.db.value("SELECT count(*) FROM rent_listings WHERE report_count > 0 AND state = 'removed'")),
 });
 
+// ── The AI screen (server/listings/screen.js): the latest check of each listing, for staff ──
+
+const getCheck = (s, listingId) => s.db.maybe('SELECT * FROM rent_listing_checks WHERE listing_id = $1', [listingId]);
+
+/** Record a listing's latest screen. A verdict on new words is unreviewed again, whatever staff said before. */
+async function putCheck(s, { listingId, contentHash, action, signals = [], spans = [], rationale = '', runId = null }) {
+    await s.db.query(
+        `INSERT INTO rent_listing_checks (listing_id, content_hash, action, signals, spans, rationale, run_id, checked_at, reviewed_at, reviewed_by)
+         VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6, $7, $8, NULL, NULL)
+         ON CONFLICT (listing_id) DO UPDATE SET content_hash = EXCLUDED.content_hash, action = EXCLUDED.action, signals = EXCLUDED.signals,
+             spans = EXCLUDED.spans, rationale = EXCLUDED.rationale, run_id = EXCLUDED.run_id, checked_at = EXCLUDED.checked_at,
+             reviewed_at = NULL, reviewed_by = NULL`,
+        [listingId, contentHash, action, JSON.stringify(signals), JSON.stringify(spans), rationale || null, runId, s.iso()]);
+}
+
+/** The words did not change (a renewal, a report): the check stands; only its time moves, so the sweep skips it. */
+const recheckUnchanged = (s, listingId) => s.db.exec('UPDATE rent_listing_checks SET checked_at = $2 WHERE listing_id = $1', [listingId, s.iso()]);
+
+/** Active listings the screen has not read since they last changed (a failed run, AI unreachable), oldest first. */
+const unscreenedActive = async (s, limit) => (await s.db.many(
+    `SELECT l.id FROM rent_listings l LEFT JOIN rent_listing_checks c ON c.listing_id = l.id
+     WHERE l.state = 'active' AND (c.listing_id IS NULL OR c.checked_at < l.updated_at) ORDER BY l.id LIMIT $1`, [limit])).map((r) => r.id);
+
+/** The flagged queue: listings the screen put up for review that no member of staff has looked at, newest check first. */
+const flaggedQueue = (s, { limit = 50 } = {}) => s.db.many(
+    `SELECT l.*, c.signals AS check_signals, c.spans AS check_spans, c.rationale AS check_rationale, c.checked_at AS check_checked_at
+     FROM rent_listing_checks c JOIN rent_listings l ON l.id = c.listing_id
+     WHERE c.action = 'review' AND c.reviewed_at IS NULL AND l.state <> 'removed' ORDER BY c.checked_at DESC, l.id DESC LIMIT $1`, [limit]);
+
+const countFlagged = async (s) => Number(await s.db.value(
+    "SELECT count(*) FROM rent_listing_checks c JOIN rent_listings l ON l.id = c.listing_id WHERE c.action = 'review' AND c.reviewed_at IS NULL AND l.state <> 'removed'"));
+
+/** A member of staff looked at a flagged listing and left it up. */
+const markCheckReviewed = (s, listingId, by) => s.db.exec(
+    "UPDATE rent_listing_checks SET reviewed_at = $2, reviewed_by = $3 WHERE listing_id = $1 AND action = 'review' AND reviewed_at IS NULL", [listingId, s.iso(), by]);
+
 // ── Saved searches ─────────────────────────────────────────────────────────────────────────────────────────────
 
 async function saveSearch(s, { id, subject, filters, key, createdAt }) {
@@ -205,6 +244,7 @@ module.exports = {
     insert, get, search, countMatching, facets, update, expireListings, renew, setState, remove,
     countActiveByOwner, countCreatedToday, listByOwner,
     reportsFor, addReport, staffQueue, staffCounts,
+    getCheck, putCheck, recheckUnchanged, unscreenedActive, flaggedQueue, countFlagged, markCheckReviewed,
     saveSearch, listSaved, getSaved, deleteSaved, markSavedSeen,
     DAY_MS,
 };
