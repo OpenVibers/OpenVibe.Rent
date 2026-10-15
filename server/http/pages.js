@@ -164,6 +164,7 @@ ${notice(p && p.detail ? p.detail : 'You are over the limit for this.', 'warn')}
         });
         page(req, res, {
             index: true, cache: signedIn(req) ? null : PUBLIC_CACHE,
+            description: 'Find somewhere to live, work or park, posted by people, and affordable housing near you from U.S. HUD open data. No payments, no scraping.',
             jsonLd: homeJsonLd(config),
             styles: [showcase.STYLESHEET],
             body: html`${raw(hero)}
@@ -870,6 +871,7 @@ ${notice(listings.SAFETY, 'warn')}
     r.get('/updates', (req, res) => page(req, res, {
         index: true, cache: PUBLIC_CACHE,
         title: `What shipped on ${SITE_NAME}`,
+        description: 'Every change deployed to OpenVibe.Rent, newest first, from the OpenVibe network\'s shared update log.',
         body: raw(frame.updatesBody({ service: 'rent', siteName: SITE_NAME }) + `<script src="${ovServe.url('shipped.js')}" defer></script>`),
     }));
 
