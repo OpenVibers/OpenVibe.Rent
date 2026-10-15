@@ -1,5 +1,6 @@
 /* OpenVibe.Homes (server/homes/pages.js): the search's context cards, the records list and the mortgage calculator. */
 .homes-cards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); align-items: start; }
+.homes-cards .hpi-card { margin: 0; }
 .homes-card { padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border, #1f2d47); background: var(--bg-card, #131c2e); }
 .homes-card h3 { margin: 0 0 6px; font-size: 1rem; }
 .homes-card p { margin: 0; }
