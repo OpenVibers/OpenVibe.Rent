@@ -97,7 +97,7 @@ ${groups.map((g) => html`<section class="sc-sec" aria-labelledby="g-${g.st}"><h2
         : html`<div class="bd-empty"><p><b>Nothing on your board yet.</b></p><p class="muted"><a href="/everywhere">Search every rental site</a>, open a listing on its own site, and keep it here with its link.</p></div>`}
 ${fromQuery || error ? '' : addForm(v)}
 <section class="sc-sec" aria-labelledby="h-bm"><h2 id="h-bm">Keep listings from any site in one click</h2>
-<p><b>With the OpenVibe Companion</b> browser extension, press <i>Keep on my Rent board</i> on any listing's page. <a href="https://github.com/OpenVibers/OpenVibe.Extensions/releases/latest">Get the Companion</a> (Chrome, Edge, Brave and Firefox; it reads the tab only when you open it).</p>
+<p><b>With the OpenVibe Companion</b> browser extension, press <i>Keep on my Rent board</i> on any listing's page. <a href="https://openvibe.coupons/companion">Get the Companion</a> (Chrome, Edge, Brave and Firefox; it reads the tab only when you open it).</p>
 <p><b>Or with a bookmark:</b> make a new bookmark in your browser and paste this as its address (URL). On a listing's page, open the bookmark: this page opens with the listing's link and title filled in.</p>
 <label class="sr-only" for="bd-bookmarklet">The bookmark's address</label>
 <textarea id="bd-bookmarklet" class="bd-code" rows="3" readonly spellcheck="false">${bookmarklet()}</textarea>
