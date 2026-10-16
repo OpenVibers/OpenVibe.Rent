@@ -48,6 +48,7 @@
   "placeholderInSites": false,
   "features": [
     "listing posting with rules",
+    "Rent by city: 885 US city pages with typical rents by size (Census ACS 5-year) and every rental site's search; state pages; /fair checks a quoted rent; listings show where their rent sits",
     "search with facets and paging",
     "listing pages with a safety note",
     "reports and a staff queue",
@@ -60,5 +61,5 @@
     "home-price context (FHFA)"
   ],
   "deployment": "openvibe-ovh: unit openvibe-rent.service on 127.0.0.1:5010 (git checkout /opt/openvibe.rent, env /etc/openvibe/rent.env, database ov_rent), deployed with `sudo ovhost deploy rent`; public at https://openvibe.rent since 2026-10-08.",
-  "updated": "2026-10-15"
+  "updated": "2026-10-16"
 }

@@ -247,7 +247,7 @@ const listings = require('../server/listings/listings');
         assert.ok(sitemap.text.includes('<loc>https://openvibe.rent/listings</loc>'));
 
         const llms = await t.get('/llms.txt');
-        assert.match(llms.text, /no scraped listings and no partner feeds/i);
+        assert.match(llms.text, /is a rental aggregator[\s\S]*Rent by city[\s\S]*never pay before you have seen the place/i);
         assert.match(llms.text, /no payments, no deposits and no messaging/i);
         assert.ok(llms.text.includes('https://openvibe.rent/sitemap.xml'));
 
