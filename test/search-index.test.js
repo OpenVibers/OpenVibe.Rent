@@ -59,7 +59,7 @@ const DAY = 86_400_000;
 
         await check('Rent by city: the first sweep sends a city document per city page, exactly the contract; the next sends none', async () => {
             const before = (await outbox()).length;
-            const res = await search.sweep();
+            const res = await search.sweepCities();
             assert.ok(res.city.sent >= 850, JSON.stringify(res.city));
             const cityEnvs = (await outbox()).slice(before).filter((e) => e.payload && e.payload.type === 'city');
             assert.strictEqual(cityEnvs.length, res.city.sent);
@@ -68,7 +68,16 @@ const DAY = 86_400_000;
             assert.match(austin.payload.title, /^Renting in Austin, TX$/);
             assert.match(austin.payload.summary, /2 bedrooms \$1,845/);
             assert.deepStrictEqual([austin.payload.facets.state, austin.payload.facets.rent_2br], ['TX', 1845]);
-            assert.strictEqual((await search.sweep()).city.sent, 0, 'unchanged cities send nothing');
+            const homes = (await outbox()).slice(before).filter((e) => e.payload && e.payload.type === 'homes_city');
+            assert.strictEqual(homes.length, res.homes_city.sent, 'OpenVibe.Homes\' city pages too');
+            const hAustin = valid(homes.find((e) => e.payload.id === 'tx-austin'));
+            assert.match(hAustin.payload.canonical_url, /\/in\/tx\/austin$/);
+            assert.ok(!hAustin.payload.canonical_url.startsWith('https://openvibe.rent'), 'on the Homes host');
+            assert.match(hAustin.payload.title, /^Buying a home in Austin, TX$/);
+            assert.match(hAustin.payload.summary, /Median home value in Austin, TX: \$555,300/);
+            const again = await search.sweepCities();
+            assert.deepStrictEqual([again.city.sent, again.homes_city.sent], [0, 0], 'unchanged cities send nothing');
+            assert.ok(!('city' in (await search.sweep())), 'a listing sweep leaves the cities alone');
         });
 
         await check('an edit is the next revision; a sweep then sends nothing', async () => {
