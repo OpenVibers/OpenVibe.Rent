@@ -64,6 +64,12 @@ const cities = require('../server/aggregate/cities');
     const t = await boot();
     const kim = t.network.addUser('kim');
 
+    await check('with nothing posted yet, the home shows the largest cities\' rents instead of an empty list', async () => {
+        const home = await t.get('/');
+        assert.ok(home.text.includes('What rent costs in the largest cities') && home.text.includes('href="/in/ny/new-york"'));
+        assert.ok(!home.text.includes('Nobody has posted here yet'));
+    });
+
     await check('a city page: typical rents with margins and the source, the fair form, every site at the city, what is here, nearby', async () => {
         const r = await t.get('/in/tx/austin');
         assert.strictEqual(r.status, 200);

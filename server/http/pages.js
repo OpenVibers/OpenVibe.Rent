@@ -31,6 +31,7 @@ const housingHpi = require('../housing/hpi');
 const everywhere = require('../aggregate/everywhere');
 const { mountBoardPages } = require('./board-pages');
 const { mountCityPages, listingFairLine } = require('./city-pages');
+const cityList = require('../aggregate/cities');
 
 const SITE_NAME = 'OpenVibe.Rent';
 const TAGLINE = 'Every rental site, one search.';
@@ -183,10 +184,13 @@ ${notice(p && p.detail ? p.detail : 'You are over the limit for this.', 'warn')}
 <p class="sc-lede">Public housing, tax-credit (LIHTC) and HUD-assisted properties, and the authorities and counselling agencies to apply through, from U.S. HUD open data.</p>
 <p><a class="sc-btn sc-primary" href="/housing">Find housing near you</a></p></section>
 
-<section class="sc-sec" aria-labelledby="h-latest"><h2 id="h-latest">Posted on ${SITE_NAME}</h2>
+${latest.rows.length ? html`<section class="sc-sec" aria-labelledby="h-latest"><h2 id="h-latest">Posted on ${SITE_NAME}</h2>
 <p class="sc-lede">Listings people post here themselves: apartments, rooms, houses, commercial space, parking and storage, and equipment. <a href="/listings">Browse them</a> or search them by place.</p>
-${listingList(latest.rows, { empty: 'Nobody has posted here yet: yours could be the first.' })}
-<p><a class="sc-btn" href="/listings">Every listing posted here</a> <a class="sc-btn" href="/post">Post a listing</a></p></section>
+${listingList(latest.rows, { empty: '' })}
+<p><a class="sc-btn" href="/listings">Every listing posted here</a> <a class="sc-btn" href="/post">Post a listing</a></p></section>` : html`<section class="sc-sec" aria-labelledby="h-cities"><h2 id="h-cities">What rent costs in the largest cities</h2>
+<p class="sc-lede">The typical 2-bedroom rent (Census Bureau), and every rental site's search for each city. <a href="/in">All 885 cities</a> · <a href="/fair">Check a rent</a></p>
+<ul class="ew-chips">${cityList.cities.slice().sort((a, b) => b.population - a.population).slice(0, 8).map((c) => html`<li><a href="${c.path}">${c.name} ${cityList.rentText(c.rent.b2)}</a></li>`)}</ul>
+<p class="small muted">Renting something out? <a href="/post">Post a listing</a>.</p></section>`}
 
 ${raw(showcase.features({
                 title: 'How it works',

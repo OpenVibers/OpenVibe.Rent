@@ -19,7 +19,7 @@ const { measure, check, format } = require('openvibe-shared/perf-budget');
 // budget keeps the same ~10% headroom over the new measurement; the other lines are unchanged.
 const BUDGETS = {
     htmlRawKB: 33.5,   // measured 31.0 (real glyphs for page, db, deploy and gauge icons, shared 2.21.1); was 31.5
-    htmlBrotliKB: 8.0,   // 7.4 (real glyphs for page, db, deploy and gauge icons, shared 2.21.1); was 7.2
+    htmlBrotliKB: 8.5,   // 8.1 on 2026-10-16 (Rent by city: the largest cities' rents where an empty "posted here" was); 7.4 before
     jsFiles: 5,   // 5 (theme-loader, web-runtime, navbar, footer, boost: openvibe-shared/shell)
     jsRawKB: 264,   // 239.8
     jsBrotliKB: 62.5,   // 56.5
