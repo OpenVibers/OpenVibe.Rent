@@ -71,6 +71,24 @@ function describeCity(c) {
     };
 }
 
+/** An OpenVibe.Homes city page (server/homes/city-pages.js) as a Search document (type homes_city, contracts 0.198.0). */
+function describeHomesCity(c) {
+    const where = `${c.name}, ${c.state}`;
+    const value = cities.valueText(c.value);
+    const two = cities.rentText(c.rent.b2);
+    return {
+        listed: true,
+        title: `Buying a home in ${where}`,
+        summary: `${value ? `Median home value in ${where}: ${value}. ` : ''}Every for-sale site's search for ${c.name} in one place${two ? `; renting a typical 2-bedroom costs ${two} a month` : ''}.`,
+        body: [`Buying a home in ${where}, ${c.stateName}.`, value ? `Median value of owner-occupied homes (Census ACS ${cities.SOURCE.years}): ${value}.` : '',
+            `Every for-sale site's search for ${c.name}: Zillow, Realtor.com, Homes.com, Trulia and more, government and bank homes, county records and the mortgage on a typical home.`].filter(Boolean).join('\n'),
+        facets: { state: c.state, population: c.population, home_value: c.value },
+        authorship: { mode: 'human' },
+        publishedAt: cities.SOURCE.built ? `${cities.SOURCE.built}T00:00:00.000Z` : null,
+        updatedAt: cities.SOURCE.built ? `${cities.SOURCE.built}T00:00:00.000Z` : null,
+    };
+}
+
 function createSearchIndex({ config, s, log = console, outbox = null, indexnow = null }) {
     const out = outbox || createServiceOutbox({
         db: s.db, source: 'rent', eventsUrl: config.events.url || null, networkInternalUrl: config.networkInternalUrl,
@@ -85,6 +103,14 @@ function createSearchIndex({ config, s, log = console, outbox = null, indexnow =
                 rows: (after, limit) => s.db.many('SELECT * FROM rent_listings WHERE id > $1 ORDER BY id LIMIT $2', [after, limit]),
                 exists: async (ids) => (await s.db.many('SELECT id FROM rent_listings WHERE id = ANY($1)', [ids])).map((r) => r.id),
             },
+
+        },
+    });
+    // Rent by city's pages change only when the city data is rebuilt: their own feed, swept at start and once a day, so
+    // the listing sweeps (every expiry tick) stay small.
+    const cityFeed = createSearchFeed({
+        owner: 'rent', db: s.db, outbox: out, baseUrl: config.baseUrl, now: s.now, log, indexnow,
+        types: {
             city: {
                 page: (c) => c.path,
                 document: (c) => describeCity(c),
@@ -93,6 +119,19 @@ function createSearchIndex({ config, s, log = console, outbox = null, indexnow =
             },
         },
     });
+    // OpenVibe.Homes' city pages live on its own host: another feed with that origin, the same owner, outbox and
+    // revision table (their type, homes_city, keeps them apart).
+    const homesFeed = config.homes && config.homes.url ? createSearchFeed({
+        owner: 'rent', db: s.db, outbox: out, baseUrl: config.homes.url, now: s.now, log,
+        types: {
+            homes_city: {
+                page: (c) => c.path,
+                document: (c) => describeHomesCity(c),
+                rows: async (after, limit) => CITY_ROWS.filter((c) => c.id > after).slice(0, limit),
+                exists: async (ids) => ids.filter((id) => CITY_IDS.has(String(id))),
+            },
+        },
+    }) : null;
     const pending = new Set();
     const timers = [];
     let flushTimer = null;
@@ -134,11 +173,20 @@ function createSearchIndex({ config, s, log = console, outbox = null, indexnow =
         const res = await feed.sweep();
         const l = res.listing;
         if (l.sent || l.removed || l.failed) log.log(`[Search] listings: ${l.sent} sent, ${l.removed} removed, ${l.failed} failed of ${l.seen}`);
-        const c = res.city;
-        if (c && (c.sent || c.removed || c.failed)) log.log(`[Search] cities: ${c.sent} sent, ${c.removed} removed, ${c.failed} failed of ${c.seen}`);
+
         if (out.kick) out.kick().catch(() => {});
         return res;
     }
+    /** The city pages of Rent and Homes (cityFeed, homesFeed): at start and once a day. */
+    async function sweepCities() {
+        const res = { city: (await cityFeed.sweep()).city };
+        if (homesFeed) res.homes_city = (await homesFeed.sweep()).homes_city;
+        const parts = Object.entries(res).filter(([, v]) => v && (v.sent || v.removed || v.failed)).map(([k, v]) => `${k} ${v.sent} sent, ${v.removed} removed, ${v.failed} failed of ${v.seen}`);
+        if (parts.length) log.log(`[Search] ${parts.join('; ')}`);
+        if (out.kick) out.kick().catch(() => {});
+        return res;
+    }
+    const citiesQuietly = () => { sweepCities().catch((err) => log.warn(`[Search] city sweep failed: ${(err && err.message) || err}`)); };
     const quietly = () => { sweep().catch((err) => log.warn(`[Search] sweep failed: ${(err && err.message) || err}`)); };
 
     function start() {
@@ -148,7 +196,11 @@ function createSearchIndex({ config, s, log = console, outbox = null, indexnow =
         if (kick.unref) kick.unref();
         const tick = setInterval(quietly, INTERVAL_MS);
         if (tick.unref) tick.unref();
-        timers.push(kick, tick);
+        const cityKick = setTimeout(citiesQuietly, START_DELAY_MS + 30_000);
+        if (cityKick.unref) cityKick.unref();
+        const cityTick = setInterval(citiesQuietly, 24 * 3_600_000);
+        if (cityTick.unref) cityTick.unref();
+        timers.push(kick, tick, cityKick, cityTick);
         return true;
     }
 
@@ -164,7 +216,7 @@ function createSearchIndex({ config, s, log = console, outbox = null, indexnow =
         if (flushing) await flushing;
     }
 
-    return { feed, outbox: out, describe, touch, syncId, sweep, afterExpiry: quietly, settle, start, stop, status: () => out.status() };
+    return { feed, outbox: out, describe, touch, syncId, sweep, sweepCities, afterExpiry: quietly, settle, start, stop, status: () => out.status() };
 }
 
 module.exports = { createSearchIndex, describe, EVENT_TYPES };
