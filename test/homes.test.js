@@ -99,6 +99,24 @@ const housingFetchImpl = async (url) => (new URL(String(url)).pathname.endsWith(
             assert.match((await homes('/robots.txt')).text, /Sitemap: https:\/\/openvibe\.homes\/sitemap\.xml/);
             assert.ok((await homes('/sitemap.xml')).text.includes('<loc>https://openvibe.homes/mortgage</loc>'));
         });
+
+        await check('homes by city: the median value (the top code as a range), the mortgage on it, renting there, every site, nearby; in the sitemap', async () => {
+            const a = await homes('/in/tx/austin');
+            assert.strictEqual(a.status, 200);
+            assert.ok(a.text.includes('<h1>Buying a home in Austin, TX</h1>') && a.text.includes('$555,300') && a.text.includes('±$8,017'));
+            assert.ok(a.text.includes('href="/mortgage?price=555300&amp;down=20"') || a.text.includes('href="/mortgage?price=555300&down=20"'), 'the calculator with the median price, the rate left to the person');
+            assert.ok(a.text.includes('rents for $1,845 a month') && a.text.includes('/in/tx/austin">Rents and every rental site in Austin'), 'its Rent twin');
+            assert.ok(a.text.includes('https://www.zillow.com/austin-tx/') && a.text.includes('href="https://publicrecords.netronline.com/state/TX"'));
+            assert.match(a.text, /<meta name="robots" content="index, follow">/);
+            const pa = await homes('/in/ca/palo-alto');
+            assert.ok(pa.text.includes('$2,000,000 or more') && !pa.text.includes('$2,000,001'), 'the top code is a range, never a price');
+            assert.ok(pa.text.includes('href="/mortgage"'), 'no median price to carry into the calculator');
+            assert.strictEqual((await homes('/in/tx/nowhere')).status, 404);
+            assert.ok((await homes('/in/tx')).text.includes('Buying a home in Texas'));
+            assert.ok((await homes('/in')).text.includes('href="/in/vt"'));
+            const map = (await homes('/sitemap.xml')).text;
+            assert.ok(map.includes('<loc>https://openvibe.homes/in/tx/austin</loc>') && map.includes('<loc>https://openvibe.homes/in</loc>'));
+        });
     } finally { await t.close(); }
     done();
 })();

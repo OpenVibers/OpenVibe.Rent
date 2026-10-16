@@ -26,6 +26,11 @@ Census Bureau's keyless ACS 5-year table files and gazetteer (see the script for
   commercial property (LoopNet).
 - **Around the place:** the state's county records (NETR Online's directory) and the FHFA price index for the area.
 - **Mortgage calculator:** server-side arithmetic, nothing saved.
+- **Homes by city** (`/in`, `/in/<state>`, `/in/<state>/<city>`; `server/homes/city-pages.js`): the median home value
+  (Census ACS B25077, with its margin; the $2,000,001 top code reads "$2,000,000 or more") for the same 885 cities as
+  Rent by city, the FHFA trend for the area, the calculator prefilled with the median price (the rate stays the
+  person's), what renting there costs with a link to the Rent city page (and back), every for-sale site, the county
+  records and nearby cities. In the Homes sitemap and llms.txt.
 - **Links back to Rent:** renting and the board stay on OpenVibe.Rent.
 ## What it is
 

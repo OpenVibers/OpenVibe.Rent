@@ -45,6 +45,7 @@ const HOMES = {
     tagline: 'Find a home to buy.',
     nav: [
         { label: 'Search every site', href: '/search' },
+        { label: 'Homes by city', href: '/in' },
         { label: 'Property records', href: '/records' },
         { label: 'Mortgage calculator', href: '/mortgage' },
         { label: 'Renting instead', href: 'https://openvibe.rent/everywhere' },
