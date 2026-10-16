@@ -123,3 +123,43 @@ function fair({ city, beds, rent }) {
 }
 
 module.exports = { SOURCE: DATA.source, MIN_POPULATION: DATA.minPopulation, SIZES, STATE_NAMES, cities, find, inState, states, nearby, match, fair, rentText, valueText, stateCode, distanceKm };
+
+/**
+ * What a rental listing's own address and title say, for /fair opened from the OpenVibe Companion ("Check the rent"):
+ * the monthly rent (the first $ amount from $100 to $100,000), the bedrooms ("2br", "2 bd", "3 bedrooms", "studio")
+ * and the city (a Craigslist city subdomain; "…-austin-tx…" in a Zillow, Apartments.com, Zumper or Trulia address;
+ * "Austin, TX" in the title). Only what is plainly there: anything else is left for the person to fill in.
+ *   → { rent, beds, city, read: ['rent', 'beds', 'city'] (what was found) }
+ */
+function readListing({ url, title } = {}) {
+    const t = String(title || '').replace(/\s+/g, ' ').slice(0, 300);
+    const out = { rent: null, beds: null, city: null, read: [] };
+    const money = /\$\s?(\d{1,3}(?:,\d{3})+|\d{3,6})(?:\.\d{2})?(?!\d)/.exec(t);
+    if (money) { const n = Number(money[1].replace(/,/g, '')); if (n >= 100 && n <= 100000) { out.rent = n; out.read.push('rent'); } }
+    const beds = /\b(\d{1,2})\s*(?:br|bd|bds|bed|beds|bedrooms?)\b/i.exec(t);
+    if (beds && Number(beds[1]) <= 20) { out.beds = Number(beds[1]); out.read.push('beds'); } else if (/\bstudio\b/i.test(t)) { out.beds = 0; out.read.push('beds'); }
+    let u = null;
+    try { u = new URL(String(url || '')); } catch { u = null; }
+    if (u && /^https?:$/.test(u.protocol)) {
+        const host = u.hostname.toLowerCase();
+        const cl = /^([a-z]+)\.craigslist\.org$/.exec(host);
+        if (cl) out.city = cities.find((c) => c.slug.replace(/-/g, '') === cl[1]) || null;
+        if (!out.city) {
+            // "…-salt-lake-city-ut-84111…" or "…/the-bowie-austin-tx/…": the longest run of words before a state code that names a listed city.
+            const words = decodeURIComponent(u.pathname).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+            for (let i = words.length - 1; i > 0 && !out.city; i--) {
+                const st = /^[a-z]{2}$/.test(words[i]) ? stateCode(words[i]) : null;
+                if (!st) continue;
+                for (let k = Math.min(4, i); k >= 1 && !out.city; k--) out.city = find(st, words.slice(i - k, i).join('-'));
+            }
+        }
+    }
+    if (!out.city) {
+        const named = /([A-Z][A-Za-z.' -]{1,40}),\s*([A-Z]{2})\b/.exec(t);
+        if (named) out.city = match(`${named[1].trim()}, ${named[2]}`);
+    }
+    if (out.city) out.read.push('city');
+    return out;
+}
+
+module.exports.readListing = readListing;

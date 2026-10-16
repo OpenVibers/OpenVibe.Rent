@@ -132,7 +132,16 @@ ${near.length ? html`<section class="sc-sec" aria-labelledby="h-near"><h2 id="h-
         let city = null;
         if (typeof req.query.city === 'string' && /^[a-z]{2}\/[a-z0-9-]{1,80}$/.test(req.query.city)) { const [st, sl] = req.query.city.split('/'); city = cities.find(st, sl); }
         if (!city && v.where) city = cities.match(v.where);
-        const asked = Boolean(v.rent && (req.query.city || v.where));
+        // Opened from a listing (the OpenVibe Companion's "Check the rent", or a link): what its address and title say
+        // fills what the person did not type, and the page says which values were read so they can check them.
+        let fromListing = null;
+        if (typeof req.query.url === 'string' || typeof req.query.title === 'string') {
+            fromListing = cities.readListing({ url: String(req.query.url || '').slice(0, 2000), title: String(req.query.title || '').slice(0, 300) });
+            if (!v.rent && fromListing.rent) v.rent = String(fromListing.rent);
+            if (v.beds == null && fromListing.beds != null) v.beds = String(fromListing.beds);
+            if (!city && fromListing.city) city = fromListing.city;
+        }
+        const asked = Boolean(v.rent && (req.query.city || v.where || city));
         const result = asked && city ? cities.fair({ city, beds: v.beds, rent: v.rent }) : null;
         if (city && !v.where) v.where = placeLabel(city);
         const problem = asked && !city ? `No city of ${cities.MIN_POPULATION.toLocaleString('en-US')} people or more called “${v.where}” in the list. Try “City, ST”, or pick it from Rent by city.`
@@ -140,13 +149,14 @@ ${near.length ? html`<section class="sc-sec" aria-labelledby="h-near"><h2 id="h-
         page(req, res, {
             title: result ? `${result.size.text} at $${Number(v.rent).toLocaleString('en-US')} in ${placeLabel(city)}: is it fair?` : 'Is this rent fair?',
             description: 'Check a monthly rent from any site against the middle rent for that size in the city, from the Census Bureau\'s American Community Survey.',
-            index: !asked, cache: asked ? null : PUBLIC,
+            index: !asked && !fromListing, cache: asked || fromListing ? null : PUBLIC,
             crumbs: [{ label: 'Home', href: '/' }, { label: 'Rent by city', href: '/in' }, { label: 'Is this rent fair?' }],
             styles: [showcase.STYLESHEET], localStyles: STYLES,
             body: html`<h1>Is this rent fair?</h1>
 <p class="sc-lede">Put in a price from Craigslist, Zillow or anywhere else: it is compared with the middle rent for that size in the city, from the Census Bureau.</p>
+${fromListing ? html`<p class="notice" role="status">${fromListing.read.length ? html`Read from the listing: ${fromListing.read.map((k) => ({ rent: `the rent ($${Number(v.rent).toLocaleString('en-US')})`, beds: `${Number(v.beds) === 0 ? 'a studio' : `${v.beds} bedroom${Number(v.beds) === 1 ? '' : 's'}`}`, city: `the city (${city ? `${city.name}, ${city.state}` : ''})` }[k])).join(', ')}. Check them below${fromListing.read.length < 3 ? ' and fill in the rest' : ''}.` : 'The listing\'s page did not say its rent, size and city plainly: fill them in below.'}</p>` : ''}
 ${result ? fairResult(city, result, Number(v.rent)) : ''}
-${problem ? html`<p class="notice warn" role="status">${problem}</p>` : ''}
+${problem && !(fromListing && !v.rent) ? html`<p class="notice warn" role="status">${problem}</p>` : ''}
 <section class="fair-card fair-page">${fairForm(v)}</section>
 ${source()}`,
         });
