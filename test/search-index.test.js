@@ -57,6 +57,20 @@ const DAY = 86_400_000;
             assert.deepStrictEqual(pinged, [`https://openvibe.rent/listings/${id}`, 'https://openvibe.rent/sitemap.xml']);
         });
 
+        await check('Rent by city: the first sweep sends a city document per city page, exactly the contract; the next sends none', async () => {
+            const before = (await outbox()).length;
+            const res = await search.sweep();
+            assert.ok(res.city.sent >= 850, JSON.stringify(res.city));
+            const cityEnvs = (await outbox()).slice(before).filter((e) => e.payload && e.payload.type === 'city');
+            assert.strictEqual(cityEnvs.length, res.city.sent);
+            const austin = valid(cityEnvs.find((e) => e.payload.id === 'tx-austin'));
+            assert.strictEqual(austin.payload.canonical_url, 'https://openvibe.rent/in/tx/austin');
+            assert.match(austin.payload.title, /^Renting in Austin, TX$/);
+            assert.match(austin.payload.summary, /2 bedrooms \$1,845/);
+            assert.deepStrictEqual([austin.payload.facets.state, austin.payload.facets.rent_2br], ['TX', 1845]);
+            assert.strictEqual((await search.sweep()).city.sent, 0, 'unchanged cities send nothing');
+        });
+
         await check('an edit is the next revision; a sweep then sends nothing', async () => {
             await store.update(s, id, { title: 'Bright room near the river, bills included' });
             await search.settle();

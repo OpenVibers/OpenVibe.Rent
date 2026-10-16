@@ -16,7 +16,8 @@ state's largest (885, all 50 states, DC and Puerto Rico) with the median gross r
 of error, every rental site's search for that city, affordable housing, homes for sale and nearby cities; state pages
 and an index; and **Is this rent fair?**, which places a quoted rent against the city's median for that size (within the
 margin is typical; far below warns of scams). A listing posted here in a listed US city shows the same line. All of them
-are in the sitemap and llms.txt. The data is `server/data/cities.json`, built by `node tools/build-cities.js <dir>` from the
+are in the sitemap and llms.txt, and each city page is an OpenVibe.Search document (type `city`, id `<state>-<slug>`,
+sent by the search sweep; contracts 0.197.0). The data is `server/data/cities.json`, built by `node tools/build-cities.js <dir>` from the
 Census Bureau's keyless ACS 5-year table files and gazetteer (see the script for the URLs); nothing is fetched at run time.
 
 **OpenVibe.Homes** (since 2026-10-15, https://openvibe.homes): the buying side, served by this process for its own host

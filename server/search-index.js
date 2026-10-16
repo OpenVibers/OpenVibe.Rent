@@ -19,6 +19,7 @@
 const { createServiceOutbox } = require('openvibe-sdk/events');
 const { createSearchFeed } = require('openvibe-publishing/search-feed');
 const listings = require('./listings/listings');
+const cities = require('./aggregate/cities');
 
 const EVENT_TYPES = ['rent.index_document.upserted', 'rent.index_document.deleted'];
 const FLUSH_MS = 250;
@@ -47,6 +48,29 @@ function describe(row, nowMs) {
     };
 }
 
+/**
+ * Rent by city's pages (server/http/city-pages.js) as Search documents (type city, contracts 0.197.0): the typical
+ * rents by size, so a network search for "rent in Austin" finds the city page. The rows are the committed city data,
+ * in id order (<state>-<slug>); the sweep sends what changed and tombstones a city that left the data.
+ */
+const CITY_ROWS = cities.cities.map((c) => ({ ...c, id: `${c.state.toLowerCase()}-${c.slug}` })).sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+const CITY_IDS = new Set(CITY_ROWS.map((c) => c.id));
+function describeCity(c) {
+    const sizes = cities.SIZES.map((z) => (c.rent[z.key] != null ? `${z.text} ${cities.rentText(c.rent[z.key])}` : null)).filter(Boolean);
+    const where = `${c.name}, ${c.state}`;
+    return {
+        listed: true,
+        title: `Renting in ${where}`,
+        summary: `Typical rent in ${where}: ${sizes.slice(0, 4).join(' · ')}. Every rental site's search for ${c.name} in one place.`,
+        body: [`Renting in ${where}, ${c.stateName}.`, `Median gross rent by size (Census ACS ${cities.SOURCE.years}): ${sizes.join(', ')}.`,
+            `Every rental site's search for ${c.name}: Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper and more. Affordable housing, homes for sale and a fair-rent check.`].join('\n'),
+        facets: { state: c.state, population: c.population, rent_2br: c.rent.b2 },
+        authorship: { mode: 'human' },
+        publishedAt: cities.SOURCE.built ? `${cities.SOURCE.built}T00:00:00.000Z` : null,
+        updatedAt: cities.SOURCE.built ? `${cities.SOURCE.built}T00:00:00.000Z` : null,
+    };
+}
+
 function createSearchIndex({ config, s, log = console, outbox = null, indexnow = null }) {
     const out = outbox || createServiceOutbox({
         db: s.db, source: 'rent', eventsUrl: config.events.url || null, networkInternalUrl: config.networkInternalUrl,
@@ -60,6 +84,12 @@ function createSearchIndex({ config, s, log = console, outbox = null, indexnow =
                 document: (row) => describe(row, s.now()),
                 rows: (after, limit) => s.db.many('SELECT * FROM rent_listings WHERE id > $1 ORDER BY id LIMIT $2', [after, limit]),
                 exists: async (ids) => (await s.db.many('SELECT id FROM rent_listings WHERE id = ANY($1)', [ids])).map((r) => r.id),
+            },
+            city: {
+                page: (c) => c.path,
+                document: (c) => describeCity(c),
+                rows: async (after, limit) => CITY_ROWS.filter((c) => c.id > after).slice(0, limit),
+                exists: async (ids) => ids.filter((id) => CITY_IDS.has(String(id))),
             },
         },
     });
@@ -104,6 +134,8 @@ function createSearchIndex({ config, s, log = console, outbox = null, indexnow =
         const res = await feed.sweep();
         const l = res.listing;
         if (l.sent || l.removed || l.failed) log.log(`[Search] listings: ${l.sent} sent, ${l.removed} removed, ${l.failed} failed of ${l.seen}`);
+        const c = res.city;
+        if (c && (c.sent || c.removed || c.failed)) log.log(`[Search] cities: ${c.sent} sent, ${c.removed} removed, ${c.failed} failed of ${c.seen}`);
         if (out.kick) out.kick().catch(() => {});
         return res;
     }
