@@ -54,7 +54,7 @@ function createHomesRoutes(ctx) {
         styles: [showcase.STYLESHEET], localStyles: ['css/everywhere.css', 'css/homes.css'],
         body: html`${raw(showcase.hero({
             eyebrow: 'OpenVibe.Homes', title: 'Buying a home?', accent: 'Search every site at once.',
-            lede: 'Type a place once: Zillow, Realtor.com, Redfin, Homes.com, Trulia and Craigslist open their own searches for it, next to HUD and Fannie Mae homes, foreclosure auctions and the county\'s property records. The listings stay on those sites; OpenVibe.Homes copies none of them.',
+            lede: 'Type a place once and every big for-sale site searches it for you: Zillow, Realtor.com, Redfin, Homes.com, Trulia and Craigslist, next to HUD and Fannie Mae homes, foreclosure auctions and the county\'s property records. Keep the homes you like on one board, whichever site they came from.',
             actions: [{ label: 'Search every site', href: '#search', primary: true }, { label: 'Mortgage calculator', href: '/mortgage' }, { label: 'Property records', href: '/records' }],
         }))}
 <section class="sc-sec" id="search" aria-labelledby="h-search"><h2 id="h-search">Search</h2>${searchForm({ kind: 'home' })}</section>
