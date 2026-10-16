@@ -11,6 +11,7 @@
  *   https://www2.census.gov/programs-surveys/acs/summary_file/<year>/table-based-SF/data/5YRData/acsdt5y<year>-b25031.dat
  *     B25031 Median gross rent by bedrooms (E001 all, E002 no bedroom … E007 five or more), with margins of error
  *   …/acsdt5y<year>-b01003.dat                    B01003 Total population
+ *   …/acsdt5y<year>-b25077.dat                    B25077 Median value of owner-occupied homes (owners' estimate), for OpenVibe.Homes
  *   …/table-based-SF/documentation/Geos<year>5YR.txt   names and state codes (summary level 160 = place)
  *   https://www2.census.gov/geo/docs/maps-data/data/gazetteer/<year>_Gazetteer/<year>_Gaz_place_national.zip (unzipped)
  *     each place's internal point (latitude, longitude)
@@ -49,6 +50,8 @@ function main(dir) {
     for (const r of rows(f(`acsdt5y${YEAR}-b01003.dat`))) if (r.GEO_ID.startsWith('1600000US')) pop.set(r.GEO_ID, num(r.B01003_E001));
     const names = new Map();
     for (const r of rows(f(`Geos${YEAR}5YR.txt`))) if (r.SUMLEVEL === '160') names.set(r.GEO_ID, { name: r.NAME, state: r.STUSAB });
+    const value = new Map();
+    for (const r of rows(f(`acsdt5y${YEAR}-b25077.dat`))) if (r.GEO_ID.startsWith('1600000US')) value.set(r.GEO_ID, { e: num(r.B25077_E001), m: num(r.B25077_M001) });
     const point = new Map();
     for (const r of rows(f(`${YEAR}_Gaz_place_national.txt`), '\t')) point.set(`1600000US${r.GEOID}`, { lat: Number(r.INTPTLAT), lon: Number(r.INTPTLONG) });
 
@@ -80,6 +83,8 @@ function main(dir) {
             id: r.GEO_ID.slice(9), name: city, state: n.state, kind, population: p,
             lat: Number.isFinite(pt.lat) ? Math.round(pt.lat * 1e4) / 1e4 : null, lon: Number.isFinite(pt.lon) ? Math.round(pt.lon * 1e4) / 1e4 : null,
             rent, moe, ...(top.length ? { top } : {}),
+            // Median home value: null when unpublished; the Census top code ($2,000,001: "$2,000,000 or more") is kept as is.
+            value: (value.get(r.GEO_ID) || {}).e ?? null, valueMoe: (value.get(r.GEO_ID) || {}).e == null ? null : (value.get(r.GEO_ID) || {}).m ?? null,
         });
     }
     // Slugs: the name within its state; a second place with the same name in a state gets its Census id.
@@ -93,9 +98,9 @@ function main(dir) {
     }
     const out = {
         source: {
-            name: 'U.S. Census Bureau, American Community Survey 5-year estimates', years: `${YEAR - 4}–${YEAR}`, table: 'B25031 (median gross rent by bedrooms), B01003 (population)',
+            name: 'U.S. Census Bureau, American Community Survey 5-year estimates', years: `${YEAR - 4}–${YEAR}`, table: 'B25031 (median gross rent by bedrooms), B25077 (median home value), B01003 (population)',
             url: 'https://www.census.gov/programs-surveys/acs', licence: 'public domain', built: new Date().toISOString().slice(0, 10),
-            note: 'Gross rent is contract rent plus the utilities the renter pays. Medians the Census does not publish are null; 3501 is its top code ("$3,500 or more").',
+            note: 'Gross rent is contract rent plus the utilities the renter pays; home value is the owners\' own estimate of what their home would sell for. Medians the Census does not publish are null; 3501 (rent) and 2000001 (value) are its top codes.',
         },
         minPopulation: MIN_POPULATION,
         cities,

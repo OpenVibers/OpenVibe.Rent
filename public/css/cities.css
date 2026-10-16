@@ -44,3 +44,7 @@
 .fair-line { padding: 8px 12px; border-radius: 10px; background: var(--bg-card, #131c2e); border-left: 3px solid var(--accent, #3b82f6); font-size: .95rem; }
 .fair-line.verdict-typical { border-left-color: var(--success, #22c55e); }
 .fair-line.verdict-very-low, .fair-line.verdict-very-high { border-left-color: var(--error, #ef4444); }
+/* OpenVibe.Homes' city pages */
+.city-homes-cards { margin: 18px 0 6px; }
+.value-card .value-num { margin: 4px 0 6px; font-size: 1.6rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+.value-card .value-num .moe { font-size: .85rem; font-weight: 500; }

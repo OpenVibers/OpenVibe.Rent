@@ -86,6 +86,8 @@ function match(text) {
 const moneyText = (n) => `$${Number(n).toLocaleString('en-US')}`;
 /** "$1,845" or "$3,500 or more" (the Census top code). */
 const rentText = (n) => (n == null ? null : n >= TOP ? '$3,500 or more' : moneyText(n));
+/** A median home value: "$555,300", or "$2,000,000 or more" (the Census top code). */
+const valueText = (n) => (n == null ? null : n >= 2000001 ? '$2,000,000 or more' : moneyText(n));
 
 /**
  * Where `rent` (dollars a month) sits for `beds` bedrooms in `city`: the median and its margin of error, the
@@ -120,4 +122,4 @@ function fair({ city, beds, rent }) {
     return { size, median, moe, diff, pct, verdict, text, topped };
 }
 
-module.exports = { SOURCE: DATA.source, MIN_POPULATION: DATA.minPopulation, SIZES, STATE_NAMES, cities, find, inState, states, nearby, match, fair, rentText, stateCode, distanceKm };
+module.exports = { SOURCE: DATA.source, MIN_POPULATION: DATA.minPopulation, SIZES, STATE_NAMES, cities, find, inState, states, nearby, match, fair, rentText, valueText, stateCode, distanceKm };

@@ -10,6 +10,7 @@
  *                 records, the FHFA price index for the area, and Rent's search for the same place
  *   /records      each state's county assessor and recorder sites (NETR Online's directory), and what they hold
  *   /mortgage     the monthly cost of a loan, from what you type (server/homes/mortgage.js)
+ *   /in, /in/:state, /in/:state/:city   homes by city: median home values and every for-sale site (./city-pages.js)
  *   /robots.txt /sitemap.xml /llms.txt
  *
  * Nothing is fetched from the listing sites; the place search spends the same per-caller budget as Rent's
@@ -24,7 +25,9 @@ const sites = require('./sites');
 const { monthly } = require('./mortgage');
 const housingPlaces = require('../housing/places');
 const housingHpi = require('../housing/hpi');
+const cities = require('../aggregate/cities');
 const { US_STATE_NAMES } = require('../aggregate/everywhere');
+const { mountHomesCityPages, cityPaths } = require('./city-pages');
 
 const STATE_TITLE = Object.fromEntries(Object.entries(US_STATE_NAMES).map(([code, s]) => [code, s.split('-').map((w) => (w === 'of' ? w : w[0].toUpperCase() + w.slice(1))).join(' ')]));
 const money = (n) => `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -64,6 +67,7 @@ ${raw(showcase.features({
                 { icon: 'ov:search', title: 'Every for-sale site', text: 'Zillow, Realtor.com, Redfin, Homes.com, Trulia and Craigslist, each opened at your place and price.' },
                 { icon: 'ov:shield', title: 'Government and bank homes', text: 'HUD Homestore, Fannie Mae HomePath and foreclosure auctions, often below market and first offered to people who will live there.' },
                 { icon: 'ov:docs', title: 'Property records', text: 'The county assessor and recorder for any US state: owners, sales, taxes and deeds, from the official sites.' },
+                { icon: 'ov:map', title: 'Homes by city', text: 'What homes are worth in 885 US cities, beside what renting costs, from Census data.', href: '/in' },
                 { icon: 'ov:gauge', title: 'Mortgage calculator', text: 'The monthly cost of a loan with taxes, insurance and HOA, from the numbers you type.' },
                 { icon: 'ov:rent', title: 'Keep them on your board', text: 'Your OpenVibe.Rent board keeps homes from every site in one list, with your notes.', href: `${config.baseUrl}/board` },
             ],
@@ -178,13 +182,15 @@ ${out.hoa ? html`<tr><th scope="row">HOA</th><td>${money(out.hoa)}</td></tr>` : 
         });
     });
 
+    mountHomesCityPages(r, { config, s, page });
+
     // ── Crawlers ─────────────────────────────────────────────
     r.get('/robots.txt', (req, res) => res.type('text/plain').set('Cache-Control', cache.htmlHeaders({ maxAge: 3600 }))
         .send(`User-agent: *\nDisallow: /search?\nAllow: /\nSitemap: ${base}/sitemap.xml\n`));
     r.get('/sitemap.xml', (req, res) => res.type('application/xml').set('Cache-Control', cache.htmlHeaders({ maxAge: 3600 }))
-        .send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/search', '/records', '/mortgage'].map((p) => `<url><loc>${base}${p}</loc></url>`).join('')}</urlset>\n`));
+        .send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/search', '/records', '/mortgage', ...cityPaths()].map((p) => `<url><loc>${base}${p}</loc></url>`).join('')}</urlset>\n`));
     r.get('/llms.txt', (req, res) => res.type('text/plain').set('Cache-Control', cache.htmlHeaders({ maxAge: 3600 }))
-        .send(`# OpenVibe.Homes\n\n> Buying a home in the United States: one search opens every for-sale site's own search (Zillow, Realtor.com, Redfin, Homes.com, Trulia, Craigslist), HUD Homestore, Fannie Mae HomePath and foreclosure auctions, with county property records and a mortgage calculator. Listings stay on those sites.\n\n- [Search every site](${base}/search)\n- [Property records by state](${base}/records)\n- [Mortgage calculator](${base}/mortgage)\n- [Renting: OpenVibe.Rent](${config.baseUrl}/everywhere)\n`));
+        .send(`# OpenVibe.Homes\n\n> Buying a home in the United States: one search opens every for-sale site's own search (Zillow, Realtor.com, Redfin, Homes.com, Trulia, Craigslist), HUD Homestore, Fannie Mae HomePath and foreclosure auctions, with county property records and a mortgage calculator. Listings stay on those sites.\n\n- [Search every site](${base}/search)\n- [Homes by city](${base}/in): the median home value in ${cities.cities.length} US cities (Census ACS), with every for-sale site's search for each\n- [Property records by state](${base}/records)\n- [Mortgage calculator](${base}/mortgage)\n- [Renting: OpenVibe.Rent](${config.baseUrl}/everywhere)\n`));
 
     // The rest of the Homes host: not found here (assets, /shared and /auth are served before this router).
     r.use((req, res) => page(req, res, { title: 'Not found', body: html`<h1>Not found</h1><p>No page here. <a href="/">OpenVibe.Homes</a>.</p>` }, 404));

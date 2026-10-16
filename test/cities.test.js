@@ -63,7 +63,7 @@ const cities = require('../server/aggregate/cities');
         assert.ok(h.includes('<form class="search-form fair-form" method="get" action="/fair">') && h.includes('name="city" value="tx/austin"'));
         assert.ok(h.includes('https://www.craigslist.org/search/city/austin-tx?cat=apa') && h.includes('https://www.zillow.com/austin-tx/rentals/'), 'every site at Austin');
         assert.ok(h.includes('/everywhere?q=Austin%2C+TX&amp;kind=room') || h.includes('/everywhere?q=Austin%2C+TX&kind=room'), 'other kinds through search everywhere');
-        assert.ok(h.includes('/housing?q=Austin%2C+TX') && h.includes('https://openvibe.homes/search?q=Austin%2C+TX'));
+        assert.ok(h.includes('/housing?q=Austin%2C+TX') && h.includes('https://openvibe.homes/in/tx/austin') && h.includes('median value $555,300'));
         assert.ok(h.includes('href="/in/tx/round-rock"'), 'nearby cities');
         assert.match(h, /<meta name="robots" content="index, follow">/);
         assert.ok(h.includes('"@type":"BreadcrumbList"'));

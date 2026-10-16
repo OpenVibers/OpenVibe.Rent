@@ -120,7 +120,7 @@ ${source()}</section>
 <section class="sc-sec" aria-labelledby="h-here"><h2 id="h-here">Also for ${c.name}</h2><ul class="everywhere-here">
 <li><a href="/listings?${listings.filtersToQuery({ city: c.name, country: 'US' })}">Listings people posted on OpenVibe.Rent</a>, or <a href="/post">post your own</a></li>
 <li><a href="/housing?${new URLSearchParams({ q })}">Affordable housing near ${c.name}</a>: public housing, tax-credit and HUD-assisted homes</li>
-<li><a href="${HOMES_URL}/search?${new URLSearchParams({ q })}">Homes for sale in ${c.name}</a> on every for-sale site, through OpenVibe.Homes</li>
+<li><a href="${HOMES_URL}${c.path}">Homes for sale in ${c.name}</a>${c.value != null ? html` (median value ${cities.valueText(c.value)})` : ''} on every for-sale site, through OpenVibe.Homes</li>
 <li><a href="/board">Your board</a>: keep listings from every site in one list, with your notes</li></ul></section>
 ${near.length ? html`<section class="sc-sec" aria-labelledby="h-near"><h2 id="h-near">Nearby in ${c.stateName}</h2><ul class="city-chips">${near.map((n) => html`<li><a href="${n.path}"><span>${n.name}</span>${n.rent.b2 != null ? html`<span class="chip-rent">2 bd ${cities.rentText(n.rent.b2)}</span>` : ''}</a></li>`)}</ul></section>` : ''}`,
         });
