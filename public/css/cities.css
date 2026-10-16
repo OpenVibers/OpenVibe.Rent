@@ -1,0 +1,46 @@
+/* OpenVibe.Rent — /in (rent by city) and /fair only, so app.css stays inside its budget. */
+.state-grid { list-style: none; padding: 0; margin: 18px 0 8px; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); }
+.state-grid a { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border, #1f2d47); background: var(--bg-card, #131c2e); color: var(--text-primary, #e6edf7); text-decoration: none; }
+.state-grid a:hover { border-color: var(--accent, #3b82f6); }
+.state-name { font-weight: 650; }
+.state-meta { font-size: .82rem; color: var(--text-secondary, #96a7c2); }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.city-table { width: 100%; border-collapse: collapse; font-size: .95rem; min-width: 480px; }
+.city-table th, .city-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border, #1f2d47); white-space: nowrap; }
+.city-table thead th { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-secondary, #96a7c2); }
+.city-table tbody th { font-weight: 600; }
+.moe { font-size: .78rem; color: var(--text-muted, #7386a3); }
+.city-source { margin-top: 10px; }
+.city-top { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); margin: 18px 0 8px; }
+@media (max-width: 760px) { .city-top { grid-template-columns: 1fr; } }
+.rent-card, .fair-card, .fair-result { padding: 16px 18px; border-radius: 14px; border: 1px solid var(--border, #1f2d47); background: var(--bg-card, #131c2e); }
+.rent-card h2, .fair-card h2, .fair-result h2 { margin: 0 0 8px; font-size: 1.15rem; }
+.rent-sizes { width: 100%; border-collapse: collapse; }
+.rent-sizes th, .rent-sizes td { padding: 7px 0; border-bottom: 1px solid var(--border, #1f2d47); text-align: left; }
+.rent-sizes td { text-align: right; font-variant-numeric: tabular-nums; font-weight: 650; }
+.rent-sizes tr.rent-all th, .rent-sizes tr.rent-all td { border-bottom: 0; color: var(--text-secondary, #96a7c2); font-weight: 500; }
+.fair-card .search-form { margin: 8px 0 0; padding: 0; border: 0; background: none; }
+.fair-form .fair-row { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+.fair-how { margin: 4px 0 0; }
+.fair-page { max-width: 560px; }
+.fair-page .search-form { margin: 0; }
+.fair-result { margin: 16px 0; border-left: 4px solid var(--accent, #3b82f6); }
+.fair-result.verdict-typical { border-left-color: var(--success, #22c55e); }
+.fair-result.verdict-low, .fair-result.verdict-high { border-left-color: var(--warning, #f59e0b); }
+.fair-result.verdict-very-low, .fair-result.verdict-very-high { border-left-color: var(--error, #ef4444); }
+.fair-bar { position: relative; height: 14px; margin: 14px 0 8px; border-radius: 999px; background: var(--bg-secondary, #0f1729); border: 1px solid var(--border, #1f2d47); }
+.fair-band { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--success, #22c55e) 30%, transparent); border-radius: 999px; min-width: 4px; }
+.fair-median, .fair-you { position: absolute; top: -5px; width: 3px; height: 22px; margin-left: -1px; border-radius: 2px; }
+.fair-median { background: var(--success, #22c55e); }
+.fair-you { background: var(--accent, #3b82f6); width: 4px; }
+.fair-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; color: var(--text-secondary, #96a7c2); }
+.lg { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+.lg-median { background: var(--success, #22c55e); }
+.lg-you { background: var(--accent, #3b82f6); margin-left: 6px; }
+.city-chips { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.city-chips a { display: inline-flex; align-items: baseline; gap: 8px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border-light, #2c3d5c); background: var(--bg-secondary, #0f1729); color: var(--text-primary, #e6edf7); text-decoration: none; }
+.city-chips a:hover { border-color: var(--accent, #3b82f6); }
+.chip-rent { font-size: .8rem; color: var(--text-secondary, #96a7c2); }
+.fair-line { padding: 8px 12px; border-radius: 10px; background: var(--bg-card, #131c2e); border-left: 3px solid var(--accent, #3b82f6); font-size: .95rem; }
+.fair-line.verdict-typical { border-left-color: var(--success, #22c55e); }
+.fair-line.verdict-very-low, .fair-line.verdict-very-high { border-left-color: var(--error, #ef4444); }

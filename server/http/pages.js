@@ -30,6 +30,7 @@ const housingPlaces = require('../housing/places');
 const housingHpi = require('../housing/hpi');
 const everywhere = require('../aggregate/everywhere');
 const { mountBoardPages } = require('./board-pages');
+const { mountCityPages, listingFairLine } = require('./city-pages');
 
 const SITE_NAME = 'OpenVibe.Rent';
 const TAGLINE = 'Every rental site, one search.';
@@ -193,6 +194,7 @@ ${raw(showcase.features({
                 items: [
                     { icon: 'ov:search', title: 'One search, every site', text: 'Type a place once and every site above opens its own search there, with your price and bedrooms.', href: '/everywhere' },
                     { icon: 'ov:check', title: 'Your board', text: 'Keep the listings you like from any site in one list, with your notes and how far you got.', href: '/board' },
+                    { icon: 'ov:map', title: 'Is the rent fair?', text: 'What rent usually costs in 885 US cities by size, and a check for any price you are quoted, from Census data.', href: '/in' },
                     { icon: 'ov:bell', title: 'Alerts that keep looking', text: 'Save a search and get alerts through OpenVibe.Watch when something new matches.' },
                     { icon: 'ov:gauge', title: 'Safety first', text: 'Never pay or send a deposit before you have seen the place and signed an agreement. Reported listings are hidden until staff look.', href: '/safety' },
                 ],
@@ -538,11 +540,13 @@ ${listings.REASONS.map((x) => html`<option value="${x}">${x === 'scam' ? 'It loo
             description: truncate(`${listings.KIND_TEXT[row.kind] || row.kind} in ${whereOf(row)} — ${row.description}`, 160),
             crumbs: [{ label: 'Home', href: '/' }, { label: 'Listings', href: '/listings' }, { label: truncate(row.title, 60) }],
             jsonLd: [listingJsonLd(row), seo.jsonLd.breadcrumbs([{ name: SITE_NAME, url: `${base()}/` }, { name: 'Listings', url: `${base()}/listings` }, { name: row.title, url: `${base()}/listings/${row.id}` }])],
+            localStyles: ['css/cities.css'],
             body: html`<article class="listing-page">
 <h1>${row.title}</h1>
 <p class="listing-facts">${stateBadge(row.state)} <span class="badge">${listings.KIND_TEXT[row.kind] || row.kind}</span> ${priceOf(row)}</p>
 <p class="where"><b>${whereOf(row)}</b>${row.region ? html` <span class="muted small">(${row.region})</span>` : ''}${row.neighbourhood ? '' : html` <span class="muted small">— the neighbourhood is not given</span>`}</p>
 <p class="facts small muted">${row.bedrooms == null ? '' : html`${row.bedrooms} bedroom${Number(row.bedrooms) === 1 ? '' : 's'} · `}${row.available_from ? html`available from ${row.available_from} · ` : ''}posted ${time(row.created_at)} · ${row.state === 'expired' ? 'expired' : 'expires'} ${time(row.expires_at)}</p>
+${listingFairLine(row)}
 
 ${notice(listings.SAFETY, 'warn')}
 
@@ -841,6 +845,7 @@ ${it.newCount ? html` <span class="badge info">${it.newCount} new</span>` : html
 
     // ── The board: listings kept from any site (http/board-pages.js) ──
     mountBoardPages(r, { config, s, page, signedIn, requesterOf, mustSignIn, budgeted, sameSite, signInPrompt });
+    mountCityPages(r, { config, page });
 
     // ── Reporting ────────────────────────────────────────────
     r.post('/listings/:id/reports', mustSignIn('/listings'), budgeted('rent.listing.report'), async (req, res) => {

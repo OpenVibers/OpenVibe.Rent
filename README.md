@@ -10,6 +10,15 @@ public housing authorities and housing counselling agencies) near a place a visi
 **License:** AGPL-3.0 (same as every OpenVibe service).
 
 
+**Rent by city** (`/in`, `/in/<state>`, `/in/<state>/<city>`, `/fair`; [server/http/city-pages.js](server/http/city-pages.js),
+[server/aggregate/cities.js](server/aggregate/cities.js)): a page for every US place of 50,000 people or more and each
+state's largest (885, all 50 states, DC and Puerto Rico) with the median gross rent by number of bedrooms and its margin
+of error, every rental site's search for that city, affordable housing, homes for sale and nearby cities; state pages
+and an index; and **Is this rent fair?**, which places a quoted rent against the city's median for that size (within the
+margin is typical; far below warns of scams). A listing posted here in a listed US city shows the same line. All of them
+are in the sitemap and llms.txt. The data is `server/data/cities.json`, built by `node tools/build-cities.js <dir>` from the
+Census Bureau's keyless ACS 5-year table files and gazetteer (see the script for the URLs); nothing is fetched at run time.
+
 **OpenVibe.Homes** (since 2026-10-15, https://openvibe.homes): the buying side, served by this process for its own host
 (`server/homes`, `deploy/nginx/openvibe.homes.conf`).
 - **Search:** one place opens every for-sale site's own search (Zillow, Realtor.com, Redfin by ZIP, Homes.com, Trulia,
@@ -206,6 +215,11 @@ edit, report or save anything here — a listing is somebody's own — so no rou
 scraped, imported or fetched from anywhere. There is no outbound fetch for a listing at all — a contact URL is stored
 as text and shown as a link, and this service never opens it (a URL a caller sent must never decide what this service
 requests).
+
+**Typical rents** (Rent by city, `/fair`) come from the **U.S. Census Bureau's American Community Survey** 5-year
+estimates, table B25031 (median gross rent by bedrooms) and B01003 (population), with place points from the Census
+gazetteer: public domain, cited on every page with the years. A median the Census does not publish is shown as "not
+published", and its top code is shown as "$3,500 or more", never as a number.
 
 **Affordable housing near you** has three verified, open sources ([server/housing/upstream.js](server/housing/upstream.js)
 and [server/housing/hpi.js](server/housing/hpi.js)):

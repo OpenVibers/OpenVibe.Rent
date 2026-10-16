@@ -16,10 +16,11 @@ const seo = require('openvibe-shared/seo');
 const cache = require('openvibe-shared/cache-policy');
 const { asyncRouter } = require('./router');
 const store = require('../listings/store');
+const cities = require('../aggregate/cities');
 const listings = require('../listings/listings');
 
 const SITE_NAME = 'OpenVibe.Rent';
-const DESCRIPTION = 'OpenVibe.Rent — one place to find and offer things to rent: apartments, rooms, houses, commercial space, parking and storage, and equipment. Listings are posted by people; no payments are handled here.';
+const DESCRIPTION = 'OpenVibe.Rent — every rental site, one search: apartments, houses, rooms, furnished stays, commercial space, parking, storage and cars across Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper and more, with typical rents for 885 US cities, one board for listings from anywhere, and listings people post here.';
 const DISALLOW = ['/auth/', '/api/', '/post', '/mine', '/saved', '/board', '/staff'];
 // A sitemap floor and a ceiling that keeps llms-full.txt inside its own byte budget, so the two stay in step.
 const LISTINGS_MAX = 1000;
@@ -51,10 +52,18 @@ async function publicPages(s) {
         { path: '/everywhere', changefreq: 'weekly', priority: 0.9, title: 'Search every rental site', text: 'One search across Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper, Rent.com and more: apartments, houses, rooms, furnished stays, commercial space, parking, storage and cars.' },
         { path: '/housing', changefreq: 'daily', priority: 0.8, title: 'Affordable housing near you', text: 'Public housing, tax-credit (LIHTC) and HUD-assisted properties, and the authorities and counselling agencies to apply through, near a place — from U.S. Department of Housing and Urban Development open data (public domain).' },
         { path: '/listings', changefreq: 'hourly', priority: 0.9, title: 'Listings for rent', text: 'Search every active listing by kind, city, country, price and period, newest first.' },
+        { path: '/in', changefreq: 'monthly', priority: 0.8, title: 'Rent by city', text: `What rent usually costs in ${cities.cities.length} US cities, by number of bedrooms (Census Bureau ACS), with every rental site's search for each city.` },
+        { path: '/fair', changefreq: 'monthly', priority: 0.7, title: 'Is this rent fair?', text: 'Check a monthly rent from any site against the middle rent for that size in the city, from the Census Bureau.' },
         { path: '/safety', changefreq: 'monthly', priority: 0.6, title: 'Renting safely', text: 'Never pay or send a deposit before you have seen the place and signed an agreement. OpenVibe does not handle payments for listings.' },
         // /post is a form behind sign-in and robots.txt disallows it, so it is deliberately not a sitemap page.
         { path: '/updates', changefreq: 'daily', priority: 0.5, title: `What shipped on ${SITE_NAME}`, text: 'This site\'s update log, from the network changelog feed.' },
     ];
+    // Rent by city: a page per state and per city (server/http/city-pages.js).
+    for (const st of cities.states()) static_.push({ path: `/in/${st.slug}`, changefreq: 'monthly', priority: 0.6, title: `Renting in ${st.name}`, text: `Typical rents in ${st.count} ${st.name} ${st.count === 1 ? 'city' : 'cities'}, by number of bedrooms.` });
+    for (const c of cities.cities) {
+        const two = cities.rentText(c.rent.b2);
+        static_.push({ path: c.path, changefreq: 'monthly', priority: 0.6, title: `Renting in ${c.name}, ${c.state}`, text: `${two ? `Typical 2-bedroom rent ${two}. ` : ''}Every rental site's search for ${c.name}.` });
+    }
     if (!s) return static_;
     const out = await store.search(s, listings.normalizeFilters({}), { limit: LISTINGS_MAX });
     return [...static_, ...out.rows.map((row) => ({
@@ -80,11 +89,13 @@ function createDiscoveryRoutes(ctx) {
         res.type('text/plain').set('Cache-Control', TEXT).send(seo.llmsTxt({
             name: SITE_NAME,
             summary: DESCRIPTION,
-            details: 'Every page is server-rendered and readable without JavaScript. In this first version the listings are posted by people on this site: there are no scraped listings and no partner feeds — other sources arrive only when their terms are verified. There are no payments, no deposits and no messaging; a listing carries a way to make contact and nothing more. A listing names a city and a neighbourhood, never a street address. OpenVibe does not handle payments for listings, and the safety rule is on every listing page: never pay or send a deposit before you have seen the place and signed an agreement. Affordable housing near you comes from the U.S. Department of Housing and Urban Development open data (public domain): public housing, tax-credit and HUD-assisted properties, public housing authorities and housing counselling agencies.',
+            details: 'OpenVibe.Rent is a rental aggregator. Search everywhere takes one place and set of filters and opens the matching search on every major rental site (Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper, Rent.com, RentCafe, Apartment List, PadMapper, HotPads, Trulia, Realtor.com, and for rooms, stays, commercial space, parking, storage and cars the sites that cover them); the listings open on those sites, in the person\'s own browser. Rent by city has a page for 885 US cities with the typical (median gross) rent by number of bedrooms from the Census Bureau\'s American Community Survey, and /fair checks any quoted rent against it. The board keeps listings from any site in one list, saved searches send alerts through OpenVibe.Watch, and people post listings here too (a city and a neighbourhood, never a street address). Affordable housing comes from U.S. HUD open data (public domain). There are no payments, no deposits and no messaging on OpenVibe.Rent: never pay before you have seen the place and signed an agreement. Every page is server-rendered and readable without JavaScript.',
             sections: [
                 { title: 'Start here', links: [
                     { title: 'OpenVibe.Rent', url: abs('/'), note: 'find something to rent, or offer your own' },
                     { title: 'Search every rental site', url: abs('/everywhere'), note: 'one place and filters open Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper and more at once' },
+                    { title: 'Rent by city', url: abs('/in'), note: 'typical rents by size in 885 US cities (Census ACS), with every rental site\'s search for each city' },
+                    { title: 'Is this rent fair?', url: abs('/fair'), note: 'a quoted monthly rent against the city\'s median for that size' },
                     { title: 'Affordable housing', url: abs('/housing'), note: 'public housing, LIHTC and HUD-assisted properties, and where to apply, near you' },
                     { title: 'Listings', url: abs('/listings'), note: 'search by kind, city, country, price and period' },
                     { title: 'Renting safely', url: abs('/safety'), note: 'the rules, including the one about deposits' },
