@@ -50,6 +50,17 @@ const cities = require('../server/aggregate/cities');
         assert.strictEqual(cities.fair({ city: a, beds: 2, rent: -5 }), null);
     });
 
+    await check('reading a listing: rent, bedrooms and city from Craigslist, Zillow and Apartments.com addresses and titles; nothing invented', () => {
+        const cl = cities.readListing({ url: 'https://austin.craigslist.org/apa/d/austin-sunny/7712345.html', title: '$1,850 / 2br - 900ft2 - Sunny two bed near Zilker' });
+        assert.deepStrictEqual([cl.rent, cl.beds, cl.city.path, cl.read], [1850, 2, '/in/tx/austin', ['rent', 'beds', 'city']]);
+        assert.strictEqual(cities.readListing({ url: 'https://www.zillow.com/homedetails/123-Main-St-Salt-Lake-City-UT-84111/1_zpid/' }).city.path, '/in/ut/salt-lake-city');
+        assert.strictEqual(cities.readListing({ url: 'https://www.apartments.com/the-bowie-austin-tx/7gd3w0p/' }).city.path, '/in/tx/austin');
+        const studio = cities.readListing({ title: 'Studio for $1,200 in Denver, CO' });
+        assert.deepStrictEqual([studio.rent, studio.beds, studio.city.path], [1200, 0, '/in/co/denver']);
+        assert.deepStrictEqual(cities.readListing({ url: 'https://example.com/', title: 'Call for price, 12345 sq ft' }).read, [], 'no amount, size or city: nothing');
+        assert.strictEqual(cities.readListing({ title: '$45 deposit' }).rent, null, 'under $100 is not a monthly rent');
+    });
+
     const t = await boot();
     const kim = t.network.addUser('kim');
 
@@ -87,6 +98,13 @@ const cities = require('../server/aggregate/cities');
         assert.ok(typed.text.includes('About typical'));
         const unknown = await t.get('/fair?where=Nowhereville&beds=1&rent=900');
         assert.ok(unknown.text.includes('No city of 50,000 people or more called'));
+        const fromCl = await t.get(`/fair?${new URLSearchParams({ url: 'https://austin.craigslist.org/apa/d/x/1.html', title: '$1,200 / 2br - Sunny two bed' })}`);
+        assert.ok(fromCl.text.includes('Read from the listing: the rent ($1,200), 2 bedrooms, the city (Austin, TX)') && fromCl.text.includes('Well below typical'), 'judged from the listing, saying what was read');
+        assert.match(fromCl.text, /<meta name="robots" content="noindex, nofollow">/);
+        const partial = await t.get(`/fair?${new URLSearchParams({ url: 'https://www.zillow.com/homedetails/1-Main-St-Austin-TX-78701/1_zpid/', title: 'A home' })}`);
+        assert.ok(partial.text.includes('Read from the listing: the city (Austin, TX). Check them below and fill in the rest.') && !partial.text.includes('fair-result'));
+        const nothing = await t.get(`/fair?${new URLSearchParams({ url: 'https://example.com/', title: 'Hello' })}`);
+        assert.ok(nothing.text.includes('did not say its rent, size and city plainly'));
         const blank = await t.get('/fair');
         assert.match(blank.text, /<meta name="robots" content="index, follow">/);
         assert.ok(!blank.text.includes('fair-result'));
