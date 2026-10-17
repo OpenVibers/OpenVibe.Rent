@@ -52,6 +52,14 @@ function createHomesRoutes(ctx) {
 </div>
 <p><button class="sc-btn sc-primary" type="submit">Search every site</button></p></form>`;
 
+    // ── The update log (every OpenVibe site has one): this repository's, shared with OpenVibe.Rent ──
+    r.get('/updates', (req, res) => page(req, res, {
+        index: true, cache: PUBLIC_CACHE,
+        title: 'What shipped on OpenVibe.Homes',
+        description: 'Every change deployed to OpenVibe.Homes and OpenVibe.Rent, newest first, from the OpenVibe network\'s shared update log.',
+        body: raw(require('openvibe-shared/frame').updatesBody({ service: 'rent', siteName: 'OpenVibe.Homes' }) + `<script src="${require('openvibe-shared/serve').url('shipped.js')}" defer></script>`),
+    }));
+
     // ── Home ─────────────────────────────────────────────────
     r.get('/', (req, res) => page(req, res, {
         index: true, cache: PUBLIC_CACHE,
