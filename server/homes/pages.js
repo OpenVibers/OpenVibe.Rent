@@ -19,6 +19,8 @@
 const express = require('express');
 const cache = require('openvibe-shared/cache-policy');
 const showcase = require('openvibe-shared/showcase');
+const seo = require('openvibe-shared/seo');
+const HOMES_SUMMARY = 'Buying a home: one search across Zillow, Realtor.com, Redfin, Homes.com, Trulia and Craigslist, with HUD and Fannie Mae homes, foreclosure auctions and county property records.';
 const { send } = require('../render/layout');
 const { html, raw, notice } = require('../render/html');
 const sites = require('./sites');
@@ -53,6 +55,11 @@ function createHomesRoutes(ctx) {
     // ── Home ─────────────────────────────────────────────────
     r.get('/', (req, res) => page(req, res, {
         index: true, cache: PUBLIC_CACHE,
+        // What the site is, for search engines (WebSite + WebPage, as the other OpenVibe homes say it).
+        jsonLd: [
+            seo.jsonLd.website({ name: 'OpenVibe.Homes', url: base, description: HOMES_SUMMARY }),
+            seo.jsonLd.webPage({ name: 'OpenVibe.Homes', url: `${base}/`, description: HOMES_SUMMARY, siteUrl: base }),
+        ],
         description: 'Buying a home: one search opens Zillow, Realtor.com, Redfin, Homes.com, Trulia and Craigslist, with HUD and Fannie Mae homes, foreclosure auctions, county property records and a mortgage calculator.',
         styles: [showcase.STYLESHEET], localStyles: ['css/everywhere.css', 'css/homes.css'],
         body: html`${raw(showcase.hero({

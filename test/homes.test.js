@@ -74,6 +74,7 @@ const housingFetchImpl = async (url) => (new URL(String(url)).pathname.endsWith(
             const r = await homes('/');
             assert.strictEqual(r.status, 200);
             assert.ok(r.text.includes('Buying a home?') && r.text.includes('OpenVibe.Homes'));
+            assert.ok(/<script type="application\/ld\+json">[^<]*"@type":"WebSite"[^<]*"name":"OpenVibe.Homes"/.test(r.text), 'the home says what the site is (JSON-LD)');
             assert.ok(r.text.includes('<link rel="canonical" href="https://openvibe.homes/">'), 'its own canonical');
             const rent = await t.get('/');
             assert.ok(!rent.text.includes('Buying a home?'), 'Rent still serves Rent');
