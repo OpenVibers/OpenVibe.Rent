@@ -16,7 +16,7 @@
 .housing-group { margin-top: 26px; }
 .housing-group h3 { margin: 0 0 2px; font-size: 1.15rem; }
 .housing-explain { margin: 0 0 10px; color: var(--text-secondary, #96a7c2); font-size: .92rem; max-width: 760px; }
-.housing-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
+.housing-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(290px, 100%), 1fr)); }
 .housing-card { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border, #1f2d47); background: var(--bg-card, #131c2e); }
 .housing-card p { margin: 0; }
 .housing-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
