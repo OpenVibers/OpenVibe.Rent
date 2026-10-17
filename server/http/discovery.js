@@ -21,7 +21,10 @@ const listings = require('../listings/listings');
 
 const SITE_NAME = 'OpenVibe.Rent';
 const DESCRIPTION = 'OpenVibe.Rent — every rental site, one search: apartments, houses, rooms, furnished stays, commercial space, parking, storage and cars across Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper and more, with typical rents for 885 US cities, one board for listings from anywhere, and listings people post here.';
-const DISALLOW = ['/auth/', '/api/', '/post', '/mine', '/saved', '/board', '/staff'];
+// /everywhere?… and /housing?… are live searches that ask other rental sites on each visit: crawlers get the landing
+// pages and the city pages (/in/…), not every query. GPTBot crawled 1,500 such queries on 2026-10-16 and was
+// refused by the per-address limit for about 1,000 of them.
+const DISALLOW = ['/auth/', '/api/', '/post', '/mine', '/saved', '/board', '/staff', '/everywhere?', '/housing?'];
 // A sitemap floor and a ceiling that keeps llms-full.txt inside its own byte budget, so the two stay in step.
 const LISTINGS_MAX = 1000;
 

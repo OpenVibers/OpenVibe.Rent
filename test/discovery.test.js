@@ -24,6 +24,9 @@ const PRIVATE = ['/auth/', '/api/'];
             assert.match(r.headers.get('cache-control') || '', /public, max-age=\d+/);
             for (const d of ['/auth/', '/api/']) assert.ok(r.text.includes(`Disallow: ${d}`), `missing Disallow: ${d}`);
             for (const d of ['/updates']) assert.ok(!r.text.includes(`Disallow: ${d}`), `${d} must stay crawlable`);
+            // Live searches of other rental sites are not crawled per query; their landing pages and the city pages are.
+            for (const d of ['/everywhere?', '/housing?']) assert.ok(r.text.includes(`Disallow: ${d}`), `missing Disallow: ${d}`);
+            for (const d of ['/everywhere', '/housing', '/in/']) assert.ok(!new RegExp(`^Disallow: ${d.replace(/\//g, '\\/')}$`, 'm').test(r.text), `${d} must stay crawlable`);
             assert.ok(r.text.includes('Sitemap: https://openvibe.rent/sitemap.xml'), 'sitemap not named');
             assert.ok(/^User-agent: \*$/m.test(r.text), 'no User-agent: * group');
         });
