@@ -19,6 +19,12 @@ margin is typical; far below warns of scams). A listing posted here in a listed 
 are in the sitemap and llms.txt, and each city page is an OpenVibe.Search document (type `city`, id `<state>-<slug>`,
 sent by the search sweep; contracts 0.197.0). The data is `server/data/cities.json`, built by `node tools/build-cities.js <dir>` from the
 Census Bureau's keyless ACS 5-year table files and gazetteer (see the script for the URLs); nothing is fetched at run time.
+Beside the Census medians, each city page shows **HUD's Fair Market Rents** for the city's FMR area (a studio to four
+bedrooms, rent plus essential utilities, what Housing Choice Vouchers are measured against), and the fair check names
+the one for that size. Rent reads them from OpenVibe.Sources (`hud-fair-market-rents`, category `housing`,
+`sources.item.read`), never from HUD ([server/housing/fair-market-rents.js](server/housing/fair-market-rents.js)); which
+area a city lies in is `server/data/city-fmr-areas.json`, built once by `node tools/build-fmr-areas.js` from each city's
+Census point on HUD's own FMR layer.
 
 **OpenVibe.Homes** (since 2026-10-15, https://openvibe.homes): the buying side, served by this process for its own host
 (`server/homes`, `deploy/nginx/openvibe.homes.conf`).
@@ -113,6 +119,10 @@ Rent's own data is its PostgreSQL database ([server/db.js](server/db.js)); the `
 - **`area_price_index`** — the FHFA House Price Index rows behind "Home prices around here": the last six years of
   traditional, all-transactions, quarterly State and MSA index values, replaced whole on each refresh
   ([migrations/0006_area_price_index.sql](migrations/0006_area_price_index.sql)).
+- **`rent_fmr_areas`**, **`rent_ingest_cursor`** (0010) — HUD's Fair Market Rents as OpenVibe.Sources holds them, one row
+  per FMR area (HUD's code and name, the five monthly rents), and the cursor in Sources' change feed; an area Sources
+  removes is deleted. Public domain; nothing about a person
+  ([migrations/0010_fair_market_rents.sql](migrations/0010_fair_market_rents.sql)).
 - **`telemetry_samples`** — request telemetry (`platform.telemetry-sample@1`): each request by route template, method
   and status class, never the raw URL. Once a minute one `http.request` sample per key, plus the active-requests,
   p95 latency and event-loop-lag gauges, is written; rows over 14 days old are deleted daily. `/shared` files,
@@ -227,6 +237,11 @@ requests).
 estimates, table B25031 (median gross rent by bedrooms) and B01003 (population), with place points from the Census
 gazetteer: public domain, cited on every page with the years. A median the Census does not publish is shown as "not
 published", and its top code is shown as "$3,500 or more", never as a number.
+
+**Fair Market Rents** come from **HUD** through **OpenVibe.Sources**, which reads HUD's Fair Market Rents layer once a
+week under its robots and terms checks: public domain (US federal work), cited under every city table with a link to
+https://www.huduser.gov/portal/datasets/fmr.html. Rent itself never calls HUD for them; the one-time area build
+(`tools/build-fmr-areas.js`) is a developer step, about 900 point queries at most one a second.
 
 **Affordable housing near you** has three verified, open sources ([server/housing/upstream.js](server/housing/upstream.js)
 and [server/housing/hpi.js](server/housing/hpi.js)):

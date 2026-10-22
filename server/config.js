@@ -93,6 +93,9 @@ function load(env = process.env) {
         // OpenVibe.AI → the listing screen (server/listings/screen.js): each posted or edited listing is read by the
         // rent.screen_listing workflow for the signs of a rental scam, for staff. Unset: off (nothing is screened).
         aiUrl: trim(env.OV_AI_INTERNAL_URL || ''),
+        // OpenVibe.Sources (server/housing/fair-market-rents.js): HUD's Fair Market Rents, read from its housing category
+        // with this service's token (sources.item.read). Rent never asks HUD for them itself. Empty: off.
+        sources: { internalUrl: trim(env.OV_SOURCES_INTERNAL_URL == null ? 'http://127.0.0.1:4720' : env.OV_SOURCES_INTERNAL_URL) },
         events: {
             secrets: String(env.RENT_EVENTS_SECRET || '').split(',').map((x) => x.trim()).filter(Boolean),
             url: trim(env.RENT_EVENTS_URL || env.EVENTS_URL || ''),

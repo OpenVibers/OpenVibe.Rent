@@ -10,6 +10,9 @@
  *   GET /in/:state              a state's cities and their typical rents by size
  *   GET /in/:state/:city        one city: typical rents, a fair-rent check, every site's search, what is here, nearby
  *   GET /fair                   is a rent fair? (city, bedrooms, monthly rent) → where it sits against the median
+ *
+ * Where HUD's Fair Market Rents are known for a city's area (server/housing/fair-market-rents.js, from OpenVibe.Sources),
+ * the city page shows them beside the Census medians and the check names the one for that size.
  */
 
 const seo = require('openvibe-shared/seo');
@@ -30,8 +33,12 @@ const cell = (c, key) => {
     return v ? html`${v}${c.moe[key] && c.rent[key] < 3501 ? html` <span class="moe">±$${c.moe[key].toLocaleString('en-US')}</span>` : ''}` : html`<span class="muted">not published</span>`;
 };
 const placeLabel = (c) => `${c.name}, ${c.state}`;
+const { HUD_URL } = require('../housing/fair-market-rents');
+const fmrText = (n) => (n == null ? null : `$${n.toLocaleString('en-US')}`);
+/** What a Fair Market Rent is, under the city table (HUD's own definition and use, in short). */
+const fmrSource = (area) => html`<p class="small muted city-source">HUD Fair Market Rent for the ${area.name}: what a modest rental there costs, rent plus essential utilities, by HUD's estimate. HUD sets them each October; Housing Choice Vouchers pay up to 90% to 110% of them. <a href="${HUD_URL}" rel="noopener">HUD</a> (public domain), through OpenVibe.Sources.</p>`;
 
-function mountCityPages(r, { config, page }) {
+function mountCityPages(r, { config, page, fmr = null }) {
     const base = () => String(config.baseUrl).replace(/\/+$/, '');
     const crumbsLd = (items) => seo.jsonLd.breadcrumbs(items.map((i) => ({ name: i.label, url: `${base()}${i.href}` })));
 
@@ -96,6 +103,7 @@ ${source()}
         const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
         const near = cities.nearby(c, 8);
         const two = cities.rentText(c.rent.b2);
+        const area = fmr ? fmr.forCity(c) : null;
         page(req, res, {
             title: `Rent in ${where}: typical rents and every rental site`,
             description: `${two ? `A typical 2-bedroom in ${where} rents for ${two} a month. ` : ''}Every rental site's search for ${c.name} in one place: Craigslist, Zillow, Apartments.com, Zumper and more, with typical rents by size and affordable housing nearby.`,
@@ -107,10 +115,14 @@ ${source()}
 <p class="sc-lede">Every rental site's search for ${c.name} in one place, what rent usually costs here, and a quick check for a price you were quoted.</p>
 <div class="city-top">
 <section class="rent-card" aria-labelledby="h-typical"><h2 id="h-typical">What rent costs in ${c.name}</h2>
-<table class="rent-sizes"><caption class="sr-only">Median gross rent by size in ${where}</caption><tbody>
+${area ? html`<table class="rent-sizes rent-sizes-fmr"><caption class="sr-only">Median gross rent (Census) and HUD Fair Market Rent by size in ${where}</caption>
+<thead><tr><td></td><th scope="col">Middle rent</th><th scope="col">HUD fair market</th></tr></thead><tbody>
+${cities.SIZES.map((s) => html`<tr><th scope="row">${s.text}</th><td>${cell(c, s.key)}</td><td>${fmrText(area.rents[s.key]) || html`<span class="muted">—</span>`}</td></tr>`)}
+<tr class="rent-all"><th scope="row">All rentals</th><td>${cell(c, 'all')}</td><td></td></tr></tbody></table>
+${source()}${fmrSource(area)}` : html`<table class="rent-sizes"><caption class="sr-only">Median gross rent by size in ${where}</caption><tbody>
 ${cities.SIZES.map((s) => html`<tr><th scope="row">${s.text}</th><td>${cell(c, s.key)}</td></tr>`)}
 <tr class="rent-all"><th scope="row">All rentals</th><td>${cell(c, 'all')}</td></tr></tbody></table>
-${source()}</section>
+${source()}`}</section>
 <section class="fair-card" aria-labelledby="h-fair"><h2 id="h-fair">Is a rent fair?</h2><p class="small muted">Compare a price from any site with the middle rent in ${c.name}.</p>${fairForm({}, { city: c })}</section>
 </div>
 <section class="sc-sec" aria-labelledby="h-sites"><h2 id="h-sites">Apartments in ${c.name}, on every site</h2>
@@ -164,6 +176,7 @@ ${source()}`,
 
     /** The verdict and a bar: the middle rent with its margin, and where the asked rent falls. */
     function fairResult(city, f, rent) {
+        const area = fmr ? fmr.forCity(city) : null;
         const max = Math.max(rent, f.median) * 1.35;
         const pct = (n) => Math.max(0, Math.min(100, (n / max) * 100)).toFixed(1);
         const lo = Math.max(0, f.median - f.moe); const hi = f.median + f.moe;
@@ -172,6 +185,7 @@ ${source()}`,
 <p>${f.text}</p>
 <div class="fair-bar" aria-hidden="true"><span class="fair-band" style="left:${pct(lo)}%;width:${(pct(hi) - pct(lo)).toFixed(1)}%"></span><span class="fair-median" style="left:${pct(f.median)}%"></span><span class="fair-you" style="left:${pct(rent)}%"></span></div>
 <p class="fair-legend small"><span class="lg lg-median"></span> Middle rent ${f.topped ? '$3,500 or more' : `$${f.median.toLocaleString('en-US')}`}${f.moe && !f.topped ? ` (±$${f.moe.toLocaleString('en-US')})` : ''} <span class="lg lg-you"></span> This rent $${rent.toLocaleString('en-US')}</p>
+${area && fmrText(area.rents[f.size.key]) ? html`<p class="small">HUD's Fair Market Rent for ${f.size.long} in the ${area.name} is ${fmrText(area.rents[f.size.key])} a month, rent plus essential utilities: the figure a Housing Choice Voucher is measured against.</p>` : ''}
 <p class="small"><a href="${city.path}">Typical rents and every rental site in ${city.name}</a></p>
 </section>`;
     }
