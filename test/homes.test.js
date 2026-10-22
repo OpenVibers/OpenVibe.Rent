@@ -79,6 +79,10 @@ const housingFetchImpl = async (url) => (new URL(String(url)).pathname.endsWith(
             assert.ok(up.text.includes('What shipped on OpenVibe.Homes') && up.text.includes('data-ov-shipped'));
             assert.ok(/<script type="application\/ld\+json">[^<]*"@type":"WebSite"[^<]*"name":"OpenVibe.Homes"/.test(r.text), 'the home says what the site is (JSON-LD)');
             assert.ok(r.text.includes('<link rel="canonical" href="https://openvibe.homes/">'), 'its own canonical');
+            assert.ok(r.text.includes('What homes are worth in the largest cities') && r.text.includes('href="/in/ny/new-york"'), 'the largest cities\' home values, each opening its city page');
+            assert.ok(r.text.includes('Where homes cost least and most') && r.text.includes('Homes by state'), 'the cheapest and dearest big cities, and every state');
+            assert.ok(r.text.includes('Questions people ask') && /"@type":"FAQPage"/.test(r.text) && /"@type":"ItemList"/.test(r.text), 'the questions shown are the FAQPage; the cities are an ItemList');
+            assert.ok(!r.text.includes('Where home prices moved'), 'no price-trend block without FHFA rows');
             const rent = await t.get('/');
             assert.ok(!rent.text.includes('Buying a home?'), 'Rent still serves Rent');
             assert.strictEqual((await homes('/listings')).status, 404, 'Rent\'s pages are not on the Homes host');

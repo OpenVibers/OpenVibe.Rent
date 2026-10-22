@@ -17,15 +17,19 @@ const { measure, check, format } = require('openvibe-shared/perf-budget');
 // Raised on 2026-10-08 for the product's home page: it is no longer the skeleton's, so the measurement moved from
 // 24.9/6.2 KB to 28.4/6.5 KB (search box, latest listings, how it works, where the listings come from, cta). The
 // budget keeps the same ~10% headroom over the new measurement; the other lines are unchanged.
+// Raised on 2026-10-22 for the curated home (the owner's "rich content on the home page"): counts, the kinds, the 12
+// largest cities' rents, the cheapest and dearest big cities, every state, every site searched, HUD links, Homes, the
+// product's questions, and ItemList + FAQPage JSON-LD. Measured 49.3/10.8 KB HTML and 25.5/5.9 KB CSS with one more
+// file (css/home.css); the budgets keep about 10% headroom over that.
 const BUDGETS = {
-    htmlRawKB: 33.5,   // measured 31.0 (real glyphs for page, db, deploy and gauge icons, shared 2.21.1); was 31.5
-    htmlBrotliKB: 8.5,   // 8.1 on 2026-10-16 (Rent by city: the largest cities' rents where an empty "posted here" was); 7.4 before
+    htmlRawKB: 54,   // 49.3 on 2026-10-22 (the curated home); 31.0 before
+    htmlBrotliKB: 12,   // 10.8 on 2026-10-22; 8.1 on 2026-10-16 (Rent by city: the largest cities' rents where an empty "posted here" was); 7.4 before
     jsFiles: 5,   // 5 (theme-loader, web-runtime, navbar, footer, boost: openvibe-shared/shell)
     jsRawKB: 264,   // 239.8
     jsBrotliKB: 62.5,   // 56.5
-    cssFiles: 2,   // 2 (app.css + the cached /shared/showcase.css)
-    cssRawKB: 21.5,   // 19.4 with the listing cards and the search panel
-    cssBrotliKB: 5.1,   // 4.6
+    cssFiles: 3,   // 3 (app.css, the cached /shared/showcase.css, css/home.css)
+    cssRawKB: 28,   // 25.5 with the home's cards, ranks, chips and questions; 19.4 before
+    cssBrotliKB: 6.5,   // 5.9; 4.6 before
     externalFiles: 0,   // 0
 };
 
