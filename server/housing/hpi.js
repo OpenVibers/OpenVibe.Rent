@@ -243,6 +243,46 @@ async function areaPricesFor(s, location) {
     return { place: pick.place_name, level: pick.level, ...c, source: { name: SOURCE.name, url: SOURCE.url } };
 }
 
+/**
+ * The past year's change for every state and metro area, for the homes' "where prices moved" lists: the latest quarter
+ * against the same quarter a year before, from the stored rows only. → { latest: 'Q2 2026', states: [...], metros:
+ * [...] } with each row { level, place_id, place_name, states, year_change_pct }, highest change first, or null when
+ * nothing is stored. Held for an hour per store (the index is published monthly), so a home page costs no query.
+ */
+const MOVES_TTL_MS = 60 * 60 * 1000;
+const movesCache = new WeakMap();
+async function areaMoves(s, { now = Date.now() } = {}) {
+    const hit = movesCache.get(s);
+    if (hit && now - hit.at < MOVES_TTL_MS) return hit.value;
+    const rows = await s.db.many(
+        `SELECT level, place_id, place_name, states, yr, quarter, index_nsa FROM area_price_index
+          WHERE yr >= (SELECT max(yr) - 1 FROM area_price_index) ORDER BY level, place_id, yr, quarter`, []);
+    const groups = new Map();
+    let top = null;
+    for (const r of rows) {
+        const k = Number(r.yr) * 10 + Number(r.quarter);
+        if (top == null || k > top) top = k;
+        const key = `${r.level}:${r.place_id}`;
+        if (!groups.has(key)) groups.set(key, { level: r.level, place_id: r.place_id, place_name: r.place_name, states: r.states, series: [] });
+        groups.get(key).series.push(r);
+    }
+    const latest = top == null ? null : `Q${top % 10} ${Math.floor(top / 10)}`;
+    const out = { states: [], metros: [] };
+    for (const g of groups.values()) {
+        const c = changes(g.series);
+        if (!c || c.year_change_pct == null) continue;
+        (g.level === 'state' ? out.states : out.metros).push({ level: g.level, place_id: g.place_id, place_name: g.place_name, states: g.states, year_change_pct: c.year_change_pct, latest: c.latest });
+    }
+    const byChange = (a, b) => b.year_change_pct - a.year_change_pct || a.place_name.localeCompare(b.place_name);
+    out.states.sort(byChange);
+    out.metros.sort(byChange);
+    // Only places on the most recent quarter count, so a place whose series stopped early is not ranked as current.
+    const recent = (list) => list.filter((x) => x.latest === latest);
+    const value = latest ? { latest, states: recent(out.states), metros: recent(out.metros), source: { name: SOURCE.name, url: SOURCE.url } } : null;
+    if (value) movesCache.set(s, { at: now, value });   // an empty table (before the first ingest) is asked again
+    return value;
+}
+
 /** The background ingest timer, started only by the process entry (server/index.js), never by a request or a test. */
 function startHpiTimer(config, s, {
     log = console,
@@ -275,5 +315,5 @@ function startHpiTimer(config, s, {
 
 module.exports = {
     SOURCE, ATTRIBUTION, DEFAULT_URL, DEFAULT_TTL_MS, YEARS,
-    csvRecords, ingestFromStream, refresh, replaceAll, areaPricesFor, changes, startHpiTimer,
+    csvRecords, ingestFromStream, refresh, replaceAll, areaPricesFor, areaMoves, changes, startHpiTimer,
 };

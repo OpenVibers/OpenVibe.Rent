@@ -30,6 +30,8 @@ const housingHpi = require('../housing/hpi');
 const cities = require('../aggregate/cities');
 const { US_STATE_NAMES } = require('../aggregate/everywhere');
 const { mountHomesCityPages, cityPaths } = require('./city-pages');
+const home = require('../render/home-blocks');
+const { products } = require('openvibe-contracts');
 
 const STATE_TITLE = Object.fromEntries(Object.entries(US_STATE_NAMES).map(([code, s]) => [code, s.split('-').map((w) => (w === 'of' ? w : w[0].toUpperCase() + w.slice(1))).join(' ')]));
 const money = (n) => `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -61,33 +63,87 @@ function createHomesRoutes(ctx) {
     }));
 
     // ── Home ─────────────────────────────────────────────────
-    r.get('/', (req, res) => page(req, res, {
-        index: true, cache: PUBLIC_CACHE,
-        // What the site is, for search engines (WebSite + WebPage, as the other OpenVibe homes say it).
-        jsonLd: [
-            seo.jsonLd.website({ name: 'OpenVibe.Homes', url: base, description: HOMES_SUMMARY }),
-            seo.jsonLd.webPage({ name: 'OpenVibe.Homes', url: `${base}/`, description: HOMES_SUMMARY, siteUrl: base }),
-        ],
-        description: 'Buying a home: one search opens Zillow, Realtor.com, Redfin, Homes.com, Trulia and Craigslist, with HUD and Fannie Mae homes, foreclosure auctions, county property records and a mortgage calculator.',
-        styles: [showcase.STYLESHEET], localStyles: ['css/everywhere.css', 'css/homes.css'],
-        body: html`${raw(showcase.hero({
-            eyebrow: 'OpenVibe.Homes', title: 'Buying a home?', accent: 'Search every site at once.',
-            lede: 'Type a place once and every big for-sale site searches it for you: Zillow, Realtor.com, Redfin, Homes.com, Trulia and Craigslist, next to HUD and Fannie Mae homes, foreclosure auctions and the county\'s property records. Keep the homes you like on one board, whichever site they came from.',
-            actions: [{ label: 'Search every site', href: '#search', primary: true }, { label: 'Mortgage calculator', href: '/mortgage' }, { label: 'Property records', href: '/records' }],
-        }))}
-<section class="sc-sec" id="search" aria-labelledby="h-search"><h2 id="h-search">Search</h2>${searchForm({ kind: 'home' })}</section>
+    // Real rows only: the for-sale sites the search opens, Census home values for the same cities as Rent, and the
+    // FHFA index's past year for every state and metro area. A block with nothing to show is left out.
+    const FAQ = ((products.get('openvibe.homes') || {}).faq || []);
+    const pctText = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(Math.round(n * 10) / 10).toFixed(1)}%`;
+    /** "Denver-Aurora-Centennial, CO" → the first city's page when it is one of ours, so a metro opens its city. */
+    const metroCity = (m) => {
+        const [names, st] = String(m.place_name || '').split(',');
+        const first = String(names || '').split('-')[0].trim();
+        const state = String(st || '').trim().split('-')[0];
+        return first && state ? cities.match(`${first}, ${state}`) : null;
+    };
+    const metroRow = (m) => { const c = metroCity(m); return { name: m.place_name, href: c ? c.path : null, value: pctText(m.year_change_pct) }; };
+    async function homePage(req, res) {
+        let moves = null;
+        try { moves = await housingHpi.areaMoves(s); } catch { moves = null; }
+        const largest = home.bigCities(0).slice(0, 12);
+        const big = home.bigCities(250000).filter((c) => c.value != null && c.value < 2000001);
+        const byValue = [...big].sort((a, b) => a.value - b.value);
+        const valueRow = (c) => ({ name: `${c.name}, ${c.state}`, href: c.path, value: cities.valueText(c.value) });
+        const withValue = cities.cities.filter((c) => c.value != null).length;
+        const stateRow = (st) => ({ name: st.place_name, href: `/in/${String(st.place_id).toLowerCase()}`, value: pctText(st.year_change_pct) });
+        const kinds = sites.KINDS.map((k) => ({ k, list: sites.SITES.filter((x) => x.kinds.includes(k)) })).filter((x) => x.list.length);
+        return page(req, res, {
+            index: true, cache: PUBLIC_CACHE,
+            title: 'Homes for sale on every site, one search',
+            jsonLd: [
+                seo.jsonLd.website({ name: 'OpenVibe.Homes', url: base, description: HOMES_SUMMARY }),
+                seo.jsonLd.webPage({ name: 'OpenVibe.Homes', url: `${base}/`, description: HOMES_SUMMARY, siteUrl: base }),
+                seo.jsonLd.itemList('Median home value in the largest US cities', largest.filter((c) => c.value != null).map((c) => ({ name: `${c.name}, ${c.state}: ${cities.valueText(c.value)}`, url: `${base}${c.path}` })), { url: `${base}/in` }),
+                FAQ.length ? seo.jsonLd.faq(FAQ.map((f) => ({ q: f.question, a: f.answer }))) : null,
+            ],
+            description: 'Search Zillow, Realtor.com, Redfin, Homes.com, Trulia and Craigslist at once, with HUD and bank homes, home values for 885 cities and county records.',
+            styles: [showcase.STYLESHEET], localStyles: ['css/home.css'],
+            body: html`${raw(showcase.hero({
+                eyebrow: 'OpenVibe.Homes', title: 'Buying a home?', accent: 'Search every site at once.',
+                lede: 'Type a place once and every big for-sale site searches it for you: Zillow, Realtor.com, Redfin, Homes.com, Trulia and Craigslist, next to HUD and Fannie Mae homes, foreclosure auctions and the county\'s property records. See what homes are worth in your city and what the payment would be.',
+                actions: [{ label: 'Search every site', href: '/search', primary: true }, { label: 'Homes by city', href: '/in' }, { label: 'Mortgage calculator', href: '/mortgage' }],
+                aside: { html: String(searchForm({ kind: 'home' })) },
+            }))}
+${home.stats([
+        { value: sites.SITES.length, label: 'for-sale, land and auction sites', href: '/search' },
+        { value: withValue, label: 'US cities with home values', href: '/in' },
+        { value: moves && moves.metros.length >= 12 ? moves.metros.length : null, label: 'metro areas with a price trend', href: '#h-moves' },
+        { value: Object.keys(US_STATE_NAMES).length, label: 'states with county records', href: '/records' },
+    ], { label: 'OpenVibe.Homes in numbers' })}
+
+${home.section('kinds', 'What are you buying?', 'Every site that sells it opens at your place, with your price and bedrooms where the site takes them.',
+        html`<ul class="home-kinds">${kinds.map(({ k, list }) => html`<li><a href="/search?kind=${k}"><b>${sites.KIND_TEXT[k]}</b><span>${list.map((x) => x.name).join(', ')}</span></a></li>`)}</ul>`)}
+
+${home.section('cities', 'What homes are worth in the largest cities', html`The median value of owner-occupied homes, with the typical 2-bedroom rent beside it (Census Bureau, ${cities.SOURCE.years}). Each city page has the price trend, the monthly payment and every for-sale site there. <a href="/in">All ${cities.cities.length} cities</a>`,
+        home.cityCards(largest, (c) => ({ main: cities.valueText(c.value), mainLabel: 'median home', sub: c.rent.b2 != null ? `2-bedroom rent ${cities.rentText(c.rent.b2)}` : '' })))}
+
+${moves && moves.metros.length >= 12 ? home.section('moves', `Where home prices moved over the past year`, html`The FHFA House Price Index, ${moves.latest} against a year before: an index of repeat sales of the same homes, not a price. <a href="${moves.source.url}" rel="noopener">Source: ${moves.source.name}</a>`,
+        html`<div class="home-ranks">${home.ranked('Metro areas rising fastest', moves.metros.slice(0, 6).map(metroRow))}${home.ranked('Metro areas rising slowest or falling', moves.metros.slice(-6).reverse().map(metroRow))}${moves.states.length >= 10 ? home.ranked('States rising fastest', moves.states.slice(0, 6).map(stateRow)) : ''}</div>`) : ''}
+
+${big.length >= 10 ? home.section('range', 'Where homes cost least and most', 'Big cities (250,000 people or more) by median home value.',
+        html`<div class="home-ranks">${home.ranked('Lowest median value', byValue.slice(0, 6).map(valueRow))}${home.ranked('Highest median value', byValue.slice(-6).reverse().map(valueRow))}</div>`) : ''}
+
+${home.section('states', 'Homes by state', 'Home values for every city of 50,000 people or more, and each state\'s largest, with every for-sale site and the county records for each.', home.stateChips('/in'))}
+
+${home.section('sites', 'The sites it searches', 'Each one opens its own search at your place. Offers, inspections and payments happen with the seller or an agent on that site.',
+        html`<ul class="home-sites">${sites.SITES.map((x) => html`<li><b>${x.name}</b><span>${x.host}</span><p>${x.best}</p></li>`)}</ul>`)}
+
 ${raw(showcase.features({
             title: 'What is here',
             items: [
-                { icon: 'ov:search', title: 'Every for-sale site', text: 'Zillow, Realtor.com, Redfin, Homes.com, Trulia and Craigslist, each opened at your place and price.' },
-                { icon: 'ov:shield', title: 'Government and bank homes', text: 'HUD Homestore, Fannie Mae HomePath and foreclosure auctions, often below market and first offered to people who will live there.' },
-                { icon: 'ov:docs', title: 'Property records', text: 'The county assessor and recorder for any US state: owners, sales, taxes and deeds, from the official sites.' },
-                { icon: 'ov:map', title: 'Homes by city', text: 'What homes are worth in 885 US cities, beside what renting costs, from Census data.', href: '/in' },
-                { icon: 'ov:gauge', title: 'Mortgage calculator', text: 'The monthly cost of a loan with taxes, insurance and HOA, from the numbers you type.' },
+                { icon: 'ov:search', title: 'Every for-sale site', text: 'Zillow, Realtor.com, Redfin, Homes.com, Trulia and Craigslist, each opened at your place and price.', href: '/search' },
+                { icon: 'ov:shield', title: 'Government and bank homes', text: 'HUD Homestore, Fannie Mae HomePath and foreclosure auctions, often below market and first offered to people who will live there.', href: '/search?kind=foreclosure' },
+                { icon: 'ov:docs', title: 'Property records', text: 'The county assessor and recorder for any US state: owners, sales, taxes and deeds, from the official sites.', href: '/records' },
+                { icon: 'ov:map', title: 'Homes by city', text: `What homes are worth in ${cities.cities.length} US cities, beside what renting costs, from Census data.`, href: '/in' },
+                { icon: 'ov:gauge', title: 'Mortgage calculator', text: 'The monthly cost of a loan with taxes, insurance and HOA, from the numbers you type.', href: '/mortgage' },
                 { icon: 'ov:rent', title: 'Keep them on your board', text: 'Your OpenVibe.Rent board keeps homes from every site in one list, with your notes.', href: `${config.baseUrl}/board` },
             ],
-        }))}`,
-    }));
+        }))}
+
+${home.section('faq', 'Questions people ask', '', home.faq(FAQ))}
+
+${raw(showcase.cta({ title: 'Renting instead?', text: 'OpenVibe.Rent opens every rental site at once, with typical rents for the same cities and affordable housing from HUD.', actions: [{ label: 'Open OpenVibe.Rent', href: `${config.baseUrl}/`, primary: true }, { label: 'Search every for-sale site', href: '/search' }] }))}`,
+        });
+    }
+    r.get('/', (req, res, next) => homePage(req, res).catch(next));
 
     // ── One place, every site ────────────────────────────────
     const budget = ctx.limits.budget('rent.housing.search');

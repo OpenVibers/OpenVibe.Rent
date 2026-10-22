@@ -38,11 +38,11 @@ const BOOST = /<script src="\/shared\/boost\.js\?v=[0-9a-f]{12}" data-main="#mai
         assert.strictEqual(r.status, 200);
         const head = r.text.slice(0, r.text.indexOf('</head>'));
         assert.strictEqual((r.text.match(/<title>/g) || []).length, 1, 'exactly one <title>');
-        assert.ok(head.includes('<title>OpenVibe.Rent: Find a place, or rent yours out.</title>'), 'home title');
+        assert.ok(head.includes('<title>Every rental site in one search · OpenVibe.Rent</title>'), 'home title');
         assert.ok(head.includes('<link rel="canonical" href="https://openvibe.rent/">'), 'canonical');
         assert.ok(head.includes('<meta name="robots" content="index, follow">'), 'robots');
         const ld = [...head.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1])['@type']);
-        assert.deepStrictEqual(ld, ['WebSite', 'WebApplication', 'WebPage'], 'the home JSON-LD');
+        assert.deepStrictEqual(ld, ['WebSite', 'WebApplication', 'WebPage', 'ItemList', 'FAQPage'], 'the home JSON-LD (the largest cities\' rents and the questions shown on the page)');
         for (const tag of ['<meta property="og:title"', 'data-ov-icon="rent"', '/css/app.css?v=', '/shared/theme-loader.js', '/shared/navbar.js', '/shared/footer.js', '<meta name="referrer"']) {
             assert.ok(head.includes(tag), `head has ${tag}`);
         }
@@ -61,7 +61,7 @@ const BOOST = /<script src="\/shared\/boost\.js\?v=[0-9a-f]{12}" data-main="#mai
         assert.strictEqual(r.status, 200, r.text.slice(0, 300));
         assert.match(r.headers.get('content-type'), /^text\/html/);
         assert.ok(r.text.includes('OpenVibe.Rent'), 'the service name is on the page');
-        assert.ok(r.text.includes('Find a place, or rent yours out.'), 'the tagline is on the page');
+        assert.ok(r.text.includes('Every rental site, one search.'), 'the tagline is on the page');
         assert.ok(r.text.includes('/shared/showcase.css'), 'the showcase stylesheet');
         assert.ok(!r.text.includes('/home/') && !r.text.includes('/mnt/'), 'no local filesystem path on the page');
     });

@@ -180,6 +180,14 @@ const mockFetch = async (url) => {
             assert.ok(r.text.includes('https://www.fhfa.gov/data/hpi'));
         });
 
+        await check('where prices moved: every state and metro with a year-ago quarter, highest first, on the latest quarter only', async () => {
+            const m = await hpi.areaMoves(t.ctx.s);
+            assert.strictEqual(m.latest, 'Q2 2026');
+            assert.deepStrictEqual(m.states.map((x) => [x.place_id, x.year_change_pct]), [['CO', 8.0]], 'Texas has no year-ago quarter, so it is not ranked');
+            assert.deepStrictEqual(m.metros.map((x) => [x.place_name, x.year_change_pct]), [['Denver-Aurora-Centennial, CO', 10.0]]);
+            assert.strictEqual(m.source.url, 'https://www.fhfa.gov/data/hpi');
+        });
+
         await check('the state fallback card names the state', async () => {
             const r = await t.get('/housing?q=Telluride');
             assert.strictEqual(r.status, 200);
