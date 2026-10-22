@@ -82,6 +82,9 @@ async function createApp(opts = {}) {
     // Drop expired geocode/area answers now and hourly; an expired row is ignored anyway, this only keeps the table
     // small. The interval is unref'd and kept on ctx so the entry point clears it on shutdown (server/index.js).
     ctx.housingPruneTimer = housingStore.startCachePrune(s, { log });
+    // HUD's Fair Market Rents from OpenVibe.Sources (server/housing/fair-market-rents.js), for the city pages; a test
+    // passes a stand-in source through opts.fmrSource.
+    ctx.fmr = require('./housing/fair-market-rents').createFairMarketRents({ config, s, fetchImpl, log, source: opts.fmrSource || null });
 
     // Account export and deletion (ADR-033, ./identity/account-data.js): the three tables that hold a person's rows.
     // The sender posts to Network's internal export/deletion routes with this service's own client-credentials token;

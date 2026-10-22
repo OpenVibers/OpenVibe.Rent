@@ -18,6 +18,8 @@
 .rent-sizes { width: 100%; border-collapse: collapse; }
 .rent-sizes th, .rent-sizes td { padding: 7px 0; border-bottom: 1px solid var(--border, #1f2d47); text-align: left; }
 .rent-sizes td { text-align: right; font-variant-numeric: tabular-nums; font-weight: 650; }
+.rent-sizes-fmr thead th { font-size: .78rem; font-weight: 600; color: var(--text-secondary, #96a7c2); text-align: right; padding-top: 0; }
+.rent-sizes-fmr td + td { padding-left: 12px; }
 .rent-sizes tr.rent-all th, .rent-sizes tr.rent-all td { border-bottom: 0; color: var(--text-secondary, #96a7c2); font-weight: 500; }
 .fair-card .search-form { margin: 8px 0 0; padding: 0; border: 0; background: none; }
 .fair-form .fair-row { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
