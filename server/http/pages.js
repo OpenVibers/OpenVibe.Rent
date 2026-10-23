@@ -186,7 +186,7 @@ ${notice(p && p.detail ? p.detail : 'You are over the limit for this.', 'warn')}
         });
         const jsonLd = [
             ...homeJsonLd(config),
-            seo.jsonLd.itemList('Typical 2-bedroom rent in the largest US cities', largest.filter((c) => c.rent.b2 != null).map((c) => ({ name: `${c.name}, ${c.state}: ${cityList.rentText(c.rent.b2)} a month`, url: `${base()}${c.path}` })), { url: `${base()}/in` }),
+            seo.jsonLd.itemList('Typical 2-bedroom rent in the largest US cities', largest.filter((c) => c.rent.b2 != null).map((c) => ({ name: c.name, url: `${base()}${c.path}` })), { url: `${base()}/in` }),
             FAQ.length ? seo.jsonLd.faq(FAQ.map((f) => ({ q: f.question, a: f.answer }))) : null,
         ];
         page(req, res, {

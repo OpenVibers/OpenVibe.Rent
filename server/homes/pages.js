@@ -91,7 +91,7 @@ function createHomesRoutes(ctx) {
             jsonLd: [
                 seo.jsonLd.website({ name: 'OpenVibe.Homes', url: base, description: HOMES_SUMMARY }),
                 seo.jsonLd.webPage({ name: 'OpenVibe.Homes', url: `${base}/`, description: HOMES_SUMMARY, siteUrl: base }),
-                seo.jsonLd.itemList('Median home value in the largest US cities', largest.filter((c) => c.value != null).map((c) => ({ name: `${c.name}, ${c.state}: ${cities.valueText(c.value)}`, url: `${base}${c.path}` })), { url: `${base}/in` }),
+                seo.jsonLd.itemList('Median home value in the largest US cities', largest.filter((c) => c.value != null).map((c) => ({ name: c.name, url: `${base}${c.path}` })), { url: `${base}/in` }),
                 FAQ.length ? seo.jsonLd.faq(FAQ.map((f) => ({ q: f.question, a: f.answer }))) : null,
             ],
             description: 'Search Zillow, Realtor.com, Redfin, Homes.com, Trulia and Craigslist at once, with HUD and bank homes, home values for 885 cities and county records.',
