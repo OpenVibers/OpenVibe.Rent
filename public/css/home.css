@@ -9,7 +9,7 @@
 .home-stats b { display: block; font-size: 1.75rem; line-height: 1.1; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text-primary, #e6edf7); }
 .home-stats span { display: block; margin-top: 4px; font-size: .88rem; color: var(--text-secondary, #96a7c2); }
 
-.home-kinds, .home-cities { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 10px; }
+.home-kinds, .home-cities { list-style: none; padding: 0; margin: 0 0 8px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .home-kinds { grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); }
 .home-cities { grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); }
 .home-kinds a, .home-cities a { display: flex; flex-direction: column; gap: 4px; height: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border, #1f2d47); background: var(--bg-card, #131c2e); color: var(--text-primary, #e6edf7); text-decoration: none; transition: border-color .15s ease, transform .15s ease; }

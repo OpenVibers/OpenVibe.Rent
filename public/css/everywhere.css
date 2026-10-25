@@ -3,7 +3,7 @@
 .ew-kind { display: inline-block; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border-light, #2c3d5c); background: var(--bg-secondary, #0f1729); color: var(--text-primary, #e6edf7); text-decoration: none; font-size: .9rem; }
 a.ew-kind:hover { border-color: var(--accent, #3b82f6); }
 .ew-kind.on { border-color: var(--accent, #3b82f6); background: color-mix(in srgb, var(--accent, #3b82f6) 18%, var(--bg-secondary, #0f1729)); font-weight: 650; }
-.everywhere-sites { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.everywhere-sites { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); }
 .ew-site { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border, #1f2d47); background: var(--bg-card, #131c2e); transition: border-color .15s ease, transform .15s ease; }
 .ew-site:hover { border-color: var(--accent, #3b82f6); transform: translateY(-1px); }
 .ew-open { display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--text-primary, #e6edf7); }
