@@ -25,11 +25,11 @@ const BUDGETS = {
     htmlRawKB: 54,   // 49.3 on 2026-10-22 (the curated home); 31.0 before
     htmlBrotliKB: 12,   // 10.8 on 2026-10-22; 8.1 on 2026-10-16 (Rent by city: the largest cities' rents where an empty "posted here" was); 7.4 before
     jsFiles: 5,   // 5 (theme-loader, web-runtime, navbar, footer, boost: openvibe-shared/shell)
-    jsRawKB: 264,   // 239.8
+    jsRawKB: 269,   // 264.3 with Shared 4.13.0 (2026-10-26: account links); 239.8
     jsBrotliKB: 67,   // 65.3 Shared 4.12.0: the light/dark switch, the seasonal mark and the theme pairs; 56.5
     cssFiles: 3,   // 3 (app.css, the cached /shared/showcase.css, css/home.css)
-    cssRawKB: 28,   // 25.5 with the home's cards, ranks, chips and questions; 19.4 before
-    cssBrotliKB: 6.5,   // 5.9; 4.6 before
+    cssRawKB: 36,   // 31.5 with Shared 4.13.0 (2026-10-26: account links); 25.5 with the home's cards, ranks, chips and questions; 19.4 before
+    cssBrotliKB: 8,   // 7 with Shared 4.13.0 (2026-10-26: account links); 5.9; 4.6 before
     externalFiles: 0,   // 0
 };
 
