@@ -244,6 +244,7 @@ ${raw(showcase.features({
 
 ${home.section('faq', 'Questions people ask', '', home.faq(FAQ))}
 
+${raw(showcase.network({ service: 'rent' }))}
 ${raw(showcase.cta({ title: 'Have something to rent out?', text: 'Post it in a minute: a description, a price, a period and where it is. You can edit, renew or hide it at any time.', actions: [{ label: 'Post a listing', href: '/post', primary: true }, { label: 'Search every site', href: '/everywhere' }] }))}`,
         });
     });
