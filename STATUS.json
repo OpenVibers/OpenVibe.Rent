@@ -9,11 +9,11 @@
   "domain": "openvibe.rent",
   "contracts": "openvibe-contracts v0.213.0",
   "sdk": "openvibe-sdk v0.64.0",
-  "shared": "openvibe-shared v4.12.0",
+  "shared": "openvibe-shared v4.13.0",
   "packages": [
     "openvibe-contracts v0.213.0",
     "openvibe-sdk v0.64.0",
-    "openvibe-shared v4.12.0",
+    "openvibe-shared v4.13.0",
     "openvibe-publishing v1.4.0"
   ],
   "summary": "OpenVibe.Rent — Find a place, or rent yours out. One place to find and offer things to rent: apartments, rooms, houses, commercial space, parking and storage, and equipment. In this first version every listing is posted by a person on this site: no scraped listings and no partner feeds, no payments, no deposits and no messaging. Search with filters and facets, a listing page with a plain safety note, reports that hide a listing at 3 until staff look, saved searches that count what is new, a 30-day expiry an owner can renew, and a FHFA House Price Index card on the affordable-housing page.",
@@ -61,5 +61,5 @@
     "home-price context (FHFA)"
   ],
   "deployment": "openvibe-ovh: unit openvibe-rent.service on 127.0.0.1:5010 (git checkout /opt/openvibe.rent, env /etc/openvibe/rent.env, database ov_rent), deployed with `sudo ovhost deploy rent`; public at https://openvibe.rent since 2026-10-08.",
-  "updated": "2026-10-25"
+  "updated": "2026-10-26"
 }
