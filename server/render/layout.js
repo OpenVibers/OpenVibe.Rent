@@ -27,13 +27,15 @@ const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
 // The product's own navigation: one entry per public page it serves. /mine, /saved and the staff queue /staff are
 // not here — they are for one signed-in person, and a link in everyone's navbar would be an invitation to a 401.
 // They are linked from the pages that lead to them (/listings, /post, /safety).
+// Short labels: with the network's own links the bar must fit a 1024 px laptop (the long ones wrapped Sign in onto two
+// lines and cut Community off at 1024-1366 px, the 2026-10-27 visual pass). The pages keep their full names.
 const RENT_NAV = [
-    { label: 'Search everywhere', href: '/everywhere' },
-    { label: 'Rent by city', href: '/in' },
+    { label: 'Search', href: '/everywhere' },
+    { label: 'Cities', href: '/in' },
     { label: 'Your board', href: '/board' },
-    { label: 'Affordable housing', href: '/housing' },
-    { label: 'Posted here', href: '/listings' },
-    { label: 'Post a listing', href: '/post' },
+    { label: 'Affordable', href: '/housing' },
+    { label: 'Listings', href: '/listings' },
+    { label: 'Post', href: '/post' },
     { label: 'Safety', href: '/safety' },
     { label: 'What shipped', href: '/updates' },
 ];
