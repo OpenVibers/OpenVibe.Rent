@@ -28,8 +28,8 @@ const BUDGETS = {
     jsRawKB: 305,   // 300.5 openvibe-shared 4.25.0: the menu's orb beside the brand, both balances on phones, messages, the account sheet on phones and the bar stepping away on phones; 293 openvibe-shared 4.22.0: the navbar's magnifier search button and More dropdown (search.js and loading.js load only when used); 287.2 Shared 4.17.0: OpenCoins and Vibes chips (wallet: true) in the navbar; 273.2 openvibe-shared 4.15 footer: the compact footer opens into the whole one, and the pulse line; 264.3 with Shared 4.13.0 (2026-10-26: account links); 239.8
     jsBrotliKB: 76,   // 74.2 openvibe-shared 4.25.0: the menu's orb beside the brand, both balances on phones, messages, the account sheet on phones and the bar stepping away on phones; 70.5 Shared 4.17.0: OpenCoins and Vibes chips (wallet: true) in the navbar; 67.9 openvibe-shared 4.15 footer: the compact footer opens into the whole one, and the pulse line; 65.3 Shared 4.12.0: the light/dark switch, the seasonal mark and the theme pairs; 56.5
     cssFiles: 3,   // 3 (app.css, the cached /shared/showcase.css, css/home.css)
-    cssRawKB: 36,   // 31.5 with Shared 4.13.0 (2026-10-26: account links); 25.5 with the home's cards, ranks, chips and questions; 19.4 before
-    cssBrotliKB: 8,   // 7 with Shared 4.13.0 (2026-10-26: account links); 5.9; 4.6 before
+    cssRawKB: 41,   // 37 openvibe-shared 4.26.1 (hero visual); 31.5 with Shared 4.13.0 (2026-10-26: account links); 25.5 with the home's cards, ranks, chips and questions; 19.4 before
+    cssBrotliKB: 10,   // 8.1 openvibe-shared 4.26.1 (hero visual); 7 with Shared 4.13.0 (2026-10-26: account links); 5.9; 4.6 before
     externalFiles: 0,   // 0
 };
 
