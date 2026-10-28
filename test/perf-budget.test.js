@@ -25,7 +25,7 @@ const BUDGETS = {
     htmlRawKB: 60,   // 55.4 openvibe-shared 4.15 footer: the compact footer opens into the whole one, and the pulse line; 49.3 on 2026-10-22 (the curated home); 31.0 before
     htmlBrotliKB: 14,   // 12.1 openvibe-shared 4.15 footer: the compact footer opens into the whole one, and the pulse line; 10.8 on 2026-10-22; 8.1 on 2026-10-16 (Rent by city: the largest cities' rents where an empty "posted here" was); 7.4 before
     jsFiles: 5,   // 5 (theme-loader, web-runtime, navbar, footer, boost: openvibe-shared/shell)
-    jsRawKB: 292,   // 287.2 Shared 4.17.0: OpenCoins and Vibes chips (wallet: true) in the navbar; 273.2 openvibe-shared 4.15 footer: the compact footer opens into the whole one, and the pulse line; 264.3 with Shared 4.13.0 (2026-10-26: account links); 239.8
+    jsRawKB: 297,   // 293 openvibe-shared 4.22.0: the navbar's magnifier search button and More dropdown (search.js and loading.js load only when used); 287.2 Shared 4.17.0: OpenCoins and Vibes chips (wallet: true) in the navbar; 273.2 openvibe-shared 4.15 footer: the compact footer opens into the whole one, and the pulse line; 264.3 with Shared 4.13.0 (2026-10-26: account links); 239.8
     jsBrotliKB: 72,   // 70.5 Shared 4.17.0: OpenCoins and Vibes chips (wallet: true) in the navbar; 67.9 openvibe-shared 4.15 footer: the compact footer opens into the whole one, and the pulse line; 65.3 Shared 4.12.0: the light/dark switch, the seasonal mark and the theme pairs; 56.5
     cssFiles: 3,   // 3 (app.css, the cached /shared/showcase.css, css/home.css)
     cssRawKB: 36,   // 31.5 with Shared 4.13.0 (2026-10-26: account links); 25.5 with the home's cards, ranks, chips and questions; 19.4 before
