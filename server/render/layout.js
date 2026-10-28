@@ -24,20 +24,17 @@ const TAGLINE = 'Find a place, or rent yours out.';
 const RENT_NAME = SITE_NAME;
 const RENT_TAGLINE = TAGLINE;
 const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
-// The product's own navigation: one entry per public page it serves. /mine, /saved and the staff queue /staff are
-// not here — they are for one signed-in person, and a link in everyone's navbar would be an invitation to a 401.
-// They are linked from the pages that lead to them (/listings, /post, /safety).
-// Short labels: with the network's own links the bar must fit a 1024 px laptop (the long ones wrapped Sign in onto two
-// lines and cut Community off at 1024-1366 px, the 2026-10-27 visual pass). The pages keep their full names.
+// The product's own places: the main ones carry an icon (phones get them as the bottom tab bar), the rest fold into
+// the navbar's More (Shared 4.22). The navbar's magnifier searches all of OpenVibe; Find a place is Rent's own search
+// of every listing site. What shipped is the footer's.
 const RENT_NAV = [
-    { label: 'Search', href: '/everywhere' },
-    { label: 'Cities', href: '/in' },
-    { label: 'Your board', href: '/board' },
-    { label: 'Affordable', href: '/housing' },
-    { label: 'Listings', href: '/listings' },
-    { label: 'Post', href: '/post' },
-    { label: 'Safety', href: '/safety' },
-    { label: 'What shipped', href: '/updates' },
+    { label: 'Find a place', href: '/everywhere', icon: 'fa-magnifying-glass' },
+    { label: 'Cities', href: '/in', icon: 'fa-map' },
+    { label: 'Your board', href: '/board', icon: 'fa-list-check' },
+    { label: 'Affordable', href: '/housing', icon: 'fa-house' },
+    { label: 'Listings', href: '/listings', more: true },
+    { label: 'Post', href: '/post', more: true },
+    { label: 'Safety', href: '/safety', more: true },
 ];
 
 // OpenVibe.Homes (server/homes) uses this layout with its own name and navigation; sign-in and the board stay on
@@ -87,7 +84,8 @@ function renderPage(o) {
     const nav = {
         service: 'rent',
         apiBase: NETWORK_URL,
-        links: NAV.map((l) => ({ label: l.label, href: l.href, active: pathNow === l.href || pathNow.startsWith(`${l.href}/`) })),
+        links: NAV.map((l) => ({ label: l.label, href: l.href, ...(l.icon ? { icon: l.icon } : {}), ...(l.more ? { more: true } : {}), active: pathNow === l.href || pathNow.startsWith(`${l.href}/`) })),
+        appBar: true,   // phones: the places with icons as the bottom tab bar (Shared 4.20)
         history: { type: 'page', title: o.title || SITE_NAME },
         // On Homes the account lives on OpenVibe.Rent: its session probe answers signed out, and sign-in goes there.
         ...(homes ? {
