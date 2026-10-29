@@ -17,6 +17,8 @@ const frame = require('openvibe-shared/frame');
 const shell = require('openvibe-shared/shell');
 const cache = require('openvibe-shared/cache-policy');
 const { html, raw, esc } = require('./html');
+const { RENT_TWIN_PATH_RE, HOMES_TWIN_PATH_RE } = require('../agent-pages');
+const { linkHeaderTags } = require('openvibe-shared/agent-layer');
 
 const NETWORK_URL = 'https://openvibe.network';
 const SITE_NAME = 'OpenVibe.Rent';
@@ -81,6 +83,8 @@ function renderPage(o) {
     const NAV = homes ? HOMES.nav : RENT_NAV;
     const base = homes ? o.config.homes.url : o.config.baseUrl;
     const canonical = `${base}${pathNow.split('?')[0]}`;
+    // A public page names its Markdown twin (openvibe-shared/agent-layer), on its own host; a signed-in page and a 404 do not.
+    const hasTwin = (homes ? HOMES_TWIN_PATH_RE : RENT_TWIN_PATH_RE).test(pathNow.split('?')[0]) && o.status !== 404;
     const nav = {
         service: 'rent',
         apiBase: NETWORK_URL,
@@ -116,6 +120,9 @@ function renderPage(o) {
         siteName: SITE_NAME,
         description: o.description || `${SITE_NAME} — ${TAGLINE}`,
         canonical,
+        // A public page names its Markdown twin (openvibe-shared/agent-layer).
+        agentLayer: hasTwin,
+        llms: '/llms.txt',
         robots: o.index ? 'index, follow' : 'noindex, nofollow',
         jsonLd: (o.jsonLd || []).filter(Boolean),
         home: '/',
@@ -156,7 +163,12 @@ function send(res, status, o) {
     const personal = o.viewer && o.viewer.kind === 'user';
     if (!res.get('Cache-Control')) res.set('Cache-Control', !personal && o.cache ? o.cache : cache.htmlHeaders({ private: true }));
     res.set('Vary', 'Cookie');
-    res.status(status).type('html').send(renderPage(o));
+    // The Link header names the same twin as the head, query included, on the host the page is served from.
+    const homes = o.site === 'homes';
+    if ((homes ? HOMES_TWIN_PATH_RE : RENT_TWIN_PATH_RE).test(String(o.path || '/').split('?')[0]) && status !== 404) {
+        res.set('Link', linkHeaderTags(`${homes ? o.config.homes.url : o.config.baseUrl}${o.path || '/'}`, '/llms.txt').header);
+    }
+    res.status(status).type('html').send(renderPage({ ...o, status }));
 }
 
 const NAV = RENT_NAV;
