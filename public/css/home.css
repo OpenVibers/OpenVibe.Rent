@@ -14,11 +14,7 @@
 .home-sec .ovk-fold { margin: 10px 0 0; }
 .home-sec .ovk-fold + .ovk-fold { margin-top: 8px; }
 .home-under { margin: 2px 0 12px; }
-/* A computer sees every card at once: the rail wraps into a grid (a mouse has no ‹ › buttons without kit-web.js).
-   Phones and touch tablets keep the rail they swipe. */
-@media (min-width: 760px) and (hover: hover), (min-width: 1024px) {
-  .home-sec .ovk-rail-track { grid-auto-flow: row; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); grid-auto-columns: auto; overflow: visible; margin: 0; padding: 2px 0 10px; }
-}
+/* From 760 px the rails wrap into a grid (kit.rail wrap, openvibe-shared 4.39.0); phones keep the rail they swipe. */
 
 /* The listings' kinds, as quick filters under their rail: one strip that scrolls sideways on a phone. */
 .home-kinds { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 0; }
