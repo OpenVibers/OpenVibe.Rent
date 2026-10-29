@@ -21,15 +21,18 @@ const { measure, check, format } = require('openvibe-shared/perf-budget');
 // largest cities' rents, the cheapest and dearest big cities, every state, every site searched, HUD links, Homes, the
 // product's questions, and ItemList + FAQPage JSON-LD. Measured 49.3/10.8 KB HTML and 25.5/5.9 KB CSS with one more
 // file (css/home.css); the budgets keep about 10% headroom over that.
+// Raised on 2026-10-29 for the short home (a taste and a door: the search first, rails, folds, a launcher; 14.6 -> 4.2
+// screens at 390 px): the shared kit's stylesheets (kit.css, room.css) and their markup, measured 62.2 KB HTML and
+// 78.3/17.4 KB CSS in 5 files; the budgets keep about 10% headroom over that.
 const BUDGETS = {
-    htmlRawKB: 60,   // 55.4 openvibe-shared 4.15 footer: the compact footer opens into the whole one, and the pulse line; 49.3 on 2026-10-22 (the curated home); 31.0 before
+    htmlRawKB: 68,   // 62.2 the short home (2026-10-29): the kit's cards (an icon each), folds and search pill around the same cities, states and sites, now folded; 55.4 openvibe-shared 4.15 footer: the compact footer opens into the whole one, and the pulse line; 49.3 on 2026-10-22 (the curated home); 31.0 before
     htmlBrotliKB: 14,   // 12.1 openvibe-shared 4.15 footer: the compact footer opens into the whole one, and the pulse line; 10.8 on 2026-10-22; 8.1 on 2026-10-16 (Rent by city: the largest cities' rents where an empty "posted here" was); 7.4 before
     jsFiles: 5,   // 5 (theme-loader, web-runtime, navbar, footer, boost: openvibe-shared/shell)
     jsRawKB: 305,   // 300.5 openvibe-shared 4.25.0: the menu's orb beside the brand, both balances on phones, messages, the account sheet on phones and the bar stepping away on phones; 293 openvibe-shared 4.22.0: the navbar's magnifier search button and More dropdown (search.js and loading.js load only when used); 287.2 Shared 4.17.0: OpenCoins and Vibes chips (wallet: true) in the navbar; 273.2 openvibe-shared 4.15 footer: the compact footer opens into the whole one, and the pulse line; 264.3 with Shared 4.13.0 (2026-10-26: account links); 239.8
     jsBrotliKB: 76,   // 74.2 openvibe-shared 4.25.0: the menu's orb beside the brand, both balances on phones, messages, the account sheet on phones and the bar stepping away on phones; 70.5 Shared 4.17.0: OpenCoins and Vibes chips (wallet: true) in the navbar; 67.9 openvibe-shared 4.15 footer: the compact footer opens into the whole one, and the pulse line; 65.3 Shared 4.12.0: the light/dark switch, the seasonal mark and the theme pairs; 56.5
-    cssFiles: 3,   // 3 (app.css, the cached /shared/showcase.css, css/home.css)
-    cssRawKB: 41,   // 37 openvibe-shared 4.26.1 (hero visual); 31.5 with Shared 4.13.0 (2026-10-26: account links); 25.5 with the home's cards, ranks, chips and questions; 19.4 before
-    cssBrotliKB: 10,   // 8.1 openvibe-shared 4.26.1 (hero visual); 7 with Shared 4.13.0 (2026-10-26: account links); 5.9; 4.6 before
+    cssFiles: 5,   // 5 the short home (2026-10-29): + /shared/kit.css (numbers strip, search pill, folds) and /shared/room.css (cards, rails); 3 (app.css, the cached /shared/showcase.css, css/home.css)
+    cssRawKB: 86,   // 78.3 the short home (2026-10-29): kit.css 25.6 + room.css 15.7 KB (the shared numbers, search, folds, cards and rails; home.css shrank to what the homes still draw): the page shed 10 of its 14.6 phone screens; 37 openvibe-shared 4.26.1 (hero visual); 31.5 with Shared 4.13.0 (2026-10-26: account links); 25.5 with the home's cards, ranks, chips and questions; 19.4 before
+    cssBrotliKB: 19,   // 17.4 the short home (2026-10-29): kit.css and room.css; 8.1 openvibe-shared 4.26.1 (hero visual); 7 with Shared 4.13.0 (2026-10-26: account links); 5.9; 4.6 before
     externalFiles: 0,   // 0
 };
 

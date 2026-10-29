@@ -127,6 +127,9 @@ const housingFetchImpl = async (url) => {
             assert.ok(r.text.includes('Every rental site.') && r.text.includes('One search.'));
             assert.ok(r.text.includes('action="/everywhere"'), 'the hero search goes everywhere');
             for (const name of ['Craigslist', 'Facebook Marketplace', 'Zillow', 'Apartments.com', 'Zumper', 'Turo']) assert.ok(r.text.includes(name), name);
+            // Every site it searches is named on the home, in a fold (read once), with the real count.
+            const sites = (/<details class="ovk-fold" id="sites">[\s\S]*?<\/details>/.exec(r.text) || [''])[0];
+            assert.ok(sites.includes(`· ${everywhere.SITES.length} sites`) && everywhere.SITES.every((x) => sites.includes(`<b>${x.name.replace(/&/g, '&amp;')}</b>`)), 'every site searched, in its fold');
             assert.ok(!/nothing (here )?is scraped|no scraped listings/i.test(r.text), 'the old "nothing is scraped" framing is gone');
         });
     } finally { await t.close(); }

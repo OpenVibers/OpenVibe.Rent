@@ -61,8 +61,14 @@ const BOOST = /<script src="\/shared\/boost\.js\?v=[0-9a-f]{12}" data-main="#mai
         assert.strictEqual(r.status, 200, r.text.slice(0, 300));
         assert.match(r.headers.get('content-type'), /^text\/html/);
         assert.ok(r.text.includes('OpenVibe.Rent'), 'the service name is on the page');
-        assert.ok(r.text.includes('Every rental site, one search.'), 'the tagline is on the page');
+        // The tagline is the hero's one heading (an eyebrow saying it again above it was left out).
+        assert.ok(r.text.includes('<h1>Every rental site.<span class="sc-accent"> One search.</span></h1>'), 'the tagline is on the page');
         assert.ok(r.text.includes('/shared/showcase.css'), 'the showcase stylesheet');
+        // Only the shared pieces the home draws: the kit's numbers, search and folds (kit.css), its cards and rails
+        // (room.css); no Kit 2 file and no kit script (no menus on these cards; wide screens wrap the rails).
+        assert.ok(/\/shared\/kit\.css\?v=/.test(r.text) && /\/shared\/room\.css\?v=/.test(r.text), 'kit.css and room.css');
+        assert.ok(!/\/shared\/kit-data\.css|\/shared\/kit-web\.js|\/shared\/kit-data-web\.js/.test(r.text), 'nothing the home does not draw');
+        assert.ok(r.text.includes('<dl class="ovk-stats"') && r.text.includes('<form class="ovk-find"'), 'the numbers as one strip; the search as the kit\'s pill');
         assert.ok(!r.text.includes('/home/') && !r.text.includes('/mnt/'), 'no local filesystem path on the page');
     });
 
