@@ -257,7 +257,7 @@ ${out.hoa ? html`<tr><th scope="row">HOA</th><td>${money(out.hoa)}</td></tr>` : 
 
     // ── Crawlers ─────────────────────────────────────────────
     r.get('/robots.txt', (req, res) => res.type('text/plain').set('Cache-Control', cache.htmlHeaders({ maxAge: 3600 }))
-        .send(`User-agent: *\nDisallow: /search?\nAllow: /\nSitemap: ${base}/sitemap.xml\n`));
+        .send(`User-agent: *\nDisallow: /search?\nAllow: /\nSitemap: ${base}/sitemap.xml\n# Agent manifest: ${base}/.well-known/agent.json\n`));
     r.get('/sitemap.xml', (req, res) => res.type('application/xml').set('Cache-Control', cache.htmlHeaders({ maxAge: 3600 }))
         .send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/search', '/records', '/mortgage', ...cityPaths()].map((p) => `<url><loc>${base}${p}</loc></url>`).join('')}</urlset>\n`));
     r.get('/llms.txt', (req, res) => res.type('text/plain').set('Cache-Control', cache.htmlHeaders({ maxAge: 3600 }))

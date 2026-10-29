@@ -195,8 +195,35 @@ async function createApp(opts = {}) {
     // OpenVibe.Homes (server/homes/pages.js): the same process, its own host and pages.
     const homesHost = (() => { try { return new URL(config.homes.url).hostname; } catch { return 'openvibe.homes'; } })();
     const homesRoutes = require('./homes/pages').createHomesRoutes(ctx);
+    const pageRoutes = createPageRoutes(ctx);
+    // The agent layer (openvibe-shared/agent-layer): /.well-known/agent.json and the Markdown twins of the public
+    // pages, one descriptor and one page set per host, because this process answers on openvibe.rent and
+    // openvibe.homes. Entered only for the manifest exactly (the rest of /.well-known/ belongs to the app) and a
+    // twin request — a `.md` path, ?format=markdown or an explicit text/markdown preference — because the layer
+    // renders pages signed out and Rent's pages are not one page (posting, a person's listings, saved searches, the
+    // staff queue). It comes before each host's routes so `/listings/x.md` is not read as a listing called `x.md`;
+    // the pages name their own twins in the head and the Link header (server/render/layout.js).
+    {
+        const agentLayer = require('openvibe-shared/agent-layer');
+        const agentPages = require('./agent-pages');
+        const agentRouter = (descriptor, router, site, host) => {
+            const layer = express.Router();
+            agentLayer.mount(layer, { descriptor, render: agentPages.createAgentPages({ router, site, host }).renderPublicPage });
+            return (req, res, next) => {
+                if (req.path === '/.well-known/agent.json') return layer(req, res, next);
+                const p = String(req.path || '');
+                if (p.endsWith('.md') || (req.query && req.query.format === 'markdown')
+                    || req.accepts(['html', 'text/markdown']) === 'text/markdown') return layer(req, res, next);
+                return next();
+            };
+        };
+        const homesAgent = agentRouter(require('./agent-descriptor.homes'), homesRoutes, 'homes', homesHost);
+        const rentAgent = agentRouter(require('./agent-descriptor'), pageRoutes, 'rent', new URL(config.baseUrl).hostname);
+        app.use((req, res, next) => (req.hostname === homesHost ? homesAgent(req, res, next) : next()));
+        app.use(rentAgent);
+    }
     app.use((req, res, next) => (req.hostname === homesHost ? homesRoutes(req, res, next) : next()));
-    app.use(createPageRoutes(ctx));
+    app.use(pageRoutes);
     app.use((req, res) => send(res, 404, { viewer: req.viewer, config, path: req.originalUrl, title: 'Not found', body: html`<h1>Not found</h1><p>No page here. Try <a href="/">the home page</a> or <a href="/updates">the update log</a>.</p>` }));
 
     // eslint-disable-next-line no-unused-vars
