@@ -87,7 +87,6 @@ form.inline { display: inline; }
 
 /* The home page's showcase sections (openvibe-shared/showcase.css) sit inside .page, which has its own gutter. */
 .page .sc-hero, .page .sc-sec, .page .sc-cta { padding-left: 0; padding-right: 0; }
-.page .sc-ic .ov-icon { --ovi-size: 28px !important; }
 button.sc-btn { background: transparent; }
 button.sc-btn.sc-primary { border: 0; }
 /* The sites the search-everywhere form opens (home); the results page has css/everywhere.css. */

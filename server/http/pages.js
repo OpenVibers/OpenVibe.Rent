@@ -15,12 +15,13 @@ const express = require('express');
 const ovServe = require('openvibe-shared/serve');
 const frame = require('openvibe-shared/frame');
 const showcase = require('openvibe-shared/showcase');
+const kit = require('openvibe-shared/kit');
 const seo = require('openvibe-shared/seo');
 const cache = require('openvibe-shared/cache-policy');
 const { asyncRouter } = require('./router');
 const { createDiscoveryRoutes, homeJsonLd } = require('./discovery');
 const { sameOrigin } = require('./principal');
-const { html, raw, table, notice, time, badge } = require('../render/html');
+const { html, raw, render, table, notice, time, badge } = require('../render/html');
 const { send } = require('../render/layout');
 const listings = require('../listings/listings');
 const store = require('../listings/store');
@@ -37,7 +38,7 @@ const { products } = require('openvibe-contracts');
 
 const SITE_NAME = 'OpenVibe.Rent';
 const TAGLINE = 'Every rental site, one search.';
-const HOME_LATEST = 6;
+const HOME_LATEST = 12;
 
 const STATE_KIND = { active: 'ok', hidden: 'warn', expired: '', removed: 'bad' };
 const STATE_TEXT = { active: 'active', hidden: 'hidden — waiting for staff', expired: 'expired', removed: 'removed' };
@@ -158,11 +159,26 @@ ${notice(p && p.detail ? p.detail : 'You are over the limit for this.', 'warn')}
     // ── Home ─────────────────────────────────────────────────
     // What the home shows is real and current: every rental site this search opens, the Census rents of 885 cities,
     // the FHFA index's metro count, listings posted here. A block with nothing to show is left out.
+    // A taste and a door, not the index (the owner, 2026-10-28): the search first, the numbers as one strip, the
+    // newest listings and the largest cities as rails with See all, the site's places as a launcher, and the parts read
+    // once (the cheapest and dearest cities, every state, every site searched, the questions) folded.
     const FAQ = ((products.get('openvibe.rent') || {}).faq || []);
-    const sitesFor = (kind) => everywhere.SITES.filter((x) => x.kinds.includes(kind));
+    const PERIOD_SHORT = { month: '/mo', week: '/wk', day: '/day', hour: '/hr', once: '' };
+    const priceShort = (row) => {
+        const n = Number(row.price);
+        const amount = Number.isFinite(n) ? n.toLocaleString('en-US', { maximumFractionDigits: Number.isInteger(n) ? 0 : 2 }) : String(row.price);
+        return `${amount} ${row.currency}${PERIOD_SHORT[row.period] == null ? '' : PERIOD_SHORT[row.period]}`;
+    };
+    /** One listing in a rail: the city on the picture, the price in its corner, kind and place on hover. */
+    const listingCard = (row) => kit.card({
+        href: `/listings/${row.id}`, title: row.title, type: 'listing', ratio: '4/3', share: false,
+        badge: row.city, corner: priceShort(row), peek: [listings.KIND_TEXT[row.kind] || row.kind, whereOf(row)].filter(Boolean).join(' · '), when: row.created_at,
+    });
     r.get('/', async (req, res) => {
-        const latest = await store.search(s, listings.normalizeFilters({}), { limit: HOME_LATEST });
-        const posted = latest.rows.length ? await store.countMatching(s, listings.normalizeFilters({})) : 0;
+        const all = listings.normalizeFilters({});
+        const latest = await store.search(s, all, { limit: HOME_LATEST });
+        const kinds = latest.rows.length ? (await store.facets(s, all)).kind : [];
+        const posted = kinds.reduce((n, k) => n + k.count, 0);
         let moves = null;
         try { moves = await housingHpi.areaMoves(s); } catch { moves = null; }
         const homesBase = String(config.homes.url).replace(/\/+$/, '');
@@ -171,18 +187,15 @@ ${notice(p && p.detail ? p.detail : 'You are over the limit for this.', 'warn')}
         const byTwo = [...big].sort((a, b) => a.rent.b2 - b.rent.b2);
         const rentRow = (c) => ({ name: `${c.name}, ${c.state}`, href: c.path, value: cityList.rentText(c.rent.b2) });
         const sizes = (c) => [c.rent.studio != null ? `Studio ${cityList.rentText(c.rent.studio)}` : null, c.rent.b1 != null ? `1 bed ${cityList.rentText(c.rent.b1)}` : null, c.rent.b3 != null ? `3 beds ${cityList.rentText(c.rent.b3)}` : null].filter(Boolean).join(' · ');
+        const states = cityList.states().length;
+        // The search comes first on a phone: the hero is a line of what it is, then the search, then two doors.
         const hero = showcase.hero({
-            eyebrow: `${SITE_NAME} · ${TAGLINE}`,
             title: 'Every rental site.',
             accent: 'One search.',
-            lede: `Type a place once and ${SITE_NAME} opens Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper, Rent.com and ${everywhere.SITES.length - 6} more at it: apartments, houses, rooms, furnished stays, commercial space, parking, storage and cars. Check any rent against what the city usually pays, keep the places you like on one board, and find affordable housing from HUD.`,
-            actions: [
-                { label: 'Search every site', href: '/everywhere', primary: true },
-                { label: 'Is this rent fair?', href: '/fair' },
-                { label: 'Affordable housing', href: '/housing' },
-            ],
-            note: 'Open source (AGPL-3.0). Listings, messages and payments stay on each site; OpenVibe never takes a deposit.',
-            aside: { html: String(everywhereForm({}, { big: true })) },
+            lede: `Type a place once and ${SITE_NAME} opens Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper and ${everywhere.SITES.length - 5} more at it.`,
+            aside: { html: render(html`${home.search({ action: '/everywhere', placeholder: 'City or ZIP', kinds: everywhere.KINDS, kindText: everywhere.KIND_TEXT, kind: 'apartment', go: 'Search every site' })}
+${home.doors([{ href: '/fair', label: 'Is this rent fair?' }, { href: '/housing', label: 'Affordable housing' }])}
+<p class="home-note">Listings, messages and payments stay on each site. Never pay or send a deposit before you have seen the place.</p>`) },
         });
         const jsonLd = [
             ...homeJsonLd(config),
@@ -194,55 +207,42 @@ ${notice(p && p.detail ? p.detail : 'You are over the limit for this.', 'warn')}
             title: 'Every rental site in one search',
             description: 'Search Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper and more at once, check any rent against Census data for 885 US cities, and find HUD housing.',
             jsonLd,
-            styles: [showcase.STYLESHEET], localStyles: ['css/home.css'],
+            styles: [showcase.STYLESHEET, ...home.STYLES], localStyles: ['css/home.css'],
             body: html`${raw(hero)}
 ${home.stats([
         { value: everywhere.SITES.length, label: 'rental sites in one search', href: '/everywhere' },
         { value: cityList.cities.length, label: 'US cities with typical rents', href: '/in' },
-        { value: cityList.states().length, label: 'states and territories', href: '/in' },
+        { value: states, label: 'states and territories', href: '/in' },
         { value: moves ? moves.metros.length : null, label: 'metro areas with home-price trends', href: `${homesBase}/` },
         { value: posted || null, label: posted === 1 ? 'listing posted here' : 'listings posted here', href: '/listings' },
     ], { label: `${SITE_NAME} in numbers` })}
 
-${home.section('kinds', 'What are you looking for?', 'Pick a kind and a place: every site that lists it opens at once, with your price and bedrooms where it takes them.',
-        html`<ul class="home-kinds">${everywhere.KINDS.map((k) => { const list = sitesFor(k); return list.length ? html`<li><a href="/everywhere?kind=${k}"><b>${everywhere.KIND_TEXT[k]}</b><span>${list.length} ${list.length === 1 ? 'site' : 'sites'}: ${list.slice(0, 4).map((x) => x.name).join(', ')}${list.length > 4 ? ' and more' : ''}</span></a></li>` : ''; })}</ul>`)}
+${latest.rows.length ? html`<section class="sc-sec home-sec home-latest">${raw(kit.rail({ id: 'latest', title: `Posted on ${SITE_NAME}`, more: { href: '/listings', label: `See all ${posted}` }, size: 's', items: latest.rows.map(listingCard) }))}
+<p class="home-kinds" aria-label="Listings by kind">${raw(kinds.map((k) => kit.button({ href: `/listings?${listings.filtersToQuery({ kind: k.value })}`, label: `${listings.KIND_TEXT[k.value] || k.value} ${k.count}`, kind: 'quiet', small: true })).join(' '))}</p></section>` : ''}
 
-${home.section('cities', 'What rent costs in the largest cities', html`The middle rent for a 2-bedroom, with studios, 1- and 3-bedrooms beside it (Census Bureau, ${cityList.SOURCE.years}). Each city page opens every rental site there. <a href="/in">All ${cityList.cities.length} cities</a> · <a href="/fair">Check a rent</a>`,
-        home.cityCards(largest, (c) => ({ main: cityList.rentText(c.rent.b2), mainLabel: 'for 2 bedrooms', sub: sizes(c) })))}
+<section class="sc-sec home-sec home-cities">${home.cityRail({ id: 'cities', title: 'What rent costs in the largest cities', more: { href: '/in', label: `All ${cityList.cities.length} cities` }, list: largest, pick: (c) => ({ corner: c.rent.b2 != null ? cityList.rentText(c.rent.b2) : null, peek: sizes(c) }) })}
+<p class="small muted home-under">The middle rent for a 2-bedroom (Census Bureau, ${cityList.SOURCE.years}); studios, 1- and 3-bedrooms on hover and on each city's page, with every rental site there. <a href="/fair">Check a rent</a></p>
+${big.length >= 10 ? home.fold('range', 'Where renting costs least and most', '', html`<p class="small muted">Big cities (250,000 people or more) by the middle 2-bedroom rent. A price far below a city's middle rent is a common sign of a scam.</p><div class="home-ranks">${home.ranked('Lowest 2-bedroom rent', byTwo.slice(0, 6).map(rentRow))}${home.ranked('Highest 2-bedroom rent', byTwo.slice(-6).reverse().map(rentRow))}</div>`) : ''}
+${home.fold('states', 'Rent by state', `${states} states and territories`, html`<p class="small muted">Typical rents for every city of 50,000 people or more, and each state's largest, with every rental site's search for each.</p>${home.stateChips('/in')}`)}
+</section>
 
-${big.length >= 10 ? home.section('range', 'Where renting costs least and most', 'Big cities (250,000 people or more) by the middle 2-bedroom rent. A price far below a city\'s middle rent is a common sign of a scam.',
-        html`<div class="home-ranks">${home.ranked('Lowest 2-bedroom rent', byTwo.slice(0, 6).map(rentRow))}${home.ranked('Highest 2-bedroom rent', byTwo.slice(-6).reverse().map(rentRow))}</div>`) : ''}
-
-${home.section('states', 'Rent by state', 'Typical rents for every city of 50,000 people or more, and each state\'s largest, with every rental site\'s search for each.', home.stateChips('/in'))}
-
-${latest.rows.length ? home.section('latest', `Posted on ${SITE_NAME}`, html`Listings people post here themselves: apartments, rooms, houses, commercial space, parking, storage and equipment. <a href="/listings">Browse them all</a>.`,
-        html`${listingList(latest.rows, { empty: '' })}<p><a class="sc-btn" href="/listings">Every listing posted here</a> <a class="sc-btn" href="/post">Post a listing</a></p>`) : ''}
-
-${home.section('sites', 'The sites it searches', 'Each one opens its own search at your place, so you see its newest listings without typing the search again.',
-        html`<ul class="home-sites">${everywhere.SITES.map((x) => html`<li><b>${x.name}</b><span>${x.host}${x.us ? '' : ' · worldwide'}</span><p>${x.best}</p></li>`)}</ul>
-<p class="small muted">The United States first; more countries next. Listings, the landlord and the payment stay on each site.</p>`)}
-
-${home.section('housing', 'Affordable housing near you', 'Public housing, tax-credit (LIHTC) and HUD-assisted properties, and the housing authorities and counselling agencies to apply through, from U.S. HUD open data.',
-        html`<ul class="home-chips">${largest.slice(0, 8).map((c) => html`<li><a href="/housing?${new URLSearchParams({ q: `${c.name}, ${c.state}` })}">${c.name}</a></li>`)}</ul>
-<p><a class="sc-btn sc-primary" href="/housing">Find housing near you</a></p>`)}
-
-${home.section('buy', 'Buying instead?', html`OpenVibe.Homes is the owning side: every for-sale site in one search, home values for the same cities, county records and a mortgage calculator. <a href="${homesBase}/">Open OpenVibe.Homes</a>`,
-        home.cityCards(largest.slice(0, 4).filter((c) => c.value != null), (c) => ({ main: cityList.valueText(c.value), mainLabel: 'median home', sub: c.rent.b2 != null ? `2-bedroom rent ${cityList.rentText(c.rent.b2)}` : '' }), { href: (c) => `${homesBase}${c.path}` }))}
-
-${raw(showcase.features({
-                title: 'How it works',
-                lede: 'One account for every rental search you make, wherever the listing lives.',
+${raw(showcase.apps({
+                id: 'places', title: `Everything on ${SITE_NAME}`,
                 items: [
-                    { icon: 'ov:search', title: 'One search, every site', text: 'Type a place once and every site above opens its own search there, with your price and bedrooms.', href: '/everywhere' },
-                    { icon: 'ov:check', title: 'Your board', text: 'Keep the listings you like from any site in one list, with your notes and how far you got.', href: '/board' },
-                    { icon: 'ov:map', title: 'Is the rent fair?', text: `What rent usually costs in ${cityList.cities.length} US cities by size, and a check for any price you are quoted, from Census data.`, href: '/fair' },
-                    { icon: 'ov:bell', title: 'Alerts that keep looking', text: 'Save a search and get alerts through OpenVibe.Watch when something new matches.', href: '/listings' },
-                    { icon: 'ov:gauge', title: 'Safety first', text: 'Never pay or send a deposit before you have seen the place and signed an agreement. Reported listings are hidden until staff look.', href: '/safety' },
-                    { icon: 'ov:rent', title: 'Post your own', text: 'Rooms, apartments, parking or gear: a description, a price and where it is. Edit, renew or hide it any time.', href: '/post' },
+                    { icon: 'ov:search', name: 'Search', text: 'Every rental site at once', href: '/everywhere' },
+                    { icon: 'ov:gauge', name: 'Fair rent', text: 'Is the rent you were quoted fair?', href: '/fair' },
+                    { icon: 'ov:map', name: 'Cities', text: `Typical rents in ${cityList.cities.length} US cities`, href: '/in' },
+                    { icon: 'ov:homes', name: 'Affordable', text: 'Public and HUD-assisted housing', href: '/housing' },
+                    { icon: 'ov:check', name: 'Your board', text: 'The places you like, from any site', href: '/board' },
+                    { icon: 'ov:bell', name: 'Alerts', text: 'Save a search, hear what is new', href: '/listings' },
+                    { icon: 'ov:docs', name: 'Listings', text: 'Posted here by people', href: '/listings' },
+                    { icon: 'ov:rent', name: 'Post', text: 'Rent yours out', href: '/post' },
+                    { icon: 'ov:shield', name: 'Safety', text: 'No deposit before you see it', href: '/safety' },
+                    { icon: 'ov:homes', name: 'Buying', text: 'Homes for sale on OpenVibe.Homes', href: `${homesBase}/` },
                 ],
             }))}
 
-${home.section('faq', 'Questions people ask', '', home.faq(FAQ))}
+${home.section('faq', 'Questions people ask', '', html`${home.fold('sites', 'Which sites does it search?', `${everywhere.SITES.length} sites`, html`<p class="small muted">Each one opens its own search at your place, so you see its newest listings without typing the search again.</p>${home.siteList(everywhere.SITES.map((x) => ({ name: x.name, host: `${x.host}${x.us ? '' : ' · worldwide'}`, best: x.best })), 'The United States first; more countries next. Listings, the landlord and the payment stay on each site.')}`)}${home.faq(FAQ)}`)}
 
 ${raw(showcase.network({ service: 'rent' }))}
 ${raw(showcase.cta({ title: 'Have something to rent out?', text: 'Post it in a minute: a description, a price, a period and where it is. You can edit, renew or hide it at any time.', actions: [{ label: 'Post a listing', href: '/post', primary: true }, { label: 'Search every site', href: '/everywhere' }] }))}`,
@@ -254,7 +254,7 @@ ${raw(showcase.cta({ title: 'Have something to rent out?', text: 'Post it in a m
     const str = (v) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 200) : null);
     const OWN_KIND = { apartment: 'apartment', house: 'house', room: 'room', stay: null, commercial: 'commercial', parking: 'parking', storage: 'parking', vehicle: 'equipment' };
     const HUD_KINDS = new Set(['apartment', 'house', 'room']);
-    const everywhereForm = (v = {}, { big = false } = {}) => html`<form class="search-form everywhere-form${big ? ' everywhere-big' : ''}" method="get" action="/everywhere" role="search">
+    const everywhereForm = (v = {}) => html`<form class="search-form everywhere-form" method="get" action="/everywhere" role="search">
 <div class="field"><label for="ew-q">Where</label><input id="ew-q" name="q" type="search" required maxlength="200" placeholder="A city and state, or a ZIP code" value="${v.q || ''}" autocomplete="address-level2"></div>
 <div class="field-row">
 <div class="field"><label for="ew-kind">Looking for</label><select id="ew-kind" name="kind">${everywhere.KINDS.map((k) => html`<option value="${k}"${k === (v.kind || 'apartment') ? raw(' selected') : ''}>${everywhere.KIND_TEXT[k]}</option>`)}</select></div>
