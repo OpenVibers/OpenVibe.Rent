@@ -169,10 +169,11 @@ ${notice(p && p.detail ? p.detail : 'You are over the limit for this.', 'warn')}
         const amount = Number.isFinite(n) ? n.toLocaleString('en-US', { maximumFractionDigits: Number.isInteger(n) ? 0 : 2 }) : String(row.price);
         return `${amount} ${row.currency}${PERIOD_SHORT[row.period] == null ? '' : PERIOD_SHORT[row.period]}`;
     };
-    /** One listing in a rail: the city on the picture, the price in its corner, kind and place on hover. */
+    /** One listing in a rail: the price in its corner, the city and kind on a line under the title (kit.card sub), the
+     *  full place on hover. */
     const listingCard = (row) => kit.card({
         href: `/listings/${row.id}`, title: row.title, type: 'listing', ratio: '4/3', share: false,
-        badge: row.city, corner: priceShort(row), peek: [listings.KIND_TEXT[row.kind] || row.kind, whereOf(row)].filter(Boolean).join(' · '), when: row.created_at,
+        sub: [row.city, listings.KIND_TEXT[row.kind] || row.kind].filter(Boolean).join(' · '), corner: priceShort(row), peek: whereOf(row), when: row.created_at,
     });
     r.get('/', async (req, res) => {
         const all = listings.normalizeFilters({});
@@ -217,7 +218,7 @@ ${home.stats([
         { value: posted || null, label: posted === 1 ? 'listing posted here' : 'listings posted here', href: '/listings' },
     ], { label: `${SITE_NAME} in numbers` })}
 
-${latest.rows.length ? html`<section class="sc-sec home-sec home-latest">${raw(kit.rail({ id: 'latest', title: `Posted on ${SITE_NAME}`, more: { href: '/listings', label: `See all ${posted}` }, size: 's', items: latest.rows.map(listingCard) }))}
+${latest.rows.length ? html`<section class="sc-sec home-sec home-latest">${raw(kit.rail({ id: 'latest', wrap: true, title: `Posted on ${SITE_NAME}`, more: { href: '/listings', label: `See all ${posted}` }, size: 's', items: latest.rows.map(listingCard) }))}
 <p class="home-kinds" aria-label="Listings by kind">${raw(kinds.map((k) => kit.button({ href: `/listings?${listings.filtersToQuery({ kind: k.value })}`, label: `${listings.KIND_TEXT[k.value] || k.value} ${k.count}`, kind: 'quiet', small: true })).join(' '))}</p></section>` : ''}
 
 <section class="sc-sec home-sec home-cities">${home.cityRail({ id: 'cities', title: 'What rent costs in the largest cities', more: { href: '/in', label: `All ${cityList.cities.length} cities` }, list: largest, pick: (c) => ({ corner: c.rent.b2 != null ? cityList.rentText(c.rent.b2) : null, peek: sizes(c) }) })}

@@ -29,7 +29,7 @@ const section = (id, title, lede, body) => (render(body).trim()
  */
 function cityRail({ id, title, more, list, pick, href = (c) => c.path }) {
     return raw(kit.rail({
-        id, title, more, size: 's',
+        id, title, more, size: 's', wrap: true,
         items: (list || []).map((c) => {
             const p = pick(c);
             return kit.card({ href: href(c), title: c.name, type: 'map', ratio: '4/3', badge: c.state, corner: p.corner || 'not published', peek: p.peek || '', share: false });
