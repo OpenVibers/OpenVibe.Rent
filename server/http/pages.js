@@ -381,10 +381,13 @@ ${housingPlaces.KINDS.map((k) => html`<label class="housing-kind"><input type="c
         const details = housingDetails(r);
         const units = housingUnits(r);
         const map = r.lat != null && r.lon != null ? `https://www.openstreetmap.org/?mlat=${r.lat}&mlon=${r.lon}#map=17/${r.lat}/${r.lon}` : null;
+        // HUD's Small Area Fair Market Rent for this ZIP, as a dated reference beside the place: never a listing.
+        const safmr = ctx.safmr && r.zip ? ctx.safmr.reference(r.zip, 2) : null;
         return html`<li class="housing-card" id="${r.id}">
 <div class="housing-card-head"><h4>${titleCase(r.name) || '—'}</h4><span class="housing-dist">${housingMi(r.distance_km)}</span></div>
 ${where ? html`<p class="housing-addr">${where}</p>` : ''}
 ${units ? html`<p class="housing-units">${units}</p>` : ''}
+${safmr ? html`<p class="housing-fmr muted small">${safmr.text}</p>` : ''}
 ${details.length ? html`<ul class="housing-facts">${details.map((d) => html`<li>${d}</li>`)}</ul>` : ''}
 <p class="housing-actions">${r.phone ? html`<a href="tel:${tel}">${phoneText(r.phone)}</a>` : ''}${r.extra && r.extra.email ? html`<a href="mailto:${r.extra.email}">Email</a>` : ''}${r.extra && r.extra.website ? html`<a href="${r.extra.website}" rel="nofollow noopener external">Website</a>` : ''}${r.extra && r.extra.homestore_url ? html`<a href="${r.extra.homestore_url}" rel="noopener external">Check it on HUD Homestore</a>` : ''}${map ? html`<a href="${map}" rel="noopener">Map</a>` : ''}</p>
 </li>`;
