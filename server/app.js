@@ -85,6 +85,8 @@ async function createApp(opts = {}) {
     // HUD's Fair Market Rents from OpenVibe.Sources (server/housing/fair-market-rents.js), for the city pages; a test
     // passes a stand-in source through opts.fmrSource.
     ctx.fmr = require('./housing/fair-market-rents').createFairMarketRents({ config, s, fetchImpl, log, source: opts.fmrSource || null });
+    // HUD's Small Area Fair Market Rents, read from OpenVibe.Sources (source hud-safmr) and kept in memory.
+    ctx.safmr = require('./housing/safmr').createSafmr({ config, s, fetchImpl, log, source: opts.safmrSource || null });
 
     // Account export and deletion (ADR-033, ./identity/account-data.js): the three tables that hold a person's rows.
     // The sender posts to Network's internal export/deletion routes with this service's own client-credentials token;
