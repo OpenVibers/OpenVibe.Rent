@@ -87,6 +87,8 @@ async function createApp(opts = {}) {
     ctx.fmr = require('./housing/fair-market-rents').createFairMarketRents({ config, s, fetchImpl, log, source: opts.fmrSource || null });
     // HUD's Small Area Fair Market Rents, read from OpenVibe.Sources (source hud-safmr) and kept in memory.
     ctx.safmr = require('./housing/safmr').createSafmr({ config, s, fetchImpl, log, source: opts.safmrSource || null });
+    // BLS CPI rent of primary residence (source bls-cpi-rent): the national and metro trend line, kept in rent_cpi_points.
+    ctx.rentCpi = require('./housing/rent-cpi').createRentCpi({ config, s, fetchImpl, log, source: opts.rentCpiSource || null });
 
     // Account export and deletion (ADR-033, ./identity/account-data.js): the three tables that hold a person's rows.
     // The sender posts to Network's internal export/deletion routes with this service's own client-credentials token;

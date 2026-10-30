@@ -26,6 +26,13 @@ the one for that size. Rent reads them from OpenVibe.Sources (`hud-fair-market-r
 area a city lies in is `server/data/city-fmr-areas.json`, built once by `node tools/build-fmr-areas.js` from each city's
 Census point on HUD's own FMR layer.
 
+Each city page also draws a **BLS CPI rent trend line** for the last 13 months, with the 12-month change ("Rents
+in <metro> rose X% in the last year (BLS CPI, <month>)"), and the fair check repeats the figure for the city.
+The national line is always shown; a city BLS publishes a metro rent series for gets its metro line too. Rent
+reads it from OpenVibe.Sources (`bls-cpi-rent`, category `housing`; the national series and the 19 largest metro
+series), never from BLS ([server/housing/rent-cpi.js](server/housing/rent-cpi.js), `rent_cpi_points`), with BLS's
+citation and its note that it cannot vouch for data once they leave BLS.gov.
+
 **OpenVibe.Homes** (since 2026-10-15, https://openvibe.homes): the buying side, served by this process for its own host
 (`server/homes`, `deploy/nginx/openvibe.homes.conf`).
 - **Search:** one place opens every for-sale site's own search (Zillow, Realtor.com, Redfin by ZIP, Homes.com, Trulia,
@@ -123,6 +130,9 @@ Rent's own data is its PostgreSQL database ([server/db.js](server/db.js)); the `
   per FMR area (HUD's code and name, the five monthly rents), and the cursor in Sources' change feed; an area Sources
   removes is deleted. Public domain; nothing about a person
   ([migrations/0010_fair_market_rents.sql](migrations/0010_fair_market_rents.sql)).
+- **`rent_cpi_points`** (0011) — BLS CPI rent of primary residence, one row per series and month, for the national
+  and 19 metro trend lines; a point Sources removes is deleted. Public domain; nothing about a person
+  ([migrations/0011_rent_cpi.sql](migrations/0011_rent_cpi.sql)).
 - **`telemetry_samples`** — request telemetry (`platform.telemetry-sample@1`): each request by route template, method
   and status class, never the raw URL. Once a minute one `http.request` sample per key, plus the active-requests,
   p95 latency and event-loop-lag gauges, is written; rows over 14 days old are deleted daily. `/shared` files,

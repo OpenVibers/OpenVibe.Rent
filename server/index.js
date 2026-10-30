@@ -44,6 +44,7 @@ async function start() {
     ctx.screen.start();   // the AI listing screen's sweep (off without OpenVibe.AI)
     ctx.fmr.start();      // HUD's Fair Market Rents: loaded now, then followed from OpenVibe.Sources every six hours
     ctx.safmr.start();    // HUD's Small Area Fair Market Rents: followed from OpenVibe.Sources every six hours
+    ctx.rentCpi.start();  // BLS CPI rent: the national and metro trend line, followed from OpenVibe.Sources every six hours
 
     // One sweep at boot (a restart must not leave a stale listing up a moment longer than it should), then a timer.
     const expiry = startExpiryTimer(ctx.s);
@@ -56,7 +57,7 @@ async function start() {
     // Subscribe to the two ADR-033 topics at OpenVibe.Events (idempotent; off without RENT_EVENTS_URL and
     // RENT_EVENTS_SECRET). The consumer itself is mounted in server/app.js.
     const subscriptions = require('./events-consumer').startSubscriptions({ config, port: config.port, secret: config.events.secrets[0] || '' });
-    const extra = [() => { if (subscriptions) subscriptions.stop(); }, () => ctx.fmr.stop(), () => ctx.safmr.stop()];
+    const extra = [() => { if (subscriptions) subscriptions.stop(); }, () => ctx.fmr.stop(), () => ctx.safmr.stop(), () => ctx.rentCpi.stop()];
     createLifecycle({ server, ctx, timers: [expiry.timer, ctx.housingPruneTimer, ...(hpiJob ? [hpiJob.timer] : [])], extra });
     return { server, ctx, expiry };
 }
