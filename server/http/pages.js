@@ -22,6 +22,7 @@ const { asyncRouter } = require('./router');
 const { createDiscoveryRoutes, homeJsonLd } = require('./discovery');
 const { sameOrigin } = require('./principal');
 const { html, raw, render, table, notice, time, badge } = require('../render/html');
+const S = require('../render/short');
 const { send } = require('../render/layout');
 const listings = require('../listings/listings');
 const store = require('../listings/store');
@@ -175,6 +176,17 @@ ${notice(p && p.detail ? p.detail : 'You are over the limit for this.', 'warn')}
         href: `/listings/${row.id}`, title: row.title, type: 'listing', ratio: '4/3', share: false,
         sub: [row.city, listings.KIND_TEXT[row.kind] || row.kind].filter(Boolean).join(' · '), corner: priceShort(row), peek: whereOf(row), when: row.created_at,
     });
+    /**
+     * The home on a phone (the owner's short-pages rule, 2026-10-30): the parts a reader rarely needs — the questions
+     * and the other OpenVibe places — are folds, closed on a phone and open where there is room. Both stay in the page.
+     */
+    function foldedHome(body) {
+        let out = String(body);
+        out = S.foldSection(out, 'id="h-faq"', 'faq-fold');
+        out = S.foldSection(out, 'class="sc-sec sc-network"', 'network-fold');
+        return out;
+    }
+
     r.get('/', async (req, res) => {
         const all = listings.normalizeFilters({});
         const latest = await store.search(s, all, { limit: HOME_LATEST });
@@ -209,7 +221,7 @@ ${home.doors([{ href: '/fair', label: 'Is this rent fair?' }, { href: '/housing'
             description: 'Search Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper and more at once, check any rent against Census data for 885 US cities, and find HUD housing.',
             jsonLd,
             styles: [showcase.STYLESHEET, ...home.STYLES], localStyles: ['css/home.css'],
-            body: html`${raw(hero)}
+            body: raw(foldedHome(html`${raw(hero)}
 ${home.stats([
         { value: everywhere.SITES.length, label: 'rental sites in one search', href: '/everywhere' },
         { value: cityList.cities.length, label: 'US cities with typical rents', href: '/in' },
@@ -246,7 +258,7 @@ ${raw(showcase.apps({
 ${home.section('faq', 'Questions people ask', '', html`${home.fold('sites', 'Which sites does it search?', `${everywhere.SITES.length} sites`, html`<p class="small muted">Each one opens its own search at your place, so you see its newest listings without typing the search again.</p>${home.siteList(everywhere.SITES.map((x) => ({ name: x.name, host: `${x.host}${x.us ? '' : ' · worldwide'}`, best: x.best })), 'The United States first; more countries next. Listings, the landlord and the payment stay on each site.')}`)}${home.faq(FAQ)}`)}
 
 ${raw(showcase.network({ service: 'rent' }))}
-${raw(showcase.cta({ title: 'Have something to rent out?', text: 'Post it in a minute: a description, a price, a period and where it is. You can edit, renew or hide it at any time.', actions: [{ label: 'Post a listing', href: '/post', primary: true }, { label: 'Search every site', href: '/everywhere' }] }))}`,
+${raw(showcase.cta({ title: 'Have something to rent out?', text: 'Post it in a minute: a description, a price, a period and where it is. You can edit, renew or hide it at any time.', actions: [{ label: 'Post a listing', href: '/post', primary: true }, { label: 'Search every site', href: '/everywhere' }] }))}`)),
         });
     });
 
