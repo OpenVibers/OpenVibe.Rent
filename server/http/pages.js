@@ -903,7 +903,7 @@ ${it.newCount ? html` <span class="badge info">${it.newCount} new</span>` : html
 
     // ── The board: listings kept from any site (http/board-pages.js) ──
     mountBoardPages(r, { config, s, page, signedIn, requesterOf, mustSignIn, budgeted, sameSite, signInPrompt });
-    mountCityPages(r, { config, page, fmr: ctx.fmr });
+    mountCityPages(r, { config, page, fmr: ctx.fmr, rentCpi: ctx.rentCpi });
 
     // ── Reporting ────────────────────────────────────────────
     r.post('/listings/:id/reports', mustSignIn('/listings'), budgeted('rent.listing.report'), async (req, res) => {

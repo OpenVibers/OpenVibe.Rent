@@ -34,11 +34,36 @@ const cell = (c, key) => {
 };
 const placeLabel = (c) => `${c.name}, ${c.state}`;
 const { HUD_URL } = require('../housing/fair-market-rents');
+const { NOTE: CPI_NOTE, NATIONAL: CPI_NATIONAL } = require('../housing/rent-cpi');
 const fmrText = (n) => (n == null ? null : `$${n.toLocaleString('en-US')}`);
 /** What a Fair Market Rent is, under the city table (HUD's own definition and use, in short). */
 const fmrSource = (area) => html`<p class="small muted city-source">HUD Fair Market Rent for the ${area.name}: what a modest rental there costs, rent plus essential utilities, by HUD's estimate. HUD sets them each October; Housing Choice Vouchers pay up to 90% to 110% of them. <a href="${HUD_URL}" rel="noopener">HUD</a> (public domain), through OpenVibe.Sources.</p>`;
 
-function mountCityPages(r, { config, page, fmr = null }) {
+/** A small line for a BLS CPI trend: one point per month, the last 13 at most. */
+function trendSvg(trend, label) {
+    const points = (trend && trend.points) || [];
+    if (points.length < 2) return '';
+    const values = points.map((p) => Number(p.value));
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const span = max - min || 1;
+    const x = (i) => 4 + (i * 312) / (points.length - 1);
+    const y = (v) => 60 - ((v - min) / span) * 56;
+    const poly = points.map((p, i) => `${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ');
+    return html`<svg class="rent-trend" viewBox="0 0 320 64" width="320" height="64" role="img" aria-label="${label}"><polyline fill="none" stroke="currentColor" stroke-width="2" points="${poly}"/></svg>`;
+}
+
+/** The BLS trend lines a page shows: the national line and, where BLS publishes one, a city's metro line. */
+function cpiBlock(cpi) {
+    if (!cpi) return '';
+    const lines = [cpi.national, cpi.metro].filter(Boolean).filter((t, i, all) => all.findIndex((x) => x.series === t.series) === i);
+    if (!lines.length) return '';
+    return html`<section class="sc-sec rent-cpi" aria-labelledby="h-cpi"><h2 id="h-cpi">Are rents rising?</h2>
+${lines.map((t) => html`<div class="rent-cpi-line"><p>${t.text} <a href="${t.url}" rel="noopener">BLS series ${t.series}</a></p>${trendSvg(t, `Rent of primary residence CPI, ${t.area}, last 13 months`)}</div>`)}
+<p class="small muted city-source">Rent of primary residence CPI from the <a href="${lines[0].url}" rel="noopener">U.S. Bureau of Labor Statistics</a> (public domain), through OpenVibe.Sources. ${CPI_NOTE}</p></section>`;
+}
+
+function mountCityPages(r, { config, page, fmr = null, rentCpi = null }) {
     const base = () => String(config.baseUrl).replace(/\/+$/, '');
     const crumbsLd = (items) => seo.jsonLd.breadcrumbs(items.map((i) => ({ name: i.label, url: `${base()}${i.href}` })));
 
@@ -52,6 +77,7 @@ ${city ? html`<p class="small muted fair-how">Within the Census' margin of the m
     // ── /in: every state ──
     r.get('/in', (req, res) => {
         const largest = [...cities.cities].sort((a, b) => b.population - a.population).slice(0, 30);
+        const national = rentCpi ? rentCpi.forSeries(CPI_NATIONAL.series) : null;
         page(req, res, {
             title: 'Rent by city: typical rents across the US',
             description: `What rent usually costs in ${cities.cities.length} US cities, by number of bedrooms, from the Census Bureau, and every rental site's search for each city in one place.`,
@@ -65,7 +91,7 @@ ${city ? html`<p class="small muted fair-how">Within the Census' margin of the m
 <div class="table-wrap"><table class="city-table"><caption class="sr-only">Typical rents in the 30 largest US cities</caption>
 <thead><tr><th scope="col">City</th><th scope="col">1 bedroom</th><th scope="col">2 bedrooms</th><th scope="col">3 bedrooms</th></tr></thead>
 <tbody>${largest.map((c) => html`<tr><th scope="row"><a href="${c.path}">${placeLabel(c)}</a></th><td>${cell(c, 'b1')}</td><td>${cell(c, 'b2')}</td><td>${cell(c, 'b3')}</td></tr>`)}</tbody></table></div>
-${source()}</section>`,
+${source()}</section>${cpiBlock({ national, metro: null })}`,
         });
     });
 
@@ -104,6 +130,7 @@ ${source()}
         const near = cities.nearby(c, 8);
         const two = cities.rentText(c.rent.b2);
         const area = fmr ? fmr.forCity(c) : null;
+        const cpi = rentCpi ? rentCpi.trendForCity(c) : null;
         page(req, res, {
             title: `Rent in ${where}: typical rents and every rental site`,
             description: `${two ? `A typical 2-bedroom in ${where} rents for ${two} a month. ` : ''}Every rental site's search for ${c.name} in one place: Craigslist, Zillow, Apartments.com, Zumper and more, with typical rents by size and affordable housing nearby.`,
@@ -125,6 +152,7 @@ ${cities.SIZES.map((s) => html`<tr><th scope="row">${s.text}</th><td>${cell(c, s
 ${source()}`}</section>
 <section class="fair-card" aria-labelledby="h-fair"><h2 id="h-fair">Is a rent fair?</h2><p class="small muted">Compare a price from any site with the middle rent in ${c.name}.</p>${fairForm({}, { city: c })}</section>
 </div>
+${cpiBlock(cpi)}
 <section class="sc-sec" aria-labelledby="h-sites"><h2 id="h-sites">Apartments in ${c.name}, on every site</h2>
 <ul class="everywhere-sites">${links.map((l) => html`<li class="ew-site"><a class="ew-open" href="${l.url}" target="_blank" rel="noopener nofollow"><span class="ew-name">${l.name}</span><span class="ew-host">${hostOf(l.url)} ↗</span></a><p class="ew-best">${l.best}</p></li>`)}</ul>
 <nav class="everywhere-kinds" aria-label="Other things to rent in ${c.name}">${everywhere.KINDS.filter((k) => k !== 'apartment').map((k) => html`<a class="ew-kind" href="${kindHref(k)}">${everywhere.KIND_TEXT[k]}</a>`)}</nav>
@@ -177,6 +205,7 @@ ${source()}`,
     /** The verdict and a bar: the middle rent with its margin, and where the asked rent falls. */
     function fairResult(city, f, rent) {
         const area = fmr ? fmr.forCity(city) : null;
+        const cpi = rentCpi ? rentCpi.trendForCity(city) : null;
         const max = Math.max(rent, f.median) * 1.35;
         const pct = (n) => Math.max(0, Math.min(100, (n / max) * 100)).toFixed(1);
         const lo = Math.max(0, f.median - f.moe); const hi = f.median + f.moe;
@@ -186,6 +215,7 @@ ${source()}`,
 <div class="fair-bar" aria-hidden="true"><span class="fair-band" style="left:${pct(lo)}%;width:${(pct(hi) - pct(lo)).toFixed(1)}%"></span><span class="fair-median" style="left:${pct(f.median)}%"></span><span class="fair-you" style="left:${pct(rent)}%"></span></div>
 <p class="fair-legend small"><span class="lg lg-median"></span> Middle rent ${f.topped ? '$3,500 or more' : `$${f.median.toLocaleString('en-US')}`}${f.moe && !f.topped ? ` (±$${f.moe.toLocaleString('en-US')})` : ''} <span class="lg lg-you"></span> This rent $${rent.toLocaleString('en-US')}</p>
 ${area && fmrText(area.rents[f.size.key]) ? html`<p class="small">HUD's Fair Market Rent for ${f.size.long} in the ${area.name} is ${fmrText(area.rents[f.size.key])} a month, rent plus essential utilities: the figure a Housing Choice Voucher is measured against.</p>` : ''}
+${cpi && cpi.text ? html`<p class="small">${cpi.text} <a href="${cpi.url}" rel="noopener">BLS series ${cpi.series}</a>.</p>` : ''}
 <p class="small"><a href="${city.path}">Typical rents and every rental site in ${city.name}</a></p>
 </section>`;
     }
