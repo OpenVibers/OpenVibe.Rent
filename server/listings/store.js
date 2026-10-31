@@ -193,6 +193,14 @@ const staffCounts = async (s) => ({
 
 const getCheck = (s, listingId) => s.db.maybe('SELECT * FROM rent_listing_checks WHERE listing_id = $1', [listingId]);
 
+/** The latest check of each of several listings, by id (a list page reads them in one query). */
+async function checksFor(s, listingIds) {
+    const ids = [...new Set((listingIds || []).filter(Boolean).map(String))];
+    if (!ids.length) return new Map();
+    const rows = await s.db.many('SELECT * FROM rent_listing_checks WHERE listing_id = ANY($1)', [ids]);
+    return new Map(rows.map((row) => [row.listing_id, row]));
+}
+
 /** Record a listing's latest screen. A verdict on new words is unreviewed again, whatever staff said before. */
 async function putCheck(s, { listingId, contentHash, action, signals = [], spans = [], rationale = '', runId = null }) {
     await s.db.query(
@@ -244,7 +252,7 @@ module.exports = {
     insert, get, search, countMatching, facets, update, expireListings, renew, setState, remove,
     countActiveByOwner, countCreatedToday, listByOwner,
     reportsFor, addReport, staffQueue, staffCounts,
-    getCheck, putCheck, recheckUnchanged, unscreenedActive, flaggedQueue, countFlagged, markCheckReviewed,
+    getCheck, putCheck, recheckUnchanged, unscreenedActive, flaggedQueue, countFlagged, markCheckReviewed, checksFor,
     saveSearch, listSaved, getSaved, deleteSaved, markSavedSeen,
     DAY_MS,
 };

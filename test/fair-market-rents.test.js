@@ -74,12 +74,15 @@ function feed(items) {
 
         await check('a city page shows HUD\'s rents beside the medians and says what they are', async () => {
             const page = await t.get('/in/ny/new-york');
-            assert.ok(page.text.includes('HUD fair market'));
+            assert.ok(page.text.includes('HUD FMR'));
             assert.ok(page.text.includes('$2,910'));
             assert.ok(page.text.includes('New York, NY HUD Metro FMR Area'));
             assert.ok(page.text.includes('Housing Choice Vouchers'));
+            assert.ok(page.text.includes('40th percentile'), 'the percentile HUD states');
+            assert.ok(page.text.includes('read 22 Oct 2026'), 'the year and date the figure carries');
+            assert.ok(page.text.includes('never averaged'), 'the two measures are shown side by side');
             const la = await t.get('/in/ca/los-angeles');
-            assert.ok(!la.text.includes('HUD fair market'), 'an area Sources has not given keeps the plain table');
+            assert.ok(!la.text.includes('HUD FMR'), 'an area Sources has not given keeps the plain table');
         });
 
         await check('/fair names HUD\'s Fair Market Rent for that size', async () => {

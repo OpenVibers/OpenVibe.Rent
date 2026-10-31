@@ -94,18 +94,27 @@ function pointOf(row) {
     return { year: Number(row.year), period: row.period, value: Number(row.value), month: monthKey(row.year, row.period), label: `${MONTHS[Number(row.period.slice(1)) - 1]} ${row.year}` };
 }
 
-/** The latest point and the 12-month change, with the points a trend line draws (up to the last 13 months). */
+/**
+ * The latest point with the two changes a reader compares: month on month (the month before) and year on year (the
+ * same month a year earlier), each only when that point is really in the series — never a guess from a shorter run.
+ */
 function trendOf(rows) {
     const points = rows.map(pointOf).sort((a, b) => a.month - b.month);
     if (!points.length) return null;
     const latest = points[points.length - 1];
+    const previous = points.find((p) => p.month === latest.month - 1) || null;
     const earlier = points.find((p) => p.month === latest.month - 12) || null;
-    const change_pct = earlier && earlier.value ? Math.round((latest.value / earlier.value - 1) * 1000) / 10 : null;
+    const pct = (from) => (from && from.value ? Math.round((latest.value / from.value - 1) * 1000) / 10 : null);
+    const mom_pct = pct(previous);
+    const change_pct = pct(earlier);
     return {
         points: points.slice(-13),
         latest,
+        previous,
         earlier,
+        mom_pct,
         change_pct,
+        yoy_pct: change_pct,
         series: rows[0].series_id,
     };
 }
@@ -210,7 +219,11 @@ function createRentCpi({ config, s, fetchImpl = globalThis.fetch, log = console,
                 url: picked.url,
                 points: picked.points,
                 latest: picked.latest,
+                previous: picked.previous,
+                earlier: picked.earlier,
+                mom_pct: picked.mom_pct,
                 change_pct: picked.change_pct,
+                yoy_pct: picked.yoy_pct,
                 national,
                 metro: local,
             };

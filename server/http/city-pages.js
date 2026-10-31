@@ -27,7 +27,7 @@ const PUBLIC = cache.htmlHeaders({ maxAge: 3600 });
 const STYLES = ['css/everywhere.css', 'css/cities.css'];
 const HOMES_URL = 'https://openvibe.homes';
 
-const source = () => html`<p class="small muted city-source">Median gross rent (rent plus the utilities the renter pays): half of rentals cost less, half more. <a href="${cities.SOURCE.url}" rel="noopener">${cities.SOURCE.name}</a>, ${cities.SOURCE.years} (public domain). The ± is the Census' 90% margin of error.</p>`;
+const source = () => html`<p class="small muted city-source">Median gross rent (rent plus the utilities the renter pays): half of rentals cost less, half more. <a href="${cities.SOURCE.url}" rel="noopener">${cities.SOURCE.name}</a>, ${cities.SOURCE.years} (public domain). The ± is the Census' 90% margin of error. The Census median and HUD's Fair Market Rent are separate measures, shown side by side and never averaged.</p>`;
 const cell = (c, key) => {
     const v = cities.rentText(c.rent[key]);
     return v ? html`${v}${c.moe[key] && c.rent[key] < 3501 ? html` <span class="moe">±$${c.moe[key].toLocaleString('en-US')}</span>` : ''}` : html`<span class="muted">not published</span>`;
@@ -36,8 +36,21 @@ const placeLabel = (c) => `${c.name}, ${c.state}`;
 const { HUD_URL } = require('../housing/fair-market-rents');
 const { NOTE: CPI_NOTE, NATIONAL: CPI_NATIONAL } = require('../housing/rent-cpi');
 const fmrText = (n) => (n == null ? null : `$${n.toLocaleString('en-US')}`);
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** An ISO timestamp as "22 Oct 2026" (UTC), or null when it is not a real date (1970 is "not given"). */
+function dayText(iso) {
+    const t = Date.parse(String(iso == null ? '' : iso));
+    if (!Number.isFinite(t) || t <= 0 || String(iso).startsWith('1970-01-01')) return null;
+    const d = new Date(t);
+    return `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+/** A change as a reader reads it: +5.0%, -0.1%, or null when the comparison point is not in the series. */
+const pctText = (n) => (n == null ? null : `${n > 0 ? '+' : ''}${n.toFixed(1)}%`);
 /** What a Fair Market Rent is, under the city table (HUD's own definition and use, in short). */
-const fmrSource = (area) => html`<p class="small muted city-source">HUD Fair Market Rent for the ${area.name}: what a modest rental there costs, rent plus essential utilities, by HUD's estimate. HUD sets them each October; Housing Choice Vouchers pay up to 90% to 110% of them. <a href="${HUD_URL}" rel="noopener">HUD</a> (public domain), through OpenVibe.Sources.</p>`;
+const fmrSource = (area) => {
+    const read = dayText(area.retrieved_at);
+    return html`<p class="small muted city-source">HUD Fair Market Rent for the ${area.name}: what a modest rental there costs, rent plus essential utilities, by HUD's estimate; the 40th percentile of gross rent for most areas. HUD sets them each October; Housing Choice Vouchers pay up to 90% to 110% of them. <a href="${HUD_URL}" rel="noopener">HUD</a> (public domain), through OpenVibe.Sources${read ? html`, read ${read}` : ''}.</p>`;
+};
 
 /** A small line for a BLS CPI trend: one point per month, the last 13 at most. */
 function trendSvg(trend, label) {
@@ -53,14 +66,21 @@ function trendSvg(trend, label) {
     return html`<svg class="rent-trend" viewBox="0 0 320 64" width="320" height="64" role="img" aria-label="${label}"><polyline fill="none" stroke="currentColor" stroke-width="2" points="${poly}"/></svg>`;
 }
 
+/** One field of a change: its label, the number (or "not measured yet") and the two months it compares. */
+function moveField(label, pct, from, to, missing) {
+    return html`<div class="rent-move"><span class="rent-move-label">${label}</span><strong class="${pct == null ? 'rent-move-none' : pct < 0 ? 'rent-move-down' : 'rent-move-up'}">${pct == null ? 'not measured yet' : pctText(pct)}</strong><span class="rent-move-note">${pct == null ? missing : `${to} vs ${from}`}</span></div>`;
+}
+
 /** The BLS trend lines a page shows: the national line and, where BLS publishes one, a city's metro line. */
 function cpiBlock(cpi) {
     if (!cpi) return '';
     const lines = [cpi.national, cpi.metro].filter(Boolean).filter((t, i, all) => all.findIndex((x) => x.series === t.series) === i);
     if (!lines.length) return '';
     return html`<section class="sc-sec rent-cpi" aria-labelledby="h-cpi"><h2 id="h-cpi">Are rents rising?</h2>
-${lines.map((t) => html`<div class="rent-cpi-line"><p>${t.text} <a href="${t.url}" rel="noopener">BLS series ${t.series}</a></p>${trendSvg(t, `Rent of primary residence CPI, ${t.area}, last 13 months`)}</div>`)}
-<p class="small muted city-source">Rent of primary residence CPI from the <a href="${lines[0].url}" rel="noopener">U.S. Bureau of Labor Statistics</a> (public domain), through OpenVibe.Sources. ${CPI_NOTE}</p></section>`;
+${lines.map((t) => html`<div class="rent-cpi-line"><p class="rent-cpi-head">Rent of primary residence CPI, ${t.area} · ${t.latest.label} <a href="${t.url}" rel="noopener">BLS series ${t.series}</a></p>
+<div class="rent-moves" role="group" aria-label="Change in ${t.area}, ${t.latest.label}">${moveField('Month on month', t.mom_pct, t.previous && t.previous.label, t.latest.label, 'the month before is not in BLS’ series yet')}${moveField('Year on year', t.yoy_pct, t.earlier && t.earlier.label, t.latest.label, 'the same month a year earlier is not in BLS’ series yet')}</div>
+${trendSvg(t, `Rent of primary residence CPI, ${t.area}, last 13 months`)}</div>`)}
+<p class="small muted city-source">${CPI_NOTE} Through OpenVibe.Sources.</p></section>`;
 }
 
 function mountCityPages(r, { config, page, fmr = null, rentCpi = null }) {
@@ -142,8 +162,8 @@ ${source()}
 <p class="sc-lede">Every rental site's search for ${c.name} in one place, what rent usually costs here, and a quick check for a price you were quoted.</p>
 <div class="city-top">
 <section class="rent-card" aria-labelledby="h-typical"><h2 id="h-typical">What rent costs in ${c.name}</h2>
-${area ? html`<table class="rent-sizes rent-sizes-fmr"><caption class="sr-only">Median gross rent (Census) and HUD Fair Market Rent by size in ${where}</caption>
-<thead><tr><td></td><th scope="col">Middle rent</th><th scope="col">HUD fair market</th></tr></thead><tbody>
+${area ? html`<table class="rent-sizes rent-sizes-fmr"><caption class="sr-only">Census median gross rent and HUD Fair Market Rent by size in ${where}, separate measures never averaged</caption>
+<thead><tr><td></td><th scope="col">Census median</th><th scope="col">HUD FMR</th></tr></thead><tbody>
 ${cities.SIZES.map((s) => html`<tr><th scope="row">${s.text}</th><td>${cell(c, s.key)}</td><td>${fmrText(area.rents[s.key]) || html`<span class="muted">—</span>`}</td></tr>`)}
 <tr class="rent-all"><th scope="row">All rentals</th><td>${cell(c, 'all')}</td><td></td></tr></tbody></table>
 ${source()}${fmrSource(area)}` : html`<table class="rent-sizes"><caption class="sr-only">Median gross rent by size in ${where}</caption><tbody>
@@ -222,15 +242,62 @@ ${cpi && cpi.text ? html`<p class="small">${cpi.text} <a href="${cpi.url}" rel="
 }
 
 /**
- * The fair-rent line for a listing posted here, when it can be judged: a US monthly rent in dollars for an apartment or
- * house with a bedroom count, in a city on the list (its region naming the state). → html or ''.
+ * Where a listing's rent sits against the Census median, in one short line without repeating the median itself.
+ * Same conditions as listingRentCheck; → html or ''.
  */
-function listingFairLine(row) {
-    if (!row || String(row.country || '').toUpperCase() !== 'US' || row.currency !== 'USD' || row.period !== 'month' || !['apartment', 'house'].includes(row.kind) || row.bedrooms == null) return '';
-    const st = cities.stateCode(row.region);
-    const city = st ? cities.match(`${row.city}, ${st}`) : null;
-    const f = city ? cities.fair({ city, beds: row.bedrooms, rent: row.price }) : null;
-    return f ? html`<p class="fair-line verdict-${f.verdict}">${f.text} <a href="${city.path}">Rents in ${city.name}</a></p>` : '';
+function listingFairLine(row, fair = null) {
+    const f = fair || fairOf(row);
+    if (!f) return '';
+    const { city, size } = f;
+    const verdict = f.verdict === 'typical' ? `about typical for ${size.long}`
+        : f.verdict === 'high-end' ? 'in the range the Census reports for the top of the market'
+            : `${Math.abs(f.pct)}% ${f.diff < 0 ? 'below' : 'above'} the Census middle rent for ${size.long}`;
+    return html`<p class="fair-line verdict-${f.verdict}">This rent is ${verdict} in ${city.name}, ${city.state}. <a href="${city.path}">Rents in ${city.name}</a></p>`;
 }
 
-module.exports = { mountCityPages, listingFairLine };
+/** The Census city and size a listing can be judged in: a US monthly apartment or house with 0–5 bedrooms. */
+const listingCity = (row) => {
+    if (!row || String(row.country || '').toUpperCase() !== 'US' || row.currency !== 'USD' || row.period !== 'month'
+        || !['apartment', 'house'].includes(row.kind) || row.bedrooms == null) return null;
+    const st = cities.stateCode(row.region);
+    const city = st ? cities.match(`${row.city}, ${st}`) : null;
+    if (!city) return null;
+    const size = cities.SIZES.find((s) => s.beds === Math.min(5, Math.max(0, Math.floor(Number(row.bedrooms)))));
+    return size ? { city, size } : null;
+};
+
+function fairOf(row) {
+    const found = listingCity(row);
+    if (!found) return null;
+    const f = cities.fair({ city: found.city, beds: row.bedrooms, rent: row.price });
+    return f ? { ...f, ...found } : null;
+}
+
+/**
+ * The rent check a listing card shows beside its asking rent (outcome 2): the Census median gross rent and HUD's Fair
+ * Market Rent as separate labelled lines, with the metric, the geography and the date each figure carries, and the
+ * source linked. HUD's figure is the area's (a listing has no ZIP here), labelled with the year Sources read it since
+ * the FMR feed carries no fiscal year; the percentile is HUD's 40th of gross rent. Never an average of the two.
+ * → html or '' when neither figure is known, so a card never stands empty.
+ */
+function listingRentCheck(row, { fmr = null } = {}) {
+    const found = listingCity(row);
+    if (!found) return '';
+    const { city, size } = found;
+    const median = city.rent[size.key];
+    const moe = city.moe[size.key];
+    const area = fmr && size.beds <= 4 ? fmr.forCity(city) : null;
+    const amount = area ? area.rents[size.key] : null;
+    if (median == null && amount == null) return '';
+    const read = area ? dayText(area.retrieved_at) : null;
+    const readYear = read ? read.slice(-4) : null;
+    return html`<section class="rent-check" aria-labelledby="h-rent-check"><h2 id="h-rent-check">What rent costs here</h2>
+<dl class="rent-lines">
+${median != null ? html`<div class="rent-line"><dt>Census median gross rent</dt><dd><b>${cities.rentText(median)}</b>${moe && median < 3501 ? html` <span class="moe">±$${moe.toLocaleString('en-US')}</span>` : ''}<span class="rent-line-note">${size.text} in ${city.name}, ${city.state} · <a href="${cities.SOURCE.url}" rel="noopener">ACS ${cities.SOURCE.years}</a></span></dd></div>` : ''}
+${amount != null ? html`<div class="rent-line"><dt>HUD Fair Market Rent${readYear ? html` <span class="rent-line-year">read ${readYear}</span>` : ''}</dt><dd><b>${fmrText(amount)}</b><span class="rent-line-note">${size.text} in the ${area.name} · 40th percentile, gross rent · <a href="${HUD_URL}" rel="noopener">HUD</a>${read ? html` · read ${read}` : ''}</span></dd></div>` : ''}
+</dl>
+${listingFairLine(row, fairOf(row))}
+<p class="small muted rent-never">Asking rent, the Census median and HUD's FMR are separate measures, shown side by side: never averaged.</p></section>`;
+}
+
+module.exports = { mountCityPages, listingFairLine, listingRentCheck, listingCity };
