@@ -18,7 +18,7 @@
 const seo = require('openvibe-shared/seo');
 const showcase = require('openvibe-shared/showcase');
 const cache = require('openvibe-shared/cache-policy');
-const { html, raw } = require('../render/html');
+const { html, raw, dayText } = require('../render/html');
 const cities = require('../aggregate/cities');
 const everywhere = require('../aggregate/everywhere');
 const listings = require('../listings/listings');
@@ -36,14 +36,6 @@ const placeLabel = (c) => `${c.name}, ${c.state}`;
 const { HUD_URL } = require('../housing/fair-market-rents');
 const { NOTE: CPI_NOTE, NATIONAL: CPI_NATIONAL } = require('../housing/rent-cpi');
 const fmrText = (n) => (n == null ? null : `$${n.toLocaleString('en-US')}`);
-const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-/** An ISO timestamp as "22 Oct 2026" (UTC), or null when it is not a real date (1970 is "not given"). */
-function dayText(iso) {
-    const t = Date.parse(String(iso == null ? '' : iso));
-    if (!Number.isFinite(t) || t <= 0 || String(iso).startsWith('1970-01-01')) return null;
-    const d = new Date(t);
-    return `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
-}
 /** A change as a reader reads it: +5.0%, -0.1%, or null when the comparison point is not in the series. */
 const pctText = (n) => (n == null ? null : `${n > 0 ? '+' : ''}${n.toFixed(1)}%`);
 /** What a Fair Market Rent is, under the city table (HUD's own definition and use, in short). */

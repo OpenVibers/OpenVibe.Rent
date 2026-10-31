@@ -22,7 +22,20 @@ function render(v) {
 }
 
 const code = (s) => html`<code>${s}</code>`;
-const time = (iso) => (iso ? html`<time datetime="${iso}">${String(iso).replace('T', ' ').replace(/\.\d+Z$/, ' UTC').replace(/Z$/, ' UTC')}</time>` : '—');
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** An ISO timestamp as "31 Oct 2026" (UTC), or null when it is not a real date (1970 is "not given"). */
+function dayText(iso) {
+    const t = Date.parse(String(iso == null ? '' : iso));
+    if (!Number.isFinite(t) || t <= 0 || String(iso).startsWith('1970-01-01')) return null;
+    const d = new Date(t);
+    return `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+/** A date a reader reads ("31 Oct 2026"), never the raw ISO string; `datetime` keeps the machine value. */
+const time = (iso) => {
+    if (!iso) return '—';
+    const day = dayText(iso);
+    return html`<time datetime="${iso}">${day || String(iso)}</time>`;
+};
 
 /** A <table> from headers and rows of cells (cells are already html or plain values). */
 function table(headers, rows, { cls = '', empty = 'Nothing here yet.' } = {}) {
@@ -42,4 +55,4 @@ const notice = (text, kind = 'info') => html`<div class="notice ${kind}" role="s
 const csrfField = (token) => html`<input type="hidden" name="csrf" value="${token}">`;
 const badge = (text, kind = '') => html`<span class="badge ${kind}">${text}</span>`;
 
-module.exports = { esc, html, raw, Raw, render, code, time, table, problemBox, notice, csrfField, badge };
+module.exports = { esc, html, raw, Raw, render, code, time, dayText, table, problemBox, notice, csrfField, badge };

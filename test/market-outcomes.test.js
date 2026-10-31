@@ -86,6 +86,9 @@ function feed(items) {
             assert.ok(page.text.includes('https://www.huduser.gov/portal/datasets/fmr.html'), 'the HUD source link');
             assert.ok(page.text.includes('never averaged'), 'the page says the measures are not mixed');
             assert.ok(!page.text.includes('2,721'), 'nothing is the average of the median and the FMR');
+            const shown = page.text.replace(/<[^>]*>/g, '');
+            assert.match(shown, /posted \d{1,2} [A-Z][a-z]{2} \d{4} · expires \d{1,2} [A-Z][a-z]{2} \d{4}/, 'dates in words');
+            assert.ok(!page.text.includes('UTC'), 'never a raw UTC timestamp');
         });
 
         await check('listing cards carry HUD\'s benchmark and the dated check; the home rail too', async () => {
@@ -94,6 +97,8 @@ function feed(items) {
             const r = await t.get('/listings?city=San%20Diego', { as: lee });
             assert.ok(r.text.includes('HUD FMR $3,001'), 'the card carries the benchmark');
             assert.match(r.text, new RegExp(`Checked ${new Date(checkDate).getUTCDate()} `), 'the card carries the check date');
+            assert.match(r.text.replace(/<[^>]*>/g, ''), /posted \d{1,2} [A-Z][a-z]{2} \d{4}/, 'the card posts a date in words');
+            assert.ok(!r.text.includes('UTC'), 'no raw UTC timestamp on the listings page');
             assert.ok(r.text.includes(`<form class="listing-report-mini" method="post" action="/listings/${clean.id}/reports">`), 'every card can be reported in one tap');
             const home = await t.get('/');
             const rail = (/<section class="ovk-rail[^"]*" id="latest"[\s\S]*?<\/section>/.exec(home.text) || [''])[0];
@@ -106,6 +111,7 @@ function feed(items) {
             assert.ok(page.text.includes('40th percentile') && page.text.includes('read 22 Oct 2026'), 'percentile and the year/date');
             assert.ok(page.text.includes('https://www.huduser.gov/portal/datasets/fmr.html'), 'the source link');
             assert.ok(page.text.includes('never averaged'), 'the page says they are separate measures');
+            assert.ok(!page.text.includes('UTC'), 'no raw UTC timestamp on the city page');
         });
 
         await check('month on month and year on year are two fields, each with the months it compares', async () => {

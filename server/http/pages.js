@@ -21,7 +21,7 @@ const cache = require('openvibe-shared/cache-policy');
 const { asyncRouter } = require('./router');
 const { createDiscoveryRoutes, homeJsonLd } = require('./discovery');
 const { sameOrigin } = require('./principal');
-const { html, raw, render, table, notice, time, badge } = require('../render/html');
+const { html, raw, render, table, notice, time, dayText, badge } = require('../render/html');
 const S = require('../render/short');
 const { send } = require('../render/layout');
 const listings = require('../listings/listings');
@@ -52,14 +52,6 @@ const SIGN_TEXT = {
     personal_data_request: 'identity or bank details up front',
     off_platform_only: 'only a private channel, no calls or visits',
 };
-const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-/** An ISO timestamp as "29 Oct 2026" (UTC), or null when it is not a real date (1970 is "not given"). */
-function dayText(iso) {
-    const t = Date.parse(String(iso == null ? '' : iso));
-    if (!Number.isFinite(t) || t <= 0 || String(iso).startsWith('1970-01-01')) return null;
-    const d = new Date(t);
-    return `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
-}
 const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
 // Only from a clear schema.org type do we publish JSON-LD for a listing; "other" is left without one on purpose.
 const SCHEMA_TYPE = { apartment: 'Apartment', room: 'Room', house: 'House', commercial: 'Place', parking: 'ParkingFacility', equipment: 'Product' };
