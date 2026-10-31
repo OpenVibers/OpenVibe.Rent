@@ -50,3 +50,43 @@
 .city-homes-cards { margin: 18px 0 6px; }
 .value-card .value-num { margin: 4px 0 6px; font-size: 1.6rem; font-weight: 750; font-variant-numeric: tabular-nums; }
 .value-card .value-num .moe { font-size: .85rem; font-weight: 500; }
+
+/* The listing page's asking rent, the two official benchmarks beside it, and the dated scam check. */
+.listing-asking { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; margin: 2px 0 6px; }
+.listing-asking-label { font-size: .8rem; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--text-secondary, #96a7c2); }
+.listing-asking .price { font-size: 1.35rem; }
+.rent-check { margin: 14px 0; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border, #1f2d47); background: var(--bg-card, #131c2e); }
+.rent-check h2 { margin: 0 0 10px; font-size: 1.1rem; }
+.rent-lines { margin: 0; display: grid; gap: 8px; }
+.rent-line { min-width: 0; padding: 10px 12px; border-radius: 10px; background: var(--bg-secondary, #0f1729); border: 1px solid var(--border, #1f2d47); }
+.rent-line dt { font-size: .78rem; font-weight: 650; text-transform: uppercase; letter-spacing: .04em; color: var(--text-secondary, #96a7c2); }
+.rent-line dd { margin: 2px 0 0; font-size: 1.25rem; font-weight: 750; font-variant-numeric: tabular-nums; color: var(--text-primary, #e6edf7); overflow-wrap: anywhere; }
+.rent-line dd .moe { font-size: .8rem; font-weight: 500; color: var(--text-muted, #7386a3); }
+.rent-line-note { display: block; margin-top: 3px; font-size: .82rem; font-weight: 400; line-height: 1.4; color: var(--text-secondary, #96a7c2); }
+.rent-line-year { font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--text-muted, #7386a3); }
+.rent-never { margin: 10px 0 0; }
+.listing-check { margin: 12px 0; padding: 10px 12px; border-radius: 10px; border-left: 3px solid var(--border-light, #2c3d5c); background: var(--bg-secondary, #0f1729); }
+.listing-check p { margin: 0; }
+.listing-check.check-ok { border-left-color: var(--success, #22c55e); }
+.listing-check.check-warn { border-left-color: var(--warning, #f59e0b); }
+.check-quotes { margin: 6px 0; padding-left: 18px; }
+.check-quotes li { margin: 3px 0; }
+.listing-nopay { margin-top: 8px; }
+.listing-report { margin: 18px 0; }
+.listing-report h2 { font-size: 1.1rem; }
+.listing-report form { margin: 8px 0; }
+.listing-report-more { margin-top: 10px; }
+.listing-report-more summary { cursor: pointer; font-size: .9rem; color: var(--text-secondary, #96a7c2); }
+.listing-report-more .report-form { margin-top: 10px; }
+/* The two changes beside the BLS trend: month on month and year on year, never one number. */
+.rent-cpi-head { margin: 0 0 6px; }
+.rent-moves { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 8px; margin: 8px 0; }
+.rent-move { padding: 8px 10px; border-radius: 10px; background: var(--bg-secondary, #0f1729); border: 1px solid var(--border, #1f2d47); }
+.rent-move-label { display: block; font-size: .78rem; font-weight: 650; color: var(--text-secondary, #96a7c2); }
+.rent-move strong { display: block; font-size: 1.3rem; font-variant-numeric: tabular-nums; color: var(--text-primary, #e6edf7); }
+.rent-move .rent-move-none { font-size: .95rem; color: var(--text-secondary, #96a7c2); }
+.rent-move-note { display: block; font-size: .76rem; color: var(--text-muted, #7386a3); }
+.rent-move strong.rent-move-up { color: var(--warning, #f59e0b); }
+.rent-move strong.rent-move-down { color: var(--success, #22c55e); }
+.listing-report-mini { margin-top: 6px; }
+.listing-report-mini button { font-family: inherit; line-height: inherit; cursor: pointer; background: transparent; }

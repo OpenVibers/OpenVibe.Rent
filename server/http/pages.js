@@ -21,7 +21,7 @@ const cache = require('openvibe-shared/cache-policy');
 const { asyncRouter } = require('./router');
 const { createDiscoveryRoutes, homeJsonLd } = require('./discovery');
 const { sameOrigin } = require('./principal');
-const { html, raw, render, table, notice, time, badge } = require('../render/html');
+const { html, raw, render, table, notice, time, dayText, badge } = require('../render/html');
 const S = require('../render/short');
 const { send } = require('../render/layout');
 const listings = require('../listings/listings');
@@ -32,7 +32,7 @@ const housingPlaces = require('../housing/places');
 const housingHpi = require('../housing/hpi');
 const everywhere = require('../aggregate/everywhere');
 const { mountBoardPages } = require('./board-pages');
-const { mountCityPages, listingFairLine } = require('./city-pages');
+const { mountCityPages, listingRentCheck, listingCity } = require('./city-pages');
 const cityList = require('../aggregate/cities');
 const home = require('../render/home-blocks');
 const { products } = require('openvibe-contracts');
@@ -43,6 +43,16 @@ const HOME_LATEST = 12;
 
 const STATE_KIND = { active: 'ok', hidden: 'warn', expired: '', removed: 'bad' };
 const STATE_TEXT = { active: 'active', hidden: 'hidden — waiting for staff', expired: 'expired', removed: 'removed' };
+// The AI screen's signs, in words a reader knows (server/listings/screen.js names them; never a raw `full_time`-style value).
+const SIGN_TEXT = {
+    payment_before_viewing: 'payment before a viewing',
+    unusual_payment: 'wire, gift card, crypto or a payment app',
+    owner_unavailable: 'an owner who cannot show the place',
+    pressure: 'pressure to decide or pay',
+    personal_data_request: 'identity or bank details up front',
+    off_platform_only: 'only a private channel, no calls or visits',
+};
+const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
 // Only from a clear schema.org type do we publish JSON-LD for a listing; "other" is left without one on purpose.
 const SCHEMA_TYPE = { apartment: 'Apartment', room: 'Room', house: 'House', commercial: 'Place', parking: 'ParkingFacility', equipment: 'Product' };
 
@@ -68,21 +78,39 @@ function createPageRoutes(ctx) {
     const whereOf = (row) => [row.neighbourhood, row.city, row.country].filter(Boolean).join(', ');
     const signInPrompt = (what, next) => html`<div class="notice">${what} <a href="/auth/login?next=${encodeURIComponent(next)}">Sign in with OpenVibe</a>.</div>`;
 
+    /** HUD's Fair Market Rent for a listing's city and size (the card's short line), or null. */
+    const fmrForRow = (row) => {
+        if (!ctx.fmr) return null;
+        const found = listingCity(row);
+        if (!found || found.size.beds > 4) return null;
+        const area = ctx.fmr.forCity(found.city);
+        const amount = area && area.rents[found.size.key];
+        if (amount == null) return null;
+        return { amount, area, size: found.size, read: dayText(area.retrieved_at) };
+    };
+
+    /** The date of a listing's latest check, and whether it found signs (only what the check really says). */
+    const checkOf = (check) => (check ? { flagged: check.action === 'review', date: dayText(check.checked_at) } : null);
+
     /** One listing in a list, as a card: what kind it is at a glance, the title, where, the price on the right. */
     const KIND_MARK = { apartment: 'Apt', room: 'Room', house: 'House', commercial: 'Work', parking: 'Park', equipment: 'Gear', other: 'More' };
-    const listingItem = (row) => html`<li class="listing kind-${listings.KINDS.includes(row.kind) ? row.kind : 'other'}">
+    const listingItem = (row, check = null, canReport = false) => {
+        const f = fmrForRow(row);
+        const c = checkOf(check);
+        return html`<li class="listing kind-${listings.KINDS.includes(row.kind) ? row.kind : 'other'}">
 <span class="listing-mark" aria-hidden="true">${KIND_MARK[row.kind] || 'More'}</span>
 <span class="listing-main">
 <a class="listing-title" href="/listings/${row.id}">${row.title}</a>
 <span class="listing-where">${whereOf(row)}</span>
-<span class="listing-chips"><span class="chip">${listings.KIND_TEXT[row.kind] || row.kind}</span>${row.bedrooms == null ? '' : html`<span class="chip">${row.bedrooms} bedroom${Number(row.bedrooms) === 1 ? '' : 's'}</span>`}${row.available_from ? html`<span class="chip">from ${row.available_from}</span>` : ''}<span class="listing-age">posted ${time(row.created_at)}</span></span>
+<span class="listing-chips"><span class="chip">${listings.KIND_TEXT[row.kind] || row.kind}</span>${row.bedrooms == null ? '' : html`<span class="chip">${row.bedrooms} bedroom${Number(row.bedrooms) === 1 ? '' : 's'}</span>`}${row.available_from ? html`<span class="chip">from ${row.available_from}</span>` : ''}${f ? html`<span class="chip">HUD FMR ${money(f.amount)}</span>` : ''}${c && c.date ? html`<span class="chip">${c.flagged ? 'Flagged' : 'Checked'} ${c.date}</span>` : ''}<span class="listing-age">posted ${time(row.created_at)}</span></span>
 </span>
-<span class="listing-price">${priceOf(row)}</span>
+<div class="listing-price">${priceOf(row)}${canReport ? html`<form class="listing-report-mini" method="post" action="/listings/${row.id}/reports"><input type="hidden" name="reason" value="scam"><button class="chip" type="submit" aria-label="Report this listing" title="Report this listing to OpenVibe staff">Report</button></form>` : ''}</div>
 </li>`;
+    };
 
     /** `empty` may be a plain string (escaped) or an `html` value (a link, say). */
-    const listingList = (rows, { empty = 'Nothing here yet.' } = {}) => (rows.length
-        ? html`<ul class="listing-list">${rows.map(listingItem)}</ul>`
+    const listingList = (rows, { empty = 'Nothing here yet.', checks = new Map(), canReport = null } = {}) => (rows.length
+        ? html`<ul class="listing-list">${rows.map((row) => listingItem(row, checks.get(row.id), Boolean(canReport && canReport(row))))}</ul>`
         : html`<p class="muted">${empty}</p>`);
 
     /** The search box: one GET form, the same fields /listings and a saved search use. */
@@ -170,12 +198,16 @@ ${notice(p && p.detail ? p.detail : 'You are over the limit for this.', 'warn')}
         const amount = Number.isFinite(n) ? n.toLocaleString('en-US', { maximumFractionDigits: Number.isInteger(n) ? 0 : 2 }) : String(row.price);
         return `${amount} ${row.currency}${PERIOD_SHORT[row.period] == null ? '' : PERIOD_SHORT[row.period]}`;
     };
-    /** One listing in a rail: the price in its corner, the city and kind on a line under the title (kit.card sub), the
-     *  full place on hover. */
-    const listingCard = (row) => kit.card({
-        href: `/listings/${row.id}`, title: row.title, type: 'listing', ratio: '4/3', share: false,
-        sub: [row.city, listings.KIND_TEXT[row.kind] || row.kind].filter(Boolean).join(' · '), corner: priceShort(row), peek: whereOf(row), when: row.created_at,
-    });
+    /** One listing in a rail: the price in its corner, HUD's benchmark as the badge above it, the city and kind under
+     *  the title, the full place on hover. */
+    const listingCard = (row) => {
+        const f = fmrForRow(row);
+        return kit.card({
+            href: `/listings/${row.id}`, title: row.title, type: 'listing', ratio: '4/3', share: false,
+            sub: [row.city, listings.KIND_TEXT[row.kind] || row.kind].filter(Boolean).join(' · '),
+            badge: f ? `HUD FMR ${money(f.amount)}` : '', corner: priceShort(row), peek: whereOf(row), when: row.created_at,
+        });
+    };
     /**
      * The home on a phone (the owner's short-pages rule, 2026-10-30): the parts a reader rarely needs — the questions
      * and the other OpenVibe places — are folds, closed on a phone and open where there is room. Both stay in the page.
@@ -518,6 +550,7 @@ ${entries.join('\n')}
         const before = listings.isListingId(req.query.before) ? String(req.query.before) : null;
         const out = await store.search(s, filters, { before });
         const facets = await store.facets(s, filters);
+        const checks = await store.checksFor(s, out.rows.map((row) => row.id));
         const qs = listings.filtersToQuery(filters);
         const more = (extra) => `/listings?${new URLSearchParams({ ...Object.fromEntries(new URLSearchParams(qs)), ...extra }).toString()}`;
         const facetLink = (dim, value) => `/listings?${new URLSearchParams({ ...Object.fromEntries(new URLSearchParams(qs)), [dim]: value }).toString()}`;
@@ -527,6 +560,7 @@ ${entries.join('\n')}
             title: 'Listings',
             description: 'Search apartments, rooms, houses, commercial space, parking and storage, and equipment for rent — posted by people on OpenVibe.Rent.',
             crumbs: [{ label: 'Home', href: '/' }, { label: 'Listings' }],
+            styles: [showcase.STYLESHEET],
             body: html`<h1>Listings</h1>
 <p class="sc-lede">Active listings, newest first. ${out.rows.length} on this page.</p>
 ${searchForm(filters)}
@@ -538,7 +572,7 @@ ${qs ? html`<div class="small"><a href="/listings">Clear all filters</a>${signed
 <input type="hidden" name="q" value="${filters.q || ''}"><input type="hidden" name="kind" value="${filters.kind || ''}"><input type="hidden" name="city" value="${filters.city || ''}"><input type="hidden" name="country" value="${filters.country || ''}"><input type="hidden" name="period" value="${filters.period || ''}"><input type="hidden" name="min" value="${filters.min == null ? '' : filters.min}"><input type="hidden" name="max" value="${filters.max == null ? '' : filters.max}">
 <button class="sc-btn" type="submit">Save this search</button></form>` : ''}</div>` : ''}
 <p class="listing-alert"><a class="sc-btn" href="${alertHref(filters)}">Get alerts for this search</a> <span class="small muted">OpenVibe.Watch follows <a href="${feedPath(filters)}">its feed</a> and tells you when a new listing appears.</span></p>
-${listingList(out.rows, { empty: html`No listing matches those filters. <a href="/listings">Clear them</a> and try again.` })}
+${listingList(out.rows, { empty: html`No listing matches those filters. <a href="/listings">Clear them</a> and try again.`, checks, canReport: (row) => signedIn(req) && row.owner !== requesterOf(req) && row.state === 'active' })}
 ${out.next ? html`<p><a href="${more({ before: out.next })}">Older listings</a>${before ? html` · <a href="/listings${qs ? `?${qs}` : ''}">Newest first</a>` : ''}</p>` : ''}
 </section>`,
         });
@@ -571,15 +605,38 @@ ${values.slice(0, 24).map((v) => html`<a href="${link(dim, v.value)}" class="bad
         };
     }
 
+    /** The detailed report form, folded under the one-tap button: a reason and a note for anything the button misses. */
     const reportForm = (row) => html`<form class="card report-form" method="post" action="/listings/${row.id}/reports">
-<fieldset><legend>Report this listing</legend>
+<fieldset><legend>Tell us what is wrong</legend>
 <div class="field"><label for="reason">Why?</label><select id="reason" name="reason">
 ${listings.REASONS.map((x) => html`<option value="${x}">${x === 'scam' ? 'It looks like a scam' : x === 'wrong' ? 'The details are wrong' : x === 'offensive' ? 'The content is offensive' : 'Something else'}</option>`)}
 </select></div>
 <div class="field"><label for="note">Anything else? (optional)</label><textarea id="note" name="note" rows="3" maxlength="${listings.LIMITS.note}"></textarea></div>
-<button class="sc-btn" type="submit">Report it</button></fieldset>
-<p class="small muted">Three different people reporting a listing hide it from search until OpenVibe staff look at it.</p>
+<button class="sc-btn" type="submit">Send the report</button></fieldset>
 </form>`;
+
+    /** The latest AI screen of a listing, in the words a renter knows, with the date and the quoted words behind a flag. */
+    const checkLine = (check) => {
+        if (!check) return html`<p class="listing-check"><b>Our listing check</b> has not read this listing yet.</p>`;
+        const when = dayText(check.checked_at);
+        const date = when || 'an unrecorded date';
+        if (check.action !== 'review') {
+            return html`<p class="listing-check check-ok"><b>Our listing check</b> read this on ${date}: no scam signs found.</p>`;
+        }
+        const spans = listOf(check.spans).filter((x) => x && x.quote).slice(0, 4);
+        const signals = [...new Set(listOf(check.signals).map((x) => SIGN_TEXT[x]).filter(Boolean))];
+        const reviewed = dayText(check.reviewed_at);
+        const found = signals.length ? `${signals.length === 1 ? 'this sign' : 'these signs'} of a scam: ${signals.join('; ')}` : 'signs of a scam';
+        return html`<div class="listing-check check-warn"><p><b>Our listing check</b> read this on ${date} and found ${found}.</p>
+${spans.length ? html`<ul class="check-quotes">${spans.map((x) => html`<li>“${truncate(x.quote, 200)}”${x.signal && SIGN_TEXT[x.signal] ? html` <span class="muted">— ${SIGN_TEXT[x.signal]}</span>` : ''}</li>`)}</ul>` : ''}
+<p class="small muted">A flag asks <a href="/staff">OpenVibe staff</a> to look; it is not a verdict, and the listing stays up until they decide.${reviewed ? html` Staff looked at it on ${reviewed} and left it up.` : ''}</p></div>`;
+    };
+
+    /** Outcome 5: one tap to the staff report queue, the named path, and the plain line about money. */
+    const oneTapReport = (row) => html`<section class="listing-report" aria-labelledby="h-report"><h2 id="h-report">Something wrong?</h2>
+<form method="post" action="/listings/${row.id}/reports"><input type="hidden" name="reason" value="scam"><button class="sc-btn sc-primary" type="submit">Report this listing</button></form>
+<p class="small muted">One tap sends it to <a href="/staff">OpenVibe staff's report queue</a>: ${listings.HIDE_AT_REPORTS} different reports hide the listing until they look.</p>
+<details class="listing-report-more"><summary>Something else is wrong</summary>${reportForm(row)}</details></section>`;
 
     r.get('/listings/:id', async (req, res) => {
         const row = listings.isListingId(req.params.id) ? await store.get(s, req.params.id) : null;
@@ -592,21 +649,25 @@ ${listings.REASONS.map((x) => html`<option value="${x}">${x === 'scam' ? 'It loo
         }
         const isMine = row.owner === requesterOf(req);
         const contact = row.contact_url || null;
+        const check = await store.getCheck(s, row.id);
         return page(req, res, {
             index: row.state === 'active', cache: (row.state === 'active' && !signedIn(req)) ? PUBLIC_CACHE : null,
             title: truncate(row.title, 70),
             description: truncate(`${listings.KIND_TEXT[row.kind] || row.kind} in ${whereOf(row)} — ${row.description}`, 160),
             crumbs: [{ label: 'Home', href: '/' }, { label: 'Listings', href: '/listings' }, { label: truncate(row.title, 60) }],
             jsonLd: [listingJsonLd(row), seo.jsonLd.breadcrumbs([{ name: SITE_NAME, url: `${base()}/` }, { name: 'Listings', url: `${base()}/listings` }, { name: row.title, url: `${base()}/listings/${row.id}` }])],
-            localStyles: ['css/cities.css'],
+            styles: [showcase.STYLESHEET], localStyles: ['css/cities.css'],
             body: html`<article class="listing-page">
 <h1>${row.title}</h1>
-<p class="listing-facts">${stateBadge(row.state)} <span class="badge">${listings.KIND_TEXT[row.kind] || row.kind}</span> ${priceOf(row)}</p>
+<p class="listing-facts">${stateBadge(row.state)} <span class="badge">${listings.KIND_TEXT[row.kind] || row.kind}</span></p>
+<p class="listing-asking"><span class="listing-asking-label">Asking rent</span> ${priceOf(row)}</p>
 <p class="where"><b>${whereOf(row)}</b>${row.region ? html` <span class="muted small">(${row.region})</span>` : ''}${row.neighbourhood ? '' : html` <span class="muted small">— the neighbourhood is not given</span>`}</p>
 <p class="facts small muted">${row.bedrooms == null ? '' : html`${row.bedrooms} bedroom${Number(row.bedrooms) === 1 ? '' : 's'} · `}${row.available_from ? html`available from ${row.available_from} · ` : ''}posted ${time(row.created_at)} · ${row.state === 'expired' ? 'expired' : 'expires'} ${time(row.expires_at)}</p>
-${listingFairLine(row)}
+${listingRentCheck(row, { fmr: ctx.fmr })}
+${checkLine(check)}
 
 ${notice(listings.SAFETY, 'warn')}
+<p class="small muted listing-nopay">We take no payment from renter or landlord: posting and searching are free, and rent and deposits stay between you two.</p>
 
 <section aria-labelledby="h-about"><h2 id="h-about">About this listing</h2>${textBlock(row.description)}</section>
 
@@ -630,8 +691,8 @@ ${isMine ? html`<section class="sc-sec" aria-labelledby="h-own"><h2 id="h-own">Y
 ${staffViewer(req) ? html`<section class="sc-sec" aria-labelledby="h-staff"><h2 id="h-staff">Staff</h2>
 <p class="small muted">${row.report_count} report${Number(row.report_count) === 1 ? '' : 's'}. <a href="/staff">The report queue</a>.</p></section>` : ''}
 
-${signedIn(req) && !isMine && row.state === 'active' ? reportForm(row) : ''}
-${!signedIn(req) ? html`<div class="notice">Anyone signed in can <a href="/auth/login?next=${encodeURIComponent(`/listings/${row.id}`)}">report this listing</a>. Three different reports hide it until OpenVibe staff look at it.</div>` : ''}
+${signedIn(req) && !isMine && row.state === 'active' ? oneTapReport(row) : ''}
+${!signedIn(req) ? html`<div class="notice">Anyone signed in can <a href="/auth/login?next=${encodeURIComponent(`/listings/${row.id}`)}">report this listing</a>. ${listings.HIDE_AT_REPORTS} different reports hide it until OpenVibe staff look at it.</div>` : ''}
 </article>`,
         });
     });
@@ -926,15 +987,6 @@ ${it.newCount ? html` <span class="badge info">${it.newCount} new</span>` : html
     });
 
     // ── The report queue (staff) ─────────────────────────────
-    // The AI screen's signs, in staff's words (server/listings/screen.js names them).
-    const SIGN_TEXT = {
-        payment_before_viewing: 'payment before a viewing',
-        unusual_payment: 'wire, gift card, crypto or a payment app',
-        owner_unavailable: 'an owner who cannot show the place',
-        pressure: 'pressure to decide or pay',
-        personal_data_request: 'identity or bank details up front',
-        off_platform_only: 'only a private channel, no calls or visits',
-    };
     const listOf = (v) => (Array.isArray(v) ? v : (() => { try { return JSON.parse(v || '[]'); } catch { return []; } })());
 
     r.get('/staff', async (req, res) => {
