@@ -86,8 +86,8 @@
 .rent-move strong { display: block; font-size: 1.3rem; font-variant-numeric: tabular-nums; color: var(--text-primary, #e6edf7); }
 .rent-move .rent-move-none { font-size: .95rem; color: var(--text-secondary, #96a7c2); }
 .rent-move-note { display: block; font-size: .76rem; color: var(--text-muted, #7386a3); }
-.rent-move strong.rent-move-up { color: var(--warning, #f59e0b); }
-.rent-move strong.rent-move-down { color: var(--success, #22c55e); }
+.rent-move strong.rent-move-up { color: var(--warning-text, #f59e0b); }
+.rent-move strong.rent-move-down { color: var(--success-text, #22c55e); }
 .listing-report-mini { margin-top: 6px; }
 .listing-report-mini button { font-family: inherit; line-height: inherit; cursor: pointer; background: transparent; }
 /* A figure's source in its own card (market outcome 5), and the one line on who pays us (outcome 3) */
