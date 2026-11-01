@@ -92,3 +92,7 @@ button.sc-btn.sc-primary { border: 0; }
 /* The sites the search-everywhere form opens (home); the results page has css/everywhere.css. */
 .ew-chips { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 12px 0 6px; }
 .ew-chips li { padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border, #1f2d47); background: var(--bg-card, #131c2e); font-size: .9rem; }
+
+/* A sign-in prompt: the sentence, then the button under it (2026-11-01). */
+.notice.signin-prompt { display: grid; gap: 12px; justify-items: start; }
+.notice.signin-prompt p { margin: 0; }
