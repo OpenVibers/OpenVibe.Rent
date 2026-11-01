@@ -102,7 +102,7 @@ ${city ? html`<p class="small muted fair-how">Within the Census' margin of the m
 <section class="sc-sec" aria-labelledby="h-big"><h2 id="h-big">The largest cities</h2>
 <div class="table-wrap"><table class="city-table"><caption class="sr-only">Typical rents in the 30 largest US cities</caption>
 <thead><tr><th scope="col">City</th><th scope="col">1 bedroom</th><th scope="col">2 bedrooms</th><th scope="col">3 bedrooms</th></tr></thead>
-<tbody>${largest.map((c) => html`<tr><th scope="row"><a href="${c.path}">${placeLabel(c)}</a></th><td>${cell(c, 'b1')}</td><td>${cell(c, 'b2')}</td><td>${cell(c, 'b3')}</td></tr>`)}</tbody></table></div>
+<tbody>${largest.map((c) => html`<tr><th scope="row"><a href="${c.path}">${placeLabel(c)}</a></th><td data-label="1 bedroom">${cell(c, 'b1')}</td><td data-label="2 bedrooms">${cell(c, 'b2')}</td><td data-label="3 bedrooms">${cell(c, 'b3')}</td></tr>`)}</tbody></table></div>
 ${source()}</section>${cpiBlock({ national, metro: null })}`,
         });
     });
@@ -123,7 +123,7 @@ ${source()}</section>${cpiBlock({ national, metro: null })}`,
 <p class="sc-lede">${list.length === 1 ? html`${list[0].name} is ${name}'s largest city` : html`${list.length} cities in ${name}, largest first`}: what rent usually costs, and a page for each with every rental site's search for it.</p>
 <div class="table-wrap"><table class="city-table"><caption class="sr-only">Typical rents by city in ${name}</caption>
 <thead><tr><th scope="col">City</th><th scope="col">Studio</th><th scope="col">1 bedroom</th><th scope="col">2 bedrooms</th><th scope="col">3 bedrooms</th></tr></thead>
-<tbody>${list.map((c) => html`<tr><th scope="row"><a href="${c.path}">${c.name}</a></th><td>${cell(c, 'studio')}</td><td>${cell(c, 'b1')}</td><td>${cell(c, 'b2')}</td><td>${cell(c, 'b3')}</td></tr>`)}</tbody></table></div>
+<tbody>${list.map((c) => html`<tr><th scope="row"><a href="${c.path}">${c.name}</a></th><td data-label="Studio">${cell(c, 'studio')}</td><td data-label="1 bedroom">${cell(c, 'b1')}</td><td data-label="2 bedrooms">${cell(c, 'b2')}</td><td data-label="3 bedrooms">${cell(c, 'b3')}</td></tr>`)}</tbody></table></div>
 ${source()}
 <p><a href="/in">Every state</a> · <a href="/fair">Check a rent</a></p>`,
         });
