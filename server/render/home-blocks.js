@@ -37,6 +37,20 @@ function cityRail({ id, title, more, list, pick, href = (c) => c.path }) {
     }));
 }
 
+/**
+ * The largest cities as bars, the dearest first (2026-11-01): one look compares them, where a rail of cards drew the
+ * same map icon twelve times. Each row is a link to its city: the name and state, a bar as long as its rent against
+ * the dearest, and the figure. `value(c)` is the number the bar measures, `text(c)` how it reads; cities without a
+ * value are left out (their pages say why).
+ */
+function cityBars({ id, title, more, list, value, text, href = (c) => c.path }) {
+    const rows = (list || []).filter((c) => Number.isFinite(value(c)) && value(c) > 0).sort((a, b) => value(b) - value(a));
+    if (!rows.length) return '';
+    const max = value(rows[0]);
+    return html`<div class="home-bars-head"><h2 id="h-${id}">${title}</h2>${more ? html`<a class="home-more" href="${more.href}">${more.label}</a>` : ''}</div>
+<ol class="home-bars" aria-labelledby="h-${id}">${rows.map((c) => html`<li><a href="${href(c)}"><span class="hb-name">${c.name}<small>${c.state}</small></span><span class="hb-bar" aria-hidden="true"><i style="width:${Math.max(6, Math.round((value(c) / max) * 100))}%"></i></span><span class="hb-n">${text(c)}</span></a></li>`)}</ol>`;
+}
+
 /** A part read once, folded: the title says what is inside, `meta` how much. */
 const fold = (id, title, meta, body) => (render(body).trim() ? raw(kit.fold({ id, title, meta, body: render(body) })) : '');
 
@@ -70,4 +84,4 @@ const doors = (list) => html`<p class="home-doors">${raw(list.slice(0, 2).map((d
 /** Cities with at least `min` people, largest first. */
 const bigCities = (min) => cities.cities.filter((c) => c.population >= min).sort((a, b) => b.population - a.population);
 
-module.exports = { STYLES, stats, section, cityRail, fold, ranked, stateChips, siteList, faq, search, doors, bigCities };
+module.exports = { STYLES, stats, section, cityRail, cityBars, fold, ranked, stateChips, siteList, faq, search, doors, bigCities };
