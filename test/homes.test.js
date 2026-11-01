@@ -120,6 +120,12 @@ const housingFetchImpl = async (url) => (new URL(String(url)).pathname.endsWith(
             assert.ok(a.text.includes('<h1>Buying a home in Austin, TX</h1>') && a.text.includes('$555,300') && a.text.includes('±$8,017'));
             assert.ok(a.text.includes('href="/mortgage?price=555300&amp;down=20"') || a.text.includes('href="/mortgage?price=555300&down=20"'), 'the calculator with the median price, the rate left to the person');
             assert.ok(a.text.includes('rents for $1,845 a month') && a.text.includes('/in/tx/austin">Rents and every rental site in Austin'), 'its Rent twin');
+            // Each figure names its source in its own card (market outcome 5), and who pays us is said once (outcome 3).
+            const cardOf = (cls) => a.text.slice(a.text.indexOf(cls), a.text.indexOf('</aside>', a.text.indexOf(cls)));
+            assert.match(cardOf('value-card'), /<p class="fig-src"><a href="https:\/\/www\.census\.gov\/programs-surveys\/acs" rel="noopener">Census American Community Survey 5-year estimates<\/a>, 2020–2024 · the ± is its 90% margin of error<\/p>/);
+            assert.match(cardOf('<h3>Renting instead?'), /class="fig-src">.*2020–2024 · median gross rent, rent plus utilities/);
+            assert.ok(!a.text.includes('class="small muted city-source"'), 'no footnote: the sources are in the cards');
+            assert.match(a.text, /<p class="homes-nofee"><b>Nobody pays us for these links, and we sell no leads\.<\/b>/);
             assert.ok(a.text.includes('https://www.zillow.com/austin-tx/') && a.text.includes('href="https://publicrecords.netronline.com/state/TX"'));
             assert.match(a.text, /<meta name="robots" content="index, follow">/);
             const pa = await homes('/in/ca/palo-alto');

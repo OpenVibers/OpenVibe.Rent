@@ -90,3 +90,9 @@
 .rent-move strong.rent-move-down { color: var(--success, #22c55e); }
 .listing-report-mini { margin-top: 6px; }
 .listing-report-mini button { font-family: inherit; line-height: inherit; cursor: pointer; background: transparent; }
+/* A figure's source in its own card (market outcome 5), and the one line on who pays us (outcome 3) */
+.fig-src { margin: 10px 0 0; padding-top: 8px; border-top: 1px dashed var(--border, #1f2d47); font-size: .78rem; line-height: 1.45; color: var(--text-muted, #7386a3); }
+.fig-src a { color: var(--text-secondary, #96a7c2); }
+.homes-nofee { margin: 14px 0 0; padding: 12px 14px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--success, #22c55e) 35%, var(--border, #1f2d47));
+    background: color-mix(in srgb, var(--success, #22c55e) 7%, transparent); font-size: .9rem; line-height: 1.5; color: var(--text-secondary, #96a7c2); }
+.homes-nofee b { color: var(--text-primary, #e8eef8); }
