@@ -28,6 +28,8 @@ const valueCell = (c) => {
     return v ? html`${v}${c.valueMoe && c.value < 2000001 ? html` <span class="moe">±$${c.valueMoe.toLocaleString('en-US')}</span>` : ''}` : html`<span class="muted">not published</span>`;
 };
 const source = () => html`<p class="small muted city-source">Median value of owner-occupied homes (the owners' own estimate of what their home would sell for), and median gross rent. <a href="${cities.SOURCE.url}" rel="noopener">${cities.SOURCE.name}</a>, ${cities.SOURCE.years} (public domain). The ± is the Census' 90% margin of error.</p>`;
+/** A figure's source in the figure's own card, never a footnote (market outcome 5): who, which table, which years. */
+const sourceLine = (what) => html`<p class="fig-src"><a href="${cities.SOURCE.url}" rel="noopener">${cities.SOURCE.name.replace('U.S. Census Bureau, ', 'Census ')}</a>, ${cities.SOURCE.years}${what ? html` · ${what}` : ''}</p>`;
 const pct = (n) => { const x = Math.round(n * 10) / 10; return `${x > 0 ? '+' : ''}${x.toFixed(1)} %`; };
 
 function mountHomesCityPages(r, { config, s, page }) {
@@ -100,17 +102,16 @@ ${source()}
             body: html`<h1>Buying a home in ${where}</h1>
 <p class="sc-lede">Every for-sale site's search for ${c.name} in one place, what homes here are worth, and what renting costs instead.</p>
 <div class="homes-cards city-homes-cards">
-<aside class="homes-card value-card"><h3>Median home value</h3><p class="value-num">${valueCell(c)}</p><p class="small muted">Half of the owner-occupied homes in ${c.name} are worth less, half more, by their owners' estimate.</p></aside>
+<aside class="homes-card value-card"><h3>Median home value</h3><p class="value-num">${valueCell(c)}</p><p class="small muted">Half of the owner-occupied homes in ${c.name} are worth less, half more, by their owners' own estimate.</p>${sourceLine(c.valueMoe ? 'the ± is its 90% margin of error' : 'table B25077')}</aside>
 ${prices ? html`<aside class="hpi-card"><h3 class="hpi-title">Home prices around ${prices.place}</h3><div class="hpi-stats">${prices.year_change_pct != null ? html`<div class="hpi-stat"><span class="hpi-num${prices.year_change_pct < 0 ? ' hpi-down' : ''}">${pct(prices.year_change_pct)}</span><span class="hpi-label">over the past year</span></div>` : ''}${prices.five_year_change_pct != null ? html`<div class="hpi-stat"><span class="hpi-num${prices.five_year_change_pct < 0 ? ' hpi-down' : ''}">${pct(prices.five_year_change_pct)}</span><span class="hpi-label">over five years</span></div>` : ''}</div>
 <p class="hpi-note">FHFA all-transactions index, ${prices.latest}. An index of repeat sales, not a price. <a href="${prices.source.url}" rel="noopener">Source: ${prices.source.name}</a></p></aside>` : ''}
 <aside class="homes-card"><h3>What would it cost a month?</h3><p><a href="${calc}">Work out the mortgage on ${value && c.value < 2000001 ? `a ${value} home` : 'a home'}</a> with 20% down: put in your own rate, taxes and insurance.</p></aside>
-<aside class="homes-card"><h3>Renting instead?</h3><p>${two ? html`A typical 2-bedroom in ${c.name} rents for ${two} a month. ` : ''}<a href="${rentBase}${c.path}">Rents and every rental site in ${c.name}</a> on OpenVibe.Rent.</p></aside>
+<aside class="homes-card"><h3>Renting instead?</h3><p>${two ? html`A typical 2-bedroom in ${c.name} rents for ${two} a month. ` : ''}<a href="${rentBase}${c.path}">Rents and every rental site in ${c.name}</a> on OpenVibe.Rent.</p>${two ? sourceLine('median gross rent, rent plus utilities') : ''}</aside>
 </div>
-${source()}
 <section class="sc-sec" aria-labelledby="h-sites"><h2 id="h-sites">Homes for sale in ${c.name}, on every site</h2>
 <ul class="everywhere-sites">${links.map((l) => html`<li class="ew-site"><a class="ew-open" href="${l.url}" target="_blank" rel="noopener nofollow"><span class="ew-name">${l.name}</span><span class="ew-host">${hostOf(l.url)} ↗</span></a><p class="ew-best">${l.best}</p></li>`)}</ul>
 <nav class="everywhere-kinds" aria-label="Other things to buy in ${c.name}">${sites.KINDS.filter((k) => k !== 'home').map((k) => html`<a class="ew-kind" href="/search?${new URLSearchParams({ q, kind: k })}">${sites.KIND_TEXT[k]}</a>`)}</nav>
-<p class="small muted">Each link opens that site's own search for ${c.name} in a new tab. Offers, inspections and payments happen with the seller or an agent, never through a stranger's link.</p></section>
+<p class="homes-nofee"><b>Nobody pays us for these links, and we sell no leads.</b> Each opens that site's own search for ${c.name} in a new tab; offers, inspections and payments happen with the seller or an agent there.</p></section>
 <section class="sc-sec" aria-labelledby="h-records"><h2 id="h-records">Records and next steps</h2><ul class="everywhere-here">
 <li><a href="${sites.recordsUrl(c.state)}" target="_blank" rel="noopener nofollow">The county assessor and recorder in ${c.stateName} ↗</a>: owners, past sales, assessed values, taxes and deeds</li>
 <li><a href="${rentBase}/board">Your board</a> on OpenVibe.Rent: keep homes from every site in one list, with your notes</li></ul></section>

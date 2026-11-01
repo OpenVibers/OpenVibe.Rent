@@ -103,7 +103,7 @@ function createHomesRoutes(ctx) {
                 lede: 'Type a place once and Zillow, Realtor.com, Redfin, Homes.com, Trulia and Craigslist search it, next to HUD and Fannie Mae homes, foreclosure auctions and the county\'s records.',
                 aside: { html: render(html`${home.search({ action: '/search', placeholder: 'City or ZIP', kinds: sites.KINDS, kindText: sites.KIND_TEXT, kind: 'home', go: 'Search every site' })}
 ${home.doors([{ href: '/in', label: 'Homes by city' }, { href: '/mortgage', label: 'Mortgage calculator' }])}
-<p class="home-note">Offers, inspections and payments happen with the seller or an agent on each site, never through a stranger's link.</p>`) },
+<p class="home-note">Nobody pays us to send you anywhere, and we sell no leads. Offers, inspections and payments happen with the seller or an agent on each site.</p>`) },
             }))}
 ${home.stats([
         { value: sites.SITES.length, label: 'for-sale, land and auction sites', href: '/search' },
