@@ -52,7 +52,7 @@ function mountHomesCityPages(r, { config, s, page }) {
 <section class="sc-sec" aria-labelledby="h-big"><h2 id="h-big">The largest cities</h2>
 <div class="table-wrap"><table class="city-table"><caption class="sr-only">Median home value and typical 2-bedroom rent in the 30 largest US cities</caption>
 <thead><tr><th scope="col">City</th><th scope="col">Median home value</th><th scope="col">2-bedroom rent</th></tr></thead>
-<tbody>${largest.map((c) => html`<tr><th scope="row"><a href="${c.path}">${c.name}, ${c.state}</a></th><td>${valueCell(c)}</td><td>${cities.rentText(c.rent.b2) || html`<span class="muted">not published</span>`}</td></tr>`)}</tbody></table></div>
+<tbody>${largest.map((c) => html`<tr><th scope="row"><a href="${c.path}">${c.name}, ${c.state}</a></th><td data-label="Median home value">${valueCell(c)}</td><td data-label="2-bedroom rent">${cities.rentText(c.rent.b2) || html`<span class="muted">not published</span>`}</td></tr>`)}</tbody></table></div>
 ${source()}</section>`,
         });
     });
@@ -72,7 +72,7 @@ ${source()}</section>`,
 <p class="sc-lede">${list.length === 1 ? html`${list[0].name} is ${name}'s largest city` : html`${list.length} cities in ${name}, largest first`}: what homes are worth, what renting costs, and a page for each with every for-sale site's search.</p>
 <div class="table-wrap"><table class="city-table"><caption class="sr-only">Median home value and typical rent by city in ${name}</caption>
 <thead><tr><th scope="col">City</th><th scope="col">Median home value</th><th scope="col">2-bedroom rent</th></tr></thead>
-<tbody>${list.map((c) => html`<tr><th scope="row"><a href="${c.path}">${c.name}</a></th><td>${valueCell(c)}</td><td>${cities.rentText(c.rent.b2) || html`<span class="muted">not published</span>`}</td></tr>`)}</tbody></table></div>
+<tbody>${list.map((c) => html`<tr><th scope="row"><a href="${c.path}">${c.name}</a></th><td data-label="Median home value">${valueCell(c)}</td><td data-label="2-bedroom rent">${cities.rentText(c.rent.b2) || html`<span class="muted">not published</span>`}</td></tr>`)}</tbody></table></div>
 ${source()}
 <p><a href="/in">Every state</a> · <a href="/records">Property records</a> · <a href="/mortgage">Mortgage calculator</a></p>`,
         });
