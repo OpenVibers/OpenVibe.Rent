@@ -9,7 +9,7 @@ a.ew-kind:hover { border-color: var(--accent, #3b82f6); }
 .ew-open { display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--text-primary, #e6edf7); }
 .ew-open:focus-visible { outline: 2px solid var(--accent, #3b82f6); outline-offset: 3px; border-radius: 6px; }
 .ew-name { font-weight: 700; font-size: 1.05rem; }
-.ew-host { font-size: .82rem; color: var(--accent-text, var(--accent, #3b82f6)); overflow-wrap: anywhere; }
+.ew-host { font-size: .82rem; color: color-mix(in srgb, var(--accent, #3b82f6) 60%, var(--text-primary, #e6edf7)); overflow-wrap: anywhere; }
 .ew-best { margin: 0; font-size: .9rem; color: var(--text-secondary, #96a7c2); }
 .everywhere-here { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
 @media (prefers-reduced-motion: reduce) { .ew-site, .ew-site:hover { transition: none; transform: none; } }
