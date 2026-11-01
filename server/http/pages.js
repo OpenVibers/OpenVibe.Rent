@@ -231,7 +231,6 @@ ${notice(p && p.detail ? p.detail : 'You are over the limit for this.', 'warn')}
         const big = home.bigCities(250000).filter((c) => c.rent.b2 != null && c.rent.b2 < 3501);
         const byTwo = [...big].sort((a, b) => a.rent.b2 - b.rent.b2);
         const rentRow = (c) => ({ name: `${c.name}, ${c.state}`, href: c.path, value: cityList.rentText(c.rent.b2) });
-        const sizes = (c) => [c.rent.studio != null ? `Studio ${cityList.rentText(c.rent.studio)}` : null, c.rent.b1 != null ? `1 bed ${cityList.rentText(c.rent.b1)}` : null, c.rent.b3 != null ? `3 beds ${cityList.rentText(c.rent.b3)}` : null].filter(Boolean).join(' · ');
         const states = cityList.states().length;
         // The search comes first on a phone: the hero is a line of what it is, then the search, then two doors.
         const hero = showcase.hero({
@@ -265,8 +264,8 @@ ${home.stats([
 ${latest.rows.length ? html`<section class="sc-sec home-sec home-latest">${raw(kit.rail({ id: 'latest', wrap: true, title: `Posted on ${SITE_NAME}`, more: { href: '/listings', label: `See all ${posted}` }, size: 's', items: latest.rows.map(listingCard) }))}
 <p class="home-kinds" aria-label="Listings by kind">${raw(kinds.map((k) => kit.button({ href: `/listings?${listings.filtersToQuery({ kind: k.value })}`, label: `${listings.KIND_TEXT[k.value] || k.value} ${k.count}`, kind: 'quiet', small: true })).join(' '))}</p></section>` : ''}
 
-<section class="sc-sec home-sec home-cities">${home.cityRail({ id: 'cities', title: 'What rent costs in the largest cities', more: { href: '/in', label: `All ${cityList.cities.length} cities` }, list: largest, pick: (c) => ({ corner: c.rent.b2 != null ? cityList.rentText(c.rent.b2) : null, peek: sizes(c) }) })}
-<p class="small muted home-under">The middle rent for a 2-bedroom (Census Bureau, ${cityList.SOURCE.years}); studios, 1- and 3-bedrooms on hover and on each city's page, with every rental site there. <a href="/fair">Check a rent</a></p>
+<section class="sc-sec home-sec home-cities">${home.cityBars({ id: 'cities', title: 'What rent costs in the largest cities', more: { href: '/in', label: `All ${cityList.cities.length} cities` }, list: largest, value: (c) => (c.rent.b2 != null ? Number(c.rent.b2) : NaN), text: (c) => cityList.rentText(c.rent.b2) })}
+<p class="small muted home-under">The middle rent for a 2-bedroom (Census Bureau, ${cityList.SOURCE.years}); studios, 1- and 3-bedrooms on each city's page, with every rental site there. <a href="/fair">Check a rent</a></p>
 ${big.length >= 10 ? home.fold('range', 'Where renting costs least and most', '', html`<p class="small muted">Big cities (250,000 people or more) by the middle 2-bedroom rent. A price far below a city's middle rent is a common sign of a scam.</p><div class="home-ranks">${home.ranked('Lowest 2-bedroom rent', byTwo.slice(0, 6).map(rentRow))}${home.ranked('Highest 2-bedroom rent', byTwo.slice(-6).reverse().map(rentRow))}</div>`) : ''}
 ${home.fold('states', 'Rent by state', `${states} states and territories`, html`<p class="small muted">Typical rents for every city of 50,000 people or more, and each state's largest, with every rental site's search for each.</p>${home.stateChips('/in')}`)}
 </section>

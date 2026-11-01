@@ -97,3 +97,24 @@
 :where(.sc-sec, .cm-sec, .hm-sec, .section) > .hm-fold-block { margin: 0; }
 /* The folds hold the kit's own folds, so they get the room the section gave them. */
 .hm-fold-block .kit-fold, .hm-fold-block .home-site-list { margin: 0; }
+
+/* The largest cities as bars, the dearest first (2026-11-01): the name and state, a bar, the figure. Each row is a link;
+   the bar is the accent at full strength against a quiet track. */
+.home-bars-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 10px; }
+.home-bars-head h2 { margin: 0; }
+.home-more { flex: none; font-size: .9rem; font-weight: 600; }
+.home-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.home-bars a { display: grid; grid-template-columns: minmax(0, 11em) minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 44px; padding: 6px 10px; border-radius: 10px; color: inherit; text-decoration: none; }
+.home-bars a:hover, .home-bars a:focus-visible { background: color-mix(in srgb, var(--text-primary, #fff) 5%, transparent); }
+.hb-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.hb-name small { margin-left: 6px; font-size: .78rem; font-weight: 600; color: var(--text-muted, #7386a3); }
+.hb-bar { height: 10px; border-radius: 999px; background: color-mix(in srgb, var(--text-primary, #fff) 7%, transparent); overflow: hidden; }
+.hb-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent-dark, #1d4ed8), var(--accent, #3b82f6)); }
+.hb-n { font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (max-width: 520px) {
+    .home-bars a { grid-template-columns: minmax(0, 8.5em) minmax(0, 1fr) auto; gap: 8px; padding: 6px 4px; }
+}
+@media (min-width: 900px) {
+    .home-bars { display: block; columns: 2; column-gap: 32px; }
+    .home-bars li { break-inside: avoid; }
+}
