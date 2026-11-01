@@ -76,7 +76,7 @@ function createPageRoutes(ctx) {
     const stateBadge = (st) => badge(STATE_TEXT[st] || st, STATE_KIND[st] || '');
     const priceOf = (row) => html`<b class="price">${listings.priceText(row)}</b>`;
     const whereOf = (row) => [row.neighbourhood, row.city, row.country].filter(Boolean).join(', ');
-    const signInPrompt = (what, next) => html`<div class="notice">${what} <a href="/auth/login?next=${encodeURIComponent(next)}">Sign in with OpenVibe</a>.</div>`;
+    const signInPrompt = (what, next) => html`<div class="notice signin-prompt"><p>${what}</p><p><a class="sc-btn sc-primary" href="/auth/login?next=${encodeURIComponent(next)}">Sign in with OpenVibe</a></p></div>`;
 
     /** HUD's Fair Market Rent for a listing's city and size (the card's short line), or null. */
     const fmrForRow = (row) => {
