@@ -23,21 +23,6 @@ const section = (id, title, lede, body) => (render(body).trim()
     : '');
 
 /**
- * The largest cities as a rail of cards (it scrolls sideways and snaps; wide screens wrap it, home.css): the name,
- * its state, the headline number in the card's corner and the rest on hover. `pick(c)` → { corner, peek };
- * `href(c)` is where the card goes (the city page by default).
- */
-function cityRail({ id, title, more, list, pick, href = (c) => c.path }) {
-    return raw(kit.rail({
-        id, title, more, size: 's', wrap: true,
-        items: (list || []).map((c) => {
-            const p = pick(c);
-            return kit.card({ href: href(c), title: c.name, type: 'map', ratio: '4/3', badge: c.state, corner: p.corner || 'not published', peek: p.peek || '', share: false });
-        }),
-    }));
-}
-
-/**
  * The largest cities as bars, the dearest first (2026-11-01): one look compares them, where a rail of cards drew the
  * same map icon twelve times. Each row is a link to its city: the name and state, a bar as long as its rent against
  * the dearest, and the figure. `value(c)` is the number the bar measures, `text(c)` how it reads; cities without a
@@ -84,4 +69,4 @@ const doors = (list) => html`<p class="home-doors">${raw(list.slice(0, 2).map((d
 /** Cities with at least `min` people, largest first. */
 const bigCities = (min) => cities.cities.filter((c) => c.population >= min).sort((a, b) => b.population - a.population);
 
-module.exports = { STYLES, stats, section, cityRail, cityBars, fold, ranked, stateChips, siteList, faq, search, doors, bigCities };
+module.exports = { STYLES, stats, section, cityBars, fold, ranked, stateChips, siteList, faq, search, doors, bigCities };
