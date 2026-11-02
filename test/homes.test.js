@@ -84,7 +84,9 @@ const housingFetchImpl = async (url) => (new URL(String(url)).pathname.endsWith(
             // The same front-page shape as Rent's: the search first, the cities as a rail of cards with All N, the parts
             // read once folded, the site's places as a launcher.
             assert.ok(r.text.includes('<form class="ovk-find" method="get" action="/search" role="search">'), 'the search is the kit\'s pill');
-            assert.ok(/<section class="ovk-rail[^"]*" id="cities"/.test(r.text) && /<a class="ovk-rail-more" href="\/in">All \d+ cities/.test(r.text), 'the cities are a rail with All N');
+            // Bars, dearest first, as on Rent's home (2026-11-01): a rail of cards drew the same map icon for every city.
+            assert.ok(/<ol class="home-bars" aria-labelledby="h-cities">/.test(r.text) && /<a class="home-more" href="\/in">All \d+ cities/.test(r.text), 'the cities are bars with All N');
+            assert.ok(!/ovk-card--map/.test(r.text), 'no placeholder map cards');
             assert.ok(/<details class="ovk-fold" id="range">/.test(r.text) && /<details class="ovk-fold" id="states">/.test(r.text) && /<details class="ovk-fold" id="sites">/.test(r.text), 'the ranks, the states and the sites are folds');
             assert.ok(/<section class="sc-sec sc-apps-sec" id="places"/.test(r.text) && r.text.includes('href="/records"') && r.text.includes('href="/mortgage"'), 'the places as a launcher');
             assert.ok(r.text.includes('Questions people ask') && /"@type":"FAQPage"/.test(r.text) && /"@type":"ItemList"/.test(r.text), 'the questions shown are the FAQPage; the cities are an ItemList');
