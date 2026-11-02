@@ -63,6 +63,9 @@ function describeCity(c) {
         title: `Renting in ${where}`,
         summary: `Typical rent in ${where}: ${sizes.slice(0, 4).join(' · ')}. Every rental site's search for ${c.name} in one place.`,
         body: [`Renting in ${where}, ${c.stateName}.`, `Median gross rent by size (Census ACS ${cities.SOURCE.years}): ${sizes.join(', ')}.`,
+            // The words people search with: a host name such as Apartments.com is one token to the index, so the plain
+            // words are said too ("apartments in Portland" found no city on 2026-11-02).
+            `Apartments, houses, rooms and studios for rent in ${c.name}.`,
             `Every rental site's search for ${c.name}: Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper and more. Affordable housing, homes for sale and a fair-rent check.`].join('\n'),
         facets: { state: c.state, population: c.population, rent_2br: c.rent.b2 },
         authorship: { mode: 'human' },
@@ -81,6 +84,7 @@ function describeHomesCity(c) {
         title: `Buying a home in ${where}`,
         summary: `${value ? `Median home value in ${where}: ${value}. ` : ''}Every for-sale site's search for ${c.name} in one place${two ? `; renting a typical 2-bedroom costs ${two} a month` : ''}.`,
         body: [`Buying a home in ${where}, ${c.stateName}.`, value ? `Median value of owner-occupied homes (Census ACS ${cities.SOURCE.years}): ${value}.` : '',
+            `Houses, condos and townhomes for sale in ${c.name}.`,
             `Every for-sale site's search for ${c.name}: Zillow, Realtor.com, Homes.com, Trulia and more, government and bank homes, county records and the mortgage on a typical home.`].filter(Boolean).join('\n'),
         facets: { state: c.state, population: c.population, home_value: c.value },
         authorship: { mode: 'human' },
