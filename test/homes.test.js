@@ -115,12 +115,16 @@ const housingFetchImpl = async (url) => (new URL(String(url)).pathname.endsWith(
             assert.match((await homes('/robots.txt')).text, /Sitemap: https:\/\/openvibe\.homes\/sitemap\.xml/);
             assert.ok((await homes('/sitemap.xml')).text.includes('<loc>https://openvibe.homes/mortgage</loc>'));
             // SEO-33: llms.txt, then every page in full.
+            const llms = await homes('/llms.txt');
             const full = await homes('/llms-full.txt');
+            assert.strictEqual(llms.status, 200);
+            assert.ok(llms.text.includes('(https://openvibe.homes/index.md)'), 'home link points at its Markdown twin');
+            assert.ok(llms.text.includes('\n## Optional\n'), 'llms.txt has an Optional section');
             assert.strictEqual(full.status, 200);
             assert.ok(full.text.startsWith('# OpenVibe.Homes'));
             assert.match(full.text, /## The pages in full\n\n### Search every site\nURL: https:\/\/openvibe\.homes\/search\n/);
             assert.ok(full.text.length > 1000, `${full.text.length} characters`);
-            assert.ok(full.text.startsWith((await homes('/llms.txt')).text), 'llms.txt is unchanged and leads it');
+            assert.ok(full.text.startsWith(llms.text), 'llms.txt is unchanged and leads it');
         });
 
         await check('homes by city: the median value (the top code as a range), the mortgage on it, renting there, every site, nearby; in the sitemap', async () => {
