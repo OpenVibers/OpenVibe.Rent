@@ -6,7 +6,8 @@
 // A twin is the page's own render: the host's page router answers the request in-process, signed out, so a twin
 // cannot drift from the page a browser gets and never carries a signed-in person's view. A page behind a person
 // (posting, a listing's edit form, the board, saved searches, the staff queue) or a missing listing has no twin.
-const RENT_TWIN_PATH_RE = /^\/(?:everywhere|housing|listings(?:\/[^/]+)?|safety|updates)?$/;
+// /in (the cities and a city's pages) and /fair (fair-housing rights) since 11-03: llms.txt listed them as HTML pages.
+const RENT_TWIN_PATH_RE = /^\/(?:everywhere|fair|housing|in(?:\/[^/]+(?:\/[^/]+)?)?|listings(?:\/[^/]+)?|safety|updates)?$/;
 const HOMES_TWIN_PATH_RE = /^\/(?:search|records|mortgage|updates|in(?:\/[^/]+(?:\/[^/]+)?)?)?$/;
 
 /** A request as an anonymous browser makes it: no session, no cookies. */

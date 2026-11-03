@@ -100,8 +100,8 @@ function createDiscoveryRoutes(ctx) {
                 { title: 'Start here', links: [
                     { title: 'OpenVibe.Rent', url: abs('/'), note: 'find something to rent, or offer your own' },
                     { title: 'Search every rental site', url: abs('/everywhere'), note: 'one place and filters open Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper and more at once' },
-                    { title: 'Rent by city', url: abs('/in'), html: true, note: 'typical rents by size in 885 US cities (Census ACS), with every rental site\'s search for each city' },
-                    { title: 'Is this rent fair?', url: abs('/fair'), html: true, note: 'a quoted monthly rent against the city\'s median for that size' },
+                    { title: 'Rent by city', url: abs('/in'), note: 'typical rents by size in 885 US cities (Census ACS), with every rental site\'s search for each city' },
+                    { title: 'Is this rent fair?', url: abs('/fair'), note: 'a quoted monthly rent against the city\'s median for that size' },
                     { title: 'Affordable housing', url: abs('/housing'), note: 'public housing, LIHTC and HUD-assisted properties, and where to apply, near you' },
                     { title: 'Listings', url: abs('/listings'), note: 'search by kind, city, country, price and period' },
                     { title: 'Renting safely', url: abs('/safety'), note: 'the rules, including the one about deposits' },
