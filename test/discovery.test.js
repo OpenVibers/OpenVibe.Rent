@@ -53,6 +53,15 @@ const PRIVATE = ['/auth/', '/api/'];
             assert.ok(r.text.startsWith('# OpenVibe.Rent'), 'no title');
             assert.ok(r.text.includes('(https://openvibe.rent/index.md)'), 'home link points at its Markdown twin');
             assert.ok(r.text.includes('(https://openvibe.rent/updates.md)'), 'no updates link');
+            // 11-03: the cities and the fair-rent check have twins too.
+            assert.ok(r.text.includes('(https://openvibe.rent/in.md)') && r.text.includes('(https://openvibe.rent/fair.md)'), 'cities and fair rent at their twins');
+            const { RENT_TWIN_PATH_RE } = require('../server/agent-pages');
+            assert.ok(['/in', '/in/ut', '/in/ut/salt-lake-city', '/fair'].every((p) => RENT_TWIN_PATH_RE.test(p)));
+            for (const p of ['/in.md', '/fair.md']) {
+                const twin = await t.get(p);
+                assert.strictEqual(twin.status, 200, p);
+                assert.match(twin.headers.get('content-type') || '', /^text\/markdown/, p);
+            }
             assert.ok(r.text.includes('(https://openvibe.services)'), 'no pointer to the developer platform');
             assert.ok(r.text.includes('https://openvibe.rent/sitemap.xml'), 'sitemap not listed');
             assert.ok(r.text.includes('(https://openvibe.rent/llms-full.txt)'), 'llms-full.txt not listed');
