@@ -114,6 +114,13 @@ const housingFetchImpl = async (url) => (new URL(String(url)).pathname.endsWith(
             assert.ok(calc.text.includes('About $2,368.56 a month'), calc.text.slice(0, 400));
             assert.match((await homes('/robots.txt')).text, /Sitemap: https:\/\/openvibe\.homes\/sitemap\.xml/);
             assert.ok((await homes('/sitemap.xml')).text.includes('<loc>https://openvibe.homes/mortgage</loc>'));
+            // SEO-33: llms.txt, then every page in full.
+            const full = await homes('/llms-full.txt');
+            assert.strictEqual(full.status, 200);
+            assert.ok(full.text.startsWith('# OpenVibe.Homes'));
+            assert.match(full.text, /## The pages in full\n\n### Search every site\nURL: https:\/\/openvibe\.homes\/search\n/);
+            assert.ok(full.text.length > 1000, `${full.text.length} characters`);
+            assert.ok(full.text.startsWith((await homes('/llms.txt')).text), 'llms.txt is unchanged and leads it');
         });
 
         await check('homes by city: the median value (the top code as a range), the mortgage on it, renting there, every site, nearby; in the sitemap', async () => {

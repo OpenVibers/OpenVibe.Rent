@@ -253,8 +253,37 @@ ${out.hoa ? html`<tr><th scope="row">HOA</th><td>${money(out.hoa)}</td></tr>` : 
         .send(`User-agent: *\nDisallow: /search?\nAllow: /\nSitemap: ${base}/sitemap.xml\n# Agent manifest: ${base}/.well-known/agent.json\n`));
     r.get('/sitemap.xml', (req, res) => res.type('application/xml').set('Cache-Control', cache.htmlHeaders({ maxAge: 3600 }))
         .send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/search', '/records', '/mortgage', ...cityPaths()].map((p) => `<url><loc>${base}${p}</loc></url>`).join('')}</urlset>\n`));
-    r.get('/llms.txt', (req, res) => res.type('text/plain').set('Cache-Control', cache.htmlHeaders({ maxAge: 3600 }))
-        .send(`# OpenVibe.Homes\n\n> Buying a home in the United States: one search opens every for-sale site's own search (Zillow, Realtor.com, Redfin, Homes.com, Trulia, Craigslist), HUD Homestore, Fannie Mae HomePath and foreclosure auctions, with county property records and a mortgage calculator. Listings stay on those sites.\n\n- [Search every site](${base}/search)\n- [Homes by city](${base}/in): the median home value in ${cities.cities.length} US cities (Census ACS), with every for-sale site's search for each\n- [Property records by state](${base}/records)\n- [Mortgage calculator](${base}/mortgage)\n- [Renting: OpenVibe.Rent](${config.baseUrl}/everywhere)\n`));
+    // What llms.txt says; /llms-full.txt adds what each page does (SEO-33: it answered 404).
+    const homesLlms = () => `# OpenVibe.Homes\n\n> Buying a home in the United States: one search opens every for-sale site's own search (Zillow, Realtor.com, Redfin, Homes.com, Trulia, Craigslist), HUD Homestore, Fannie Mae HomePath and foreclosure auctions, with county property records and a mortgage calculator. Listings stay on those sites.\n\n- [Search every site](${base}/search)\n- [Homes by city](${base}/in): the median home value in ${cities.cities.length} US cities (Census ACS), with every for-sale site's search for each\n- [Property records by state](${base}/records)\n- [Mortgage calculator](${base}/mortgage)\n- [Renting: OpenVibe.Rent](${config.baseUrl}/everywhere)\n`;
+    r.get('/llms.txt', (req, res) => res.type('text/plain').set('Cache-Control', cache.htmlHeaders({ maxAge: 3600 })).send(homesLlms()));
+    r.get('/llms-full.txt', (req, res) => res.type('text/plain').set('Cache-Control', cache.htmlHeaders({ maxAge: 3600 })).send(`${homesLlms()}
+## The pages in full
+
+### Search every site
+URL: ${base}/search
+
+One search opens every for-sale site's own search for a place: Zillow, Realtor.com, Redfin, Homes.com, Trulia, Craigslist, HUD Homestore, Fannie Mae HomePath and foreclosure auctions. Each link goes to that site's own search; the listings stay on those sites.
+
+### Homes by city
+URL: ${base}/in
+
+The median home value in ${cities.cities.length} US cities, from the Census Bureau's American Community Survey, with every for-sale site's search for each city.
+
+### Property records by state
+URL: ${base}/records
+
+Where each state's counties publish their property records, linked at the source.
+
+### Mortgage calculator
+URL: ${base}/mortgage
+
+A mortgage payment calculator.
+
+### Renting
+URL: ${config.baseUrl}/everywhere
+
+Renting is OpenVibe.Rent: one search across the rental sites.
+`));
 
     // The rest of the Homes host: not found here (assets, /shared and /auth are served before this router).
     r.use((req, res) => page(req, res, { title: 'Not found', body: html`<h1>Not found</h1><p>No page here. <a href="/">OpenVibe.Homes</a>.</p>` }, 404));
