@@ -106,11 +106,14 @@ function createDiscoveryRoutes(ctx) {
                     { title: 'Listings', url: abs('/listings'), note: 'search by kind, city, country, price and period' },
                     { title: 'Renting safely', url: abs('/safety'), note: 'the rules, including the one about deposits' },
                 ] },
+                // A JSON API is what an agent came for, not something to skip (AGT-5 review).
+                { title: 'API', links: [
+                    { title: 'Listings (JSON)', url: abs('/api/v1/listings'), note: 'active listings, newest first, with facets' },
+                    { title: 'Search every rental site (JSON)', url: abs('/api/v1/everywhere?q=salt+lake+city&kind=apartment'), note: 'the geocoded place and the search link on every rental site' },
+                    { title: 'Affordable housing (JSON)', url: abs('/api/v1/housing?q=washington'), note: 'the geocoded place and normalised HUD housing results near it' },
+                ] },
             ],
             optional: [
-                { title: 'Listings (JSON)', url: abs('/api/v1/listings'), note: 'active listings, newest first, with facets' },
-                { title: 'Search every rental site (JSON)', url: abs('/api/v1/everywhere?q=salt+lake+city&kind=apartment'), note: 'the geocoded place and the search link on every rental site' },
-                { title: 'Affordable housing (JSON)', url: abs('/api/v1/housing?q=washington'), note: 'the geocoded place and normalised HUD housing results near it' },
                 { title: 'Sitemap', url: abs('/sitemap.xml') },
                 { title: 'Full text for language models', url: abs('/llms-full.txt') },
                 { title: 'Release metadata (JSON)', url: abs('/release.json') },
