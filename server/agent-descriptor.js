@@ -11,6 +11,7 @@ module.exports = {
     home: 'https://openvibe.rent',
     site: 'openvibe.rent',
     api: '/api/v1',
+    openapi: '/openapi.json',
     policy: {
         auth: ['none', 'Network OIDC'],
     },
