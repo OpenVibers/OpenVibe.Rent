@@ -254,7 +254,27 @@ ${out.hoa ? html`<tr><th scope="row">HOA</th><td>${money(out.hoa)}</td></tr>` : 
     r.get('/sitemap.xml', (req, res) => res.type('application/xml').set('Cache-Control', cache.htmlHeaders({ maxAge: 3600 }))
         .send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/search', '/records', '/mortgage', ...cityPaths()].map((p) => `<url><loc>${base}${p}</loc></url>`).join('')}</urlset>\n`));
     // What llms.txt says; /llms-full.txt adds what each page does (SEO-33: it answered 404).
-    const homesLlms = () => `# OpenVibe.Homes\n\n> Buying a home in the United States: one search opens every for-sale site's own search (Zillow, Realtor.com, Redfin, Homes.com, Trulia, Craigslist), HUD Homestore, Fannie Mae HomePath and foreclosure auctions, with county property records and a mortgage calculator. Listings stay on those sites.\n\n- [Search every site](${base}/search)\n- [Homes by city](${base}/in): the median home value in ${cities.cities.length} US cities (Census ACS), with every for-sale site's search for each\n- [Property records by state](${base}/records)\n- [Mortgage calculator](${base}/mortgage)\n- [Renting: OpenVibe.Rent](${config.baseUrl}/everywhere)\n`;
+    const homesLlms = () => seo.llmsTxt({
+        name: 'OpenVibe.Homes',
+        summary: HOMES_SUMMARY,
+        details: 'Listings stay on the sites this search opens. Nobody pays OpenVibe for the links and we sell no leads.',
+        markdown: true,
+        base,
+        sections: [
+            { title: 'Start here', links: [
+                { title: 'OpenVibe.Homes', url: `${base}/` },
+                { title: 'Search every site', url: `${base}/search` },
+                { title: 'Homes by city', url: `${base}/in`, note: `the median home value in ${cities.cities.length} US cities (Census ACS), with every for-sale site's search for each` },
+                { title: 'Property records by state', url: `${base}/records` },
+                { title: 'Mortgage calculator', url: `${base}/mortgage` },
+            ] },
+        ],
+        optional: [
+            { title: 'Sitemap', url: `${base}/sitemap.xml` },
+            { title: 'Full text for language models', url: `${base}/llms-full.txt` },
+            { title: 'Renting: OpenVibe.Rent', url: `${config.baseUrl}/everywhere`, note: 'one search across the rental sites' },
+        ],
+    });
     r.get('/llms.txt', (req, res) => res.type('text/plain').set('Cache-Control', cache.htmlHeaders({ maxAge: 3600 })).send(homesLlms()));
     r.get('/llms-full.txt', (req, res) => res.type('text/plain').set('Cache-Control', cache.htmlHeaders({ maxAge: 3600 })).send(`${homesLlms()}
 ## The pages in full

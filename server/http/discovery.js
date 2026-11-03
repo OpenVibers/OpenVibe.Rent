@@ -94,30 +94,33 @@ function createDiscoveryRoutes(ctx) {
             name: SITE_NAME,
             summary: DESCRIPTION,
             details: 'OpenVibe.Rent is a rental aggregator. Search everywhere takes one place and set of filters and opens the matching search on every major rental site (Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper, Rent.com, RentCafe, Apartment List, PadMapper, HotPads, Trulia, Realtor.com, and for rooms, stays, commercial space, parking, storage and cars the sites that cover them); the listings open on those sites, in the person\'s own browser. Rent by city has a page for 885 US cities with the typical (median gross) rent by number of bedrooms from the Census Bureau\'s American Community Survey, and /fair checks any quoted rent against it. The board keeps listings from any site in one list, saved searches send alerts through OpenVibe.Watch, and people post listings here too (a city and a neighbourhood, never a street address). Affordable housing comes from U.S. HUD open data (public domain). There are no payments, no deposits and no messaging on OpenVibe.Rent: never pay before you have seen the place and signed an agreement. Every page is server-rendered and readable without JavaScript.',
+            markdown: true,
+            base: site,
             sections: [
                 { title: 'Start here', links: [
                     { title: 'OpenVibe.Rent', url: abs('/'), note: 'find something to rent, or offer your own' },
                     { title: 'Search every rental site', url: abs('/everywhere'), note: 'one place and filters open Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper and more at once' },
-                    { title: 'Rent by city', url: abs('/in'), note: 'typical rents by size in 885 US cities (Census ACS), with every rental site\'s search for each city' },
-                    { title: 'Is this rent fair?', url: abs('/fair'), note: 'a quoted monthly rent against the city\'s median for that size' },
+                    { title: 'Rent by city', url: abs('/in'), html: true, note: 'typical rents by size in 885 US cities (Census ACS), with every rental site\'s search for each city' },
+                    { title: 'Is this rent fair?', url: abs('/fair'), html: true, note: 'a quoted monthly rent against the city\'s median for that size' },
                     { title: 'Affordable housing', url: abs('/housing'), note: 'public housing, LIHTC and HUD-assisted properties, and where to apply, near you' },
                     { title: 'Listings', url: abs('/listings'), note: 'search by kind, city, country, price and period' },
                     { title: 'Renting safely', url: abs('/safety'), note: 'the rules, including the one about deposits' },
-                    { title: `What shipped on ${SITE_NAME}`, url: abs('/updates') },
                 ] },
-                { title: 'Machine-readable', links: [
+                // A JSON API is what an agent came for, not something to skip (AGT-5 review).
+                { title: 'API', links: [
                     { title: 'Listings (JSON)', url: abs('/api/v1/listings'), note: 'active listings, newest first, with facets' },
                     { title: 'Search every rental site (JSON)', url: abs('/api/v1/everywhere?q=salt+lake+city&kind=apartment'), note: 'the geocoded place and the search link on every rental site' },
                     { title: 'Affordable housing (JSON)', url: abs('/api/v1/housing?q=washington'), note: 'the geocoded place and normalised HUD housing results near it' },
-                    { title: 'Sitemap', url: abs('/sitemap.xml') },
-                    { title: 'Full text for language models', url: abs('/llms-full.txt') },
-                    { title: 'Release metadata (JSON)', url: abs('/release.json') },
                 ] },
-                { title: 'Elsewhere', links: [
-                    { title: 'OpenVibe.Network', url: 'https://openvibe.network', note: 'accounts, apps and grants' },
-                    { title: 'OpenVibe.Watch', url: 'https://openvibe.watch', note: 'where alerts for a saved search will come from later' },
-                    { title: 'OpenVibe.Services', url: 'https://openvibe.services', note: 'apps, keys and capability grants' },
-                ] },
+            ],
+            optional: [
+                { title: 'Sitemap', url: abs('/sitemap.xml') },
+                { title: 'Full text for language models', url: abs('/llms-full.txt') },
+                { title: 'Release metadata (JSON)', url: abs('/release.json') },
+                { title: 'OpenVibe.Network', url: 'https://openvibe.network', note: 'accounts, apps and grants' },
+                { title: 'OpenVibe.Watch', url: 'https://openvibe.watch', note: 'where alerts for a saved search will come from later' },
+                { title: 'OpenVibe.Services', url: 'https://openvibe.services', note: 'apps, keys and capability grants' },
+                { title: `What shipped on ${SITE_NAME}`, url: abs('/updates') },
             ],
         }));
     });

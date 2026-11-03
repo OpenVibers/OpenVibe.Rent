@@ -51,10 +51,12 @@ const PRIVATE = ['/auth/', '/api/'];
             assert.match(r.headers.get('content-type'), /^text\/plain/);
             assert.match(r.headers.get('cache-control') || '', /public, max-age=\d+/);
             assert.ok(r.text.startsWith('# OpenVibe.Rent'), 'no title');
-            assert.ok(r.text.includes('(https://openvibe.rent/updates)'), 'no updates link');
+            assert.ok(r.text.includes('(https://openvibe.rent/index.md)'), 'home link points at its Markdown twin');
+            assert.ok(r.text.includes('(https://openvibe.rent/updates.md)'), 'no updates link');
             assert.ok(r.text.includes('(https://openvibe.services)'), 'no pointer to the developer platform');
             assert.ok(r.text.includes('https://openvibe.rent/sitemap.xml'), 'sitemap not listed');
             assert.ok(r.text.includes('(https://openvibe.rent/llms-full.txt)'), 'llms-full.txt not listed');
+            assert.ok(r.text.includes('\n## Optional\n'), 'llms.txt has an Optional section');
             for (const p of ['/auth/']) assert.ok(!r.text.includes(`https://openvibe.rent${p}`), `private path in llms.txt: ${p}`);
         });
 
