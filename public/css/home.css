@@ -121,3 +121,8 @@
     .home-bars { display: block; columns: 2; column-gap: 32px; }
     .home-bars li { break-inside: avoid; }
 }
+
+/* Touch pointers: a state chip answers a finger at 44 px (fleet phone sweep, 2026-11-05); a mouse keeps the 36 px pill. */
+@media (pointer: coarse) {
+    .home-chips a { min-height: 44px; }
+}
