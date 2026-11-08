@@ -91,16 +91,12 @@ function renderPage(o) {
         links: NAV.map((l) => ({ label: l.label, href: l.href, ...(l.icon ? { icon: l.icon } : {}), ...(l.more ? { more: true } : {}), active: pathNow === l.href || pathNow.startsWith(`${l.href}/`) })),
         appBar: true,   // phones: the places with icons as the bottom tab bar (Shared 4.20)
         history: { type: 'page', title: o.title || SITE_NAME },
-        // On Homes the account lives on OpenVibe.Rent: its session probe answers signed out, and sign-in goes there.
-        ...(homes ? {
-            loginUrl: `${o.config.baseUrl}/auth/login?next=/board`,
-        } : {
-            silentLogin: `${o.config.baseUrl}/auth/login?silent=1&next={url}`,
-            sessionUrl: '/auth/me',
-            loginUrl: '/auth/login?next={path}',           // filled from the current page (boost moves between pages)
-            logoutUrl: '/auth/logout?next={path}',   // Sign out in the shared navbar ends this site's session too
-            notificationsRealtime: true,             // the bell hears new notifications over OpenVibe.Events (Shared 1.22.0)
-        }),
+        silentLogin: '/auth/login?silent=1&next={url}',
+        sessionUrl: '/auth/me',
+        loginUrl: '/auth/login?next={path}',
+        logoutUrl: '/auth/logout?next={path}',
+        notificationsRealtime: true,
+
     };
     const footer = { service: 'rent', variant: 'full', mount: '#ov-footer', brandName: SITE_NAME, updates: homes ? `${o.config.baseUrl}/updates` : '/updates' };
     const account = homes

@@ -66,10 +66,20 @@ const housingFetchImpl = async (url) => (new URL(String(url)).pathname.endsWith(
         require('http').get({ hostname: u.hostname, port: u.port, path: u.pathname + u.search, headers: { Host: 'openvibe.homes' } }, (res) => {
             const chunks = [];
             res.on('data', (c) => chunks.push(c));
-            res.on('end', () => resolve({ status: res.statusCode, text: Buffer.concat(chunks).toString('utf8') }));
+            res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, text: Buffer.concat(chunks).toString('utf8') }));
         }).on('error', reject);
     });
     try {
+        await check('Homes owns its OAuth callback and silent session', async () => {
+            const started = await homes('/auth/login?silent=1&next=%2Fmortgage');
+            assert.strictEqual(started.status, 302);
+            const u = new URL(started.headers.location);
+            assert.strictEqual(u.searchParams.get('redirect_uri'), 'https://openvibe.homes/auth/callback');
+            assert.strictEqual(u.searchParams.get('prompt'), 'none');
+            const page = await homes('/');
+            assert.ok(page.text.includes('"silentLogin":"/auth/login?silent=1&next={url}"'));
+            assert.ok(page.text.includes('"sessionUrl":"/auth/me"'));
+        });
         await check('the Homes host: its own home page and name; Rent\'s host is untouched', async () => {
             const r = await homes('/');
             assert.strictEqual(r.status, 200);
