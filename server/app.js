@@ -58,6 +58,10 @@ async function createApp(opts = {}) {
 
     const keys = createKeyStore({ config, fetchImpl, log });
     const sso = createSso({ config, keys, fetchImpl, now: s.now, log });
+    const homesSso = createSso({ config: { ...config, baseUrl: config.homes.url,
+        oauth: { ...config.oauth, redirectUri: `${config.homes.url}/auth/callback` } }, keys, fetchImpl, now: s.now, log });
+    const homesAuthHost = new URL(config.homes.url).hostname;
+
     const principal = createPrincipal({ config, keys });
     const ctx = { config, s, keys, sso, principal, log };
     // Listing pages in OpenVibe.Search (./search-index.js): every store write names the listing it touched (s.search),
@@ -168,7 +172,8 @@ async function createApp(opts = {}) {
     // ── Sign-in (OAuth2 + PKCE client of OpenVibe.Network) ──
     // /auth/me is the navbar's who-is-signed-in read on every page, so it is not counted with sign-ins: 60 page views in 15 minutes made a signed-in visitor look signed out.
     app.use('/auth/', rateLimit({ windowMs: 15 * 60_000, limit: 60, skip: (req) => req.path === '/me', standardHeaders: true, legacyHeaders: false }));
-    app.use('/auth', sso.routes());
+    const rentAuth = sso.routes(), homesAuth = homesSso.routes();
+    app.use('/auth', (req, res, next) => (req.hostname === homesAuthHost ? homesAuth : rentAuth)(req, res, next));
     { const legal = require('openvibe-shared/legal'); app.get(legal.PATHS, legal.handler({ id: 'rent', service: 'rent', host: 'openvibe.rent', name: 'OpenVibe.Rent', profile: 'ugc' })); }
 
     // ── OpenVibe.Events → this service (loopback only) ──────
