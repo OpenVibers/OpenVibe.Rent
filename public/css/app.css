@@ -62,7 +62,6 @@ form.inline { display: inline; }
   .listing-mark { width: 44px; height: 44px; }
   .listing-price { grid-column: 2; text-align: left; }
 }
-@media (prefers-reduced-motion: reduce) { .listing { transition: none; } }
 
 /* The search: one panel, the big box first, the filters in a grid. */
 .search-form { display: grid; gap: 12px; margin: 14px 0 0; padding: 18px; border-radius: 16px; border: 1px solid var(--border, #1f2d47); background: var(--bg-card, #131c2e); }
