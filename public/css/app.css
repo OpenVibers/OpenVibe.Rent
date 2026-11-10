@@ -64,6 +64,12 @@ form.inline { display: inline; }
 }
 @media (prefers-reduced-motion: reduce) { .listing { transition: none; } }
 
+/* The site's other forms use the same .field wrapper as the search (post a listing, report one): draw their controls
+   from the same theme, or the browser paints them. Before .search-form so the search's own sizes still win. */
+.field input, .field select, .field textarea { font: inherit; width: 100%; min-width: 0; box-sizing: border-box; min-height: 40px; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--border-light, #2c3d5c); background: var(--bg-secondary, #0f1729); color: var(--text-primary, #e6edf7); }
+.field textarea { resize: vertical; }
+.field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible { outline: 2px solid color-mix(in srgb, var(--accent, #3b82f6) 70%, transparent); outline-offset: 1px; border-color: var(--accent, #3b82f6); }
+
 /* The search: one panel, the big box first, the filters in a grid. */
 .search-form { display: grid; gap: 12px; margin: 14px 0 0; padding: 18px; border-radius: 16px; border: 1px solid var(--border, #1f2d47); background: var(--bg-card, #131c2e); }
 .search-form .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
