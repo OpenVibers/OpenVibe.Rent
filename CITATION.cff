@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use OpenVibe.Rent in research or a product, cite it as below."
+title: openvibe-rent
+type: software
+authors:
+  - name: OpenVibe
+    alias: OpenVibers
+    website: https://openvibe.network
+repository-code: https://github.com/OpenVibers/OpenVibe.Rent
+url: https://openvibe.rent
+license: AGPL-3.0-only
+abstract: "Rental search for homes, rooms, workspace and equipment, with safety rules and no payments, at openvibe.rent."
+keywords:
+  - openvibe
+  - apartments
+  - housing
+  - marketplace
+  - real-estate

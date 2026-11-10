@@ -2,6 +2,9 @@
 
 > Every rental site, one search.
 
+**Live site:** https://openvibe.rent · **API docs:** https://openvibe.services · **For AI:** https://openvibe.rent/llms.txt
+**Run it:** `npm ci && npm run dev` (Node 22 or newer) · **Tests:** `npm test`
+
 **Status:** a rental aggregator. **Search everywhere** (`/everywhere`) opens every major rental site's own search for one
 place and set of filters. People post listings here too, anyone searches them, and three reports hide one until staff
 look. "Affordable housing near you" shows HUD's public-domain housing data (public housing, LIHTC, HUD-assisted multifamily,
