@@ -108,10 +108,10 @@ function createPageRoutes(ctx) {
 </li>`;
     };
 
-    /** `empty` may be a plain string (escaped) or an `html` value (a link, say). */
-    const listingList = (rows, { empty = 'Nothing here yet.', checks = new Map(), canReport = null } = {}) => (rows.length
+    /** `empty` is the kit's empty state: a title, one line and the one thing to do next. */
+    const listingList = (rows, { empty = { title: 'Nothing here yet', text: 'No listing matches yet.' }, checks = new Map(), canReport = null } = {}) => (rows.length
         ? html`<ul class="listing-list">${rows.map((row) => listingItem(row, checks.get(row.id), Boolean(canReport && canReport(row))))}</ul>`
-        : html`<p class="muted">${empty}</p>`);
+        : raw(kit.empty({ icon: 'grid', ...empty })));
 
     /** The search box: one GET form, the same fields /listings and a saved search use. */
     function searchForm(f = {}, { big = false } = {}) {
@@ -328,7 +328,7 @@ ${raw(showcase.cta({ title: 'Have something to rent out?', text: 'Post it in a m
             description: 'One search across Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper, Rent.com and more: apartments, houses, rooms, furnished stays, commercial space, parking, storage and cars.',
             index: !v.q, cache: v.q ? null : PUBLIC_CACHE,
             crumbs: [{ label: 'Home', href: '/' }, { label: 'Search everywhere' }],
-            styles: [showcase.STYLESHEET], localStyles: ['css/everywhere.css'],
+            styles: [showcase.STYLESHEET, 'kit.css'], localStyles: ['css/everywhere.css'],
             body: html`<h1>${label ? html`${everywhere.KIND_TEXT[v.kind]} near ${label}` : 'Search every rental site'}</h1>
 <p class="sc-lede">One search, every site: ${SITE_NAME} opens Craigslist, Facebook Marketplace, Zillow, Apartments.com, Zumper and more at the place and filters you choose, next to the listings people post here and affordable housing from HUD.</p>
 ${everywhereForm(v)}
@@ -338,7 +338,7 @@ ${place ? html`<nav class="everywhere-kinds" aria-label="What to look for">${eve
 ${links.length ? html`<ul class="everywhere-sites">${links.map((l) => html`<li class="ew-site"><a class="ew-open" href="${l.url}" target="_blank" rel="noopener nofollow"><span class="ew-name">${l.name}</span><span class="ew-host">${hostOf(l.url)} ↗</span></a><p class="ew-best">${l.best}</p></li>`)}</ul>
 <p class="small muted">Each link opens that site's own search for this place in a new tab, with your filters where the site takes them. Listings, messages and payments stay on that site: never pay a deposit before you have seen a place (<a href="/safety">the safety rules</a>).</p>
 <p class="ew-board">Found one you like? <a href="/board">Keep it on your board</a>: every listing from every site in one list, with your notes and how far you got.</p>`
-        : html`<p class="muted">No site in the list covers this place and kind yet. The list starts with the United States; more countries come next.</p>`}
+        : raw(kit.empty({ icon: 'search', title: 'No site covers this place yet', text: 'The list starts with the United States; more countries come next.', action: { href: '/listings', label: 'Browse listings here', icon: 'grid' } }))}
 </section>
 <section class="sc-sec" aria-labelledby="h-here"><h2 id="h-here">On ${SITE_NAME}</h2><ul class="everywhere-here">
 ${own ? html`<li><a href="${own}">Listings people posted here near ${place.city}</a></li>` : ''}
@@ -559,7 +559,7 @@ ${entries.join('\n')}
             title: 'Listings',
             description: 'Search apartments, rooms, houses, commercial space, parking and storage, and equipment for rent — posted by people on OpenVibe.Rent.',
             crumbs: [{ label: 'Home', href: '/' }, { label: 'Listings' }],
-            styles: [showcase.STYLESHEET],
+            styles: [showcase.STYLESHEET, 'kit.css'],
             body: html`<h1>Listings</h1>
 <p class="sc-lede">Active listings, newest first. ${out.rows.length} on this page.</p>
 ${searchForm(filters)}
@@ -567,11 +567,11 @@ ${searchForm(filters)}
 <section class="sc-sec" aria-labelledby="h-results"><h2 id="h-results">Results</h2>
 ${facetList('Kind', 'kind', facets.kind, filters.kind, facetLink)}
 ${facetList('Country', 'country', facets.country, filters.country, facetLink)}
-${qs ? html`<div class="small"><a href="/listings">Clear all filters</a>${signedIn(req) ? html` · <form class="inline" method="post" action="/saved">
+${qs ? html`<div class="small">${raw(kit.button({ href: '/listings', label: 'Clear all filters', icon: 'grid', kind: 'quiet', small: true }))}${signedIn(req) ? html` · <form class="inline" method="post" action="/saved">
 <input type="hidden" name="q" value="${filters.q || ''}"><input type="hidden" name="kind" value="${filters.kind || ''}"><input type="hidden" name="city" value="${filters.city || ''}"><input type="hidden" name="country" value="${filters.country || ''}"><input type="hidden" name="period" value="${filters.period || ''}"><input type="hidden" name="min" value="${filters.min == null ? '' : filters.min}"><input type="hidden" name="max" value="${filters.max == null ? '' : filters.max}">
 <button class="sc-btn" type="submit">Save this search</button></form>` : ''}</div>` : ''}
 <p class="listing-alert"><a class="sc-btn" href="${alertHref(filters)}">Get alerts for this search</a> <span class="small muted">OpenVibe.Watch follows <a href="${feedPath(filters)}">its feed</a> and tells you when a new listing appears.</span></p>
-${listingList(out.rows, { empty: html`No listing matches those filters. <a href="/listings">Clear them</a> and try again.`, checks, canReport: (row) => signedIn(req) && row.owner !== requesterOf(req) && row.state === 'active' })}
+${listingList(out.rows, { empty: { title: 'No listing matches those filters', text: 'Try different filters, or clear them and look again.', action: { href: '/listings', label: 'Clear the filters', icon: 'grid' } }, checks, canReport: (row) => signedIn(req) && row.owner !== requesterOf(req) && row.state === 'active' })}
 ${out.next ? html`<p><a href="${more({ before: out.next })}">Older listings</a>${before ? html` · <a href="/listings${qs ? `?${qs}` : ''}">Newest first</a>` : ''}</p>` : ''}
 </section>`,
         });
@@ -920,6 +920,7 @@ ${row.state === 'removed' ? '' : html`<form class="inline" method="post" action=
         return page(req, res, {
             title: 'Saved searches',
             crumbs: [{ label: 'Home', href: '/' }, { label: 'Saved searches' }],
+            styles: [showcase.STYLESHEET, 'kit.css'],
             body: html`<h1>Saved searches</h1>
 <p class="sc-lede">Each one is a set of filters with the count of listings that have appeared since you last looked. Save one from <a href="/listings">the listings page</a>.</p>
 ${items.length
@@ -930,7 +931,7 @@ ${it.newCount ? html` <span class="badge info">${it.newCount} new</span>` : html
 <a class="sc-btn" href="${alertHref(it.filters)}">Get alerts</a>
 <form class="inline" method="post" action="/saved/${it.row.id}/delete"><button class="sc-btn" type="submit">Forget it</button></form>
 </li>`)}</ul>`
-                : html`<p class="muted">No saved searches yet. Search the listings, then save the filters to see what is new each time you come back.</p>`}
+                : raw(kit.empty({ icon: 'search', title: 'No saved searches yet', text: 'Search the listings, then save the filters to see what is new each time you come back.', action: { href: '/listings', label: 'Search the listings', icon: 'search' } }))}
 <div class="notice">Get alerts opens OpenVibe.Watch with the search's feed filled in: Watch checks it and tells you (or runs your agent) when a listing that fits appears. Every search has its feed at <code>/listings.atom</code> with the same filters.</div>`,
         });
     });
