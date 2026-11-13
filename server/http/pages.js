@@ -13,6 +13,7 @@
  */
 const express = require('express');
 const ovServe = require('openvibe-shared/serve');
+const glyphs = require('openvibe-shared/glyphs');
 const frame = require('openvibe-shared/frame');
 const showcase = require('openvibe-shared/showcase');
 const kit = require('openvibe-shared/kit');
@@ -335,7 +336,7 @@ ${everywhereForm(v)}
 ${problem ? notice(problem, 'warn') : ''}
 ${place ? html`<nav class="everywhere-kinds" aria-label="What to look for">${everywhere.KINDS.map((k) => (k === v.kind ? html`<span class="ew-kind on" aria-current="page">${everywhere.KIND_TEXT[k]}</span>` : html`<a class="ew-kind" href="${tab(k)}">${everywhere.KIND_TEXT[k]}</a>`))}</nav>
 <section class="sc-sec" aria-labelledby="h-sites"><h2 id="h-sites">On every site</h2>
-${links.length ? html`<ul class="everywhere-sites">${links.map((l) => html`<li class="ew-site"><a class="ew-open" href="${l.url}" target="_blank" rel="noopener nofollow"><span class="ew-name">${l.name}</span><span class="ew-host">${hostOf(l.url)} ↗</span></a><p class="ew-best">${l.best}</p></li>`)}</ul>
+${links.length ? html`<ul class="everywhere-sites">${links.map((l) => html`<li class="ew-site"><a class="ew-open" href="${l.url}" target="_blank" rel="noopener nofollow"><span class="ew-name">${l.name}</span><span class="ew-host">${hostOf(l.url)} ${raw(glyphs.svg('open', { size: 14 }))}</span></a><p class="ew-best">${l.best}</p></li>`)}</ul>
 <p class="small muted">Each link opens that site's own search for this place in a new tab, with your filters where the site takes them. Listings, messages and payments stay on that site: never pay a deposit before you have seen a place (<a href="/safety">the safety rules</a>).</p>
 <p class="ew-board">Found one you like? <a href="/board">Keep it on your board</a>: every listing from every site in one list, with your notes and how far you got.</p>`
         : raw(kit.empty({ icon: 'search', title: 'No site covers this place yet', text: 'The list starts with the United States; more countries come next.', action: { href: '/listings', label: 'Browse listings here', icon: 'grid' } }))}

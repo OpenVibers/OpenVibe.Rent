@@ -9,6 +9,7 @@
  * budget (rent.board.write) and its same-origin rule, through pages.js's budgeted() and sameSite().
  */
 const showcase = require('openvibe-shared/showcase');
+const glyphs = require('openvibe-shared/glyphs');
 const { html, raw, notice, time } = require('../render/html');
 const listings = require('../listings/listings');
 const board = require('../board/board');
@@ -57,7 +58,7 @@ ${fields(v)}
         const price = priceOf(row);
         const statusId = `st-${row.id}`;
         return html`<li class="bd-item" id="${row.id}">
-<div class="bd-head"><a class="bd-title" href="${row.url}" target="_blank" rel="noopener nofollow ugc">${row.title}<span class="bd-out" aria-hidden="true"> ↗</span></a>${price ? html`<b class="bd-price">${price}</b>` : ''}</div>
+<div class="bd-head"><a class="bd-title" href="${row.url}" target="_blank" rel="noopener nofollow ugc">${row.title}<span class="bd-out" aria-hidden="true"> ${raw(glyphs.svg('open', { size: 14 }))}</span></a>${price ? html`<b class="bd-price">${price}</b>` : ''}</div>
 <div class="bd-meta"><span class="chip">${board.siteName(row.site)}</span>${row.place ? html`<span class="chip">${row.place}</span>` : ''}<span class="small muted">kept ${time(row.created_at)}${row.updated_at !== row.created_at ? html` · changed ${time(row.updated_at)}` : ''}</span></div>
 ${row.notes ? html`<p class="txt bd-notes">${row.notes}</p>` : ''}
 <div class="bd-actions">

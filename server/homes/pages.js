@@ -18,6 +18,7 @@
  */
 const express = require('express');
 const cache = require('openvibe-shared/cache-policy');
+const glyphs = require('openvibe-shared/glyphs');
 const showcase = require('openvibe-shared/showcase');
 const kit = require('openvibe-shared/kit');
 const seo = require('openvibe-shared/seo');
@@ -171,13 +172,13 @@ ${searchForm(v)}
 ${problem ? notice(problem, 'warn') : ''}
 ${inUs ? html`<nav class="everywhere-kinds" aria-label="What to look for">${sites.KINDS.map((k) => (k === v.kind ? html`<span class="ew-kind on" aria-current="page">${sites.KIND_TEXT[k]}</span>` : html`<a class="ew-kind" href="${tab(k)}">${sites.KIND_TEXT[k]}</a>`))}</nav>
 <section class="sc-sec" aria-labelledby="h-sites"><h2 id="h-sites">On every site</h2>
-${links.length ? html`<ul class="everywhere-sites">${links.map((l) => html`<li class="ew-site"><a class="ew-open" href="${l.url}" target="_blank" rel="noopener nofollow"><span class="ew-name">${l.name}</span><span class="ew-host">${hostOf(l.url)} ↗</span></a><p class="ew-best">${l.best}</p></li>`)}</ul>
+${links.length ? html`<ul class="everywhere-sites">${links.map((l) => html`<li class="ew-site"><a class="ew-open" href="${l.url}" target="_blank" rel="noopener nofollow"><span class="ew-name">${l.name}</span><span class="ew-host">${hostOf(l.url)} ${raw(glyphs.svg('open', { size: 14 }))}</span></a><p class="ew-best">${l.best}</p></li>`)}</ul>
 <p class="small muted">Each link opens that site's own search in a new tab, with your filters where the site takes them. Offers, inspections and payments happen with the seller or an agent, never through a stranger's link.</p>` : raw(kit.empty({ icon: 'search', title: 'No site covers this place yet', text: 'The list starts with the United States; more places come next.', action: { href: '/listings', label: 'Browse homes on OpenVibe.Rent', icon: 'grid' } }))}
 <p class="ew-board">Found one? <a href="${config.baseUrl}/board">Keep it on your board</a> on OpenVibe.Rent: homes from every site in one list, with your notes.</p></section>
 <section class="sc-sec homes-context" aria-labelledby="h-context"><h2 id="h-context">Around ${label}</h2><div class="homes-cards">
 ${prices ? html`<aside class="hpi-card"><h3 class="hpi-title">Home prices around ${prices.place}</h3><div class="hpi-stats">${prices.year_change_pct != null ? html`<div class="hpi-stat"><span class="hpi-num${prices.year_change_pct < 0 ? ' hpi-down' : ''}">${pct(prices.year_change_pct)}</span><span class="hpi-label">over the past year</span></div>` : ''}${prices.five_year_change_pct != null ? html`<div class="hpi-stat"><span class="hpi-num${prices.five_year_change_pct < 0 ? ' hpi-down' : ''}">${pct(prices.five_year_change_pct)}</span><span class="hpi-label">over five years</span></div>` : ''}</div>
 <p class="hpi-note">FHFA all-transactions index, ${prices.latest}. An index of repeat sales, not a price. <a href="${prices.source.url}" rel="noopener">Source: ${prices.source.name}</a></p></aside>` : ''}
-${records ? html`<aside class="homes-card"><h3>Property records in ${STATE_TITLE[place.state] || place.state}</h3><p>Owners, past sales, assessed values, taxes and deeds are kept by each county. <a href="${records}" target="_blank" rel="noopener nofollow">Find the county's assessor and recorder ↗</a></p></aside>` : ''}
+${records ? html`<aside class="homes-card"><h3>Property records in ${STATE_TITLE[place.state] || place.state}</h3><p>Owners, past sales, assessed values, taxes and deeds are kept by each county. <a href="${records}" target="_blank" rel="noopener nofollow">Find the county's assessor and recorder ${raw(glyphs.svg('open', { size: 14 }))}</a></p></aside>` : ''}
 <aside class="homes-card"><h3>What would it cost a month?</h3><p><a href="/mortgage${v.max ? `?price=${encodeURIComponent(v.max)}` : ''}">The mortgage calculator</a>: principal, interest, taxes, insurance and HOA.</p></aside>
 <aside class="homes-card"><h3>Renting instead?</h3><p><a href="${config.baseUrl}/everywhere?${new URLSearchParams({ q: v.q || '' })}">Every rental site near ${place.city}</a>, and affordable housing from HUD, on OpenVibe.Rent.</p></aside>
 </div></section>` : ''}`,
