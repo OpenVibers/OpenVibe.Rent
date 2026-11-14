@@ -16,6 +16,7 @@
  */
 
 const seo = require('openvibe-shared/seo');
+const glyphs = require('openvibe-shared/glyphs');
 const showcase = require('openvibe-shared/showcase');
 const cache = require('openvibe-shared/cache-policy');
 const { html, raw, dayText } = require('../render/html');
@@ -166,7 +167,7 @@ ${source()}`}</section>
 </div>
 ${cpiBlock(cpi)}
 <section class="sc-sec" aria-labelledby="h-sites"><h2 id="h-sites">Apartments in ${c.name}, on every site</h2>
-<ul class="everywhere-sites">${links.map((l) => html`<li class="ew-site"><a class="ew-open" href="${l.url}" target="_blank" rel="noopener nofollow"><span class="ew-name">${l.name}</span><span class="ew-host">${hostOf(l.url)} ↗</span></a><p class="ew-best">${l.best}</p></li>`)}</ul>
+<ul class="everywhere-sites">${links.map((l) => html`<li class="ew-site"><a class="ew-open" href="${l.url}" target="_blank" rel="noopener nofollow"><span class="ew-name">${l.name}</span><span class="ew-host">${hostOf(l.url)} ${raw(glyphs.svg('open', { size: 14 }))}</span></a><p class="ew-best">${l.best}</p></li>`)}</ul>
 <nav class="everywhere-kinds" aria-label="Other things to rent in ${c.name}">${everywhere.KINDS.filter((k) => k !== 'apartment').map((k) => html`<a class="ew-kind" href="${kindHref(k)}">${everywhere.KIND_TEXT[k]}</a>`)}</nav>
 <p class="small muted">Each link opens that site's own search for ${c.name} in a new tab. Never pay a deposit before you have seen a place (<a href="/safety">renting safely</a>).</p></section>
 <section class="sc-sec" aria-labelledby="h-here"><h2 id="h-here">Also for ${c.name}</h2><ul class="everywhere-here">

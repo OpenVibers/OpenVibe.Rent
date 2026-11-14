@@ -13,9 +13,10 @@
  */
 
 const seo = require('openvibe-shared/seo');
+const glyphs = require('openvibe-shared/glyphs');
 const showcase = require('openvibe-shared/showcase');
 const cache = require('openvibe-shared/cache-policy');
-const { html } = require('../render/html');
+const { html, raw } = require('../render/html');
 const cities = require('../aggregate/cities');
 const sites = require('./sites');
 const housingHpi = require('../housing/hpi');
@@ -109,11 +110,11 @@ ${prices ? html`<aside class="hpi-card"><h3 class="hpi-title">Home prices around
 <aside class="homes-card"><h3>Renting instead?</h3><p>${two ? html`A typical 2-bedroom in ${c.name} rents for ${two} a month. ` : ''}<a href="${rentBase}${c.path}">Rents and every rental site in ${c.name}</a> on OpenVibe.Rent.</p>${two ? sourceLine('median gross rent, rent plus utilities') : ''}</aside>
 </div>
 <section class="sc-sec" aria-labelledby="h-sites"><h2 id="h-sites">Homes for sale in ${c.name}, on every site</h2>
-<ul class="everywhere-sites">${links.map((l) => html`<li class="ew-site"><a class="ew-open" href="${l.url}" target="_blank" rel="noopener nofollow"><span class="ew-name">${l.name}</span><span class="ew-host">${hostOf(l.url)} ↗</span></a><p class="ew-best">${l.best}</p></li>`)}</ul>
+<ul class="everywhere-sites">${links.map((l) => html`<li class="ew-site"><a class="ew-open" href="${l.url}" target="_blank" rel="noopener nofollow"><span class="ew-name">${l.name}</span><span class="ew-host">${hostOf(l.url)} ${raw(glyphs.svg('open', { size: 14 }))}</span></a><p class="ew-best">${l.best}</p></li>`)}</ul>
 <nav class="everywhere-kinds" aria-label="Other things to buy in ${c.name}">${sites.KINDS.filter((k) => k !== 'home').map((k) => html`<a class="ew-kind" href="/search?${new URLSearchParams({ q, kind: k })}">${sites.KIND_TEXT[k]}</a>`)}</nav>
 <p class="homes-nofee"><b>Nobody pays us for these links, and we sell no leads.</b> Each opens that site's own search for ${c.name} in a new tab; offers, inspections and payments happen with the seller or an agent there.</p></section>
 <section class="sc-sec" aria-labelledby="h-records"><h2 id="h-records">Records and next steps</h2><ul class="everywhere-here">
-<li><a href="${sites.recordsUrl(c.state)}" target="_blank" rel="noopener nofollow">The county assessor and recorder in ${c.stateName} ↗</a>: owners, past sales, assessed values, taxes and deeds</li>
+<li><a href="${sites.recordsUrl(c.state)}" target="_blank" rel="noopener nofollow">The county assessor and recorder in ${c.stateName} ${raw(glyphs.svg('open', { size: 14 }))}</a>: owners, past sales, assessed values, taxes and deeds</li>
 <li><a href="${rentBase}/board">Your board</a> on OpenVibe.Rent: keep homes from every site in one list, with your notes</li></ul></section>
 ${near.length ? html`<section class="sc-sec" aria-labelledby="h-near"><h2 id="h-near">Nearby in ${c.stateName}</h2><ul class="city-chips">${near.map((n) => html`<li><a href="${n.path}"><span>${n.name}</span>${n.value != null ? html`<span class="chip-rent">${cities.valueText(n.value)}</span>` : ''}</a></li>`)}</ul></section>` : ''}`,
         });

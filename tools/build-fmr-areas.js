@@ -75,7 +75,7 @@ async function main() {
         names,
     };
     fs.writeFileSync(OUT, `${JSON.stringify(out)}\n`);
-    console.log(`${Object.keys(areas).length} cities in ${Object.keys(names).length} areas; ${missing} without an area → ${OUT}`);
+    console.log(`${Object.keys(areas).length} cities in ${Object.keys(names).length} areas; ${missing} without an area; written to ${OUT}`);
 }
 
 main().catch((err) => { console.error(err); process.exit(1); });
