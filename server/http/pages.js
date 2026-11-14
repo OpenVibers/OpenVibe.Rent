@@ -216,7 +216,7 @@ ${notice(p && p.detail ? p.detail : 'You are over the limit for this.', 'warn')}
     function foldedHome(body) {
         let out = String(body);
         out = S.foldSection(out, 'id="h-faq"', 'faq-fold');
-        out = S.foldSection(out, 'class="sc-sec sc-network"', 'network-fold');
+        out = S.foldSection(out, 'class="sc-sec sc-network', 'network-fold');   // a prefix: Shared 4.256.0 adds sc-onenet
         return out;
     }
 
