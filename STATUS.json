@@ -8,11 +8,11 @@
   "port": "5010",
   "domain": "openvibe.rent",
   "contracts": "openvibe-contracts v0.419.0",
-  "sdk": "openvibe-sdk v0.167.0",
+  "sdk": "openvibe-sdk v0.168.0",
   "shared": "openvibe-shared v4.247.0",
   "packages": [
     "openvibe-contracts v0.419.0",
-    "openvibe-sdk v0.167.0",
+    "openvibe-sdk v0.168.0",
     "openvibe-shared v4.247.0",
     "openvibe-publishing v1.7.0"
   ],
@@ -61,5 +61,5 @@
     "home-price context (FHFA)"
   ],
   "deployment": "openvibe-ovh: unit openvibe-rent.service on 127.0.0.1:5010 (git checkout /opt/openvibe.rent, env /etc/openvibe/rent.env, database ov_rent), deployed with `sudo ovhost deploy rent`; public at https://openvibe.rent since 2026-10-08.",
-  "updated": "2026-11-13"
+  "updated": "2026-11-14"
 }
