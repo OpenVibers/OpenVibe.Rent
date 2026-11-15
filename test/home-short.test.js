@@ -29,7 +29,10 @@ const { boot, check, done } = require('./helpers/boot');
         await check('the CSS guard: a fold is a 44 px target and only the phone rules change the page', async () => {
             const css = fs.readFileSync(path.join(__dirname, '..', 'public', 'css', 'home.css'), 'utf8');
             assert.match(css, /\.hm-fold-block > summary \{[^}]*min-height: 44px/, 'a fold is a 44 px target');
-            assert.match(css, /\.hm-fold-block > summary span \{ display: none; \}/, 'the "tap to open" hint is hidden where there is room');
+            assert.match(css, /\.hm-fold-block > summary > span \{ display: none; \}/, 'the count is hidden where there is room');
+            // Only the count: the heading's own spans stay (11-15, the browser check: a heading's text in a span was hidden
+            // on a computer, and the fold's summary had no name).
+            assert.ok(!/\.hm-fold-block > summary span \{/.test(css), 'no rule reaches the spans inside the heading');
         });
     } finally {
         await t.close();
