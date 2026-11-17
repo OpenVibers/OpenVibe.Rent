@@ -20,7 +20,7 @@ const { boot, check, done } = require('./helpers/boot');
             }
             // The content of the folds stays in the page.
             assert.match(r.text, /Which sites does it search\?/);
-            assert.match(r.text, /One account\. \d+ sites\.|More on OpenVibe|Part of OpenVibe/, 'the network section ("One account. N sites." since openvibe-shared 4.256.0)');
+            assert.match(r.text, /One account\.\s*(?:<span[^>]*>)?\d+(?:<\/span>)?\s*sites\.|More on OpenVibe|Part of OpenVibe/, 'the network section ("One account. N sites." since openvibe-shared 4.256.0)');
             // The sections they replace are still there.
             assert.ok(r.text.includes('id="h-faq"'));
             assert.match(r.text, /class="sc-sec sc-network[ "]/);
