@@ -41,3 +41,5 @@
 .hpi-label { font-size: .82rem; color: var(--text-secondary, #96a7c2); }
 .hpi-note { margin: 10px 0 0; font-size: .82rem; line-height: 1.5; color: var(--text-secondary, #96a7c2); }
 .hpi-note a { white-space: nowrap; }
+/* Design rule 201: the intro is one line on a computer, at most two on a phone. */
+@media (max-width: 640px) { .housing-lede { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; } }
